@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding = "Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="9.00"
+	Name="PACKAGE"
+	ProjectGUID="{D9E662F5-54C4-4B37-B7B9-DCDF5A2C18B8}"
+	Keyword="Win32Proj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="PACKAGE.dir\Debug"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				ExceptionHandling="0"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Debug\&quot;"
+				AssemblerListingLocation="Debug"
+				ObjectFile="$(IntDir)\"
+/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Debug\&quot;"/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Debug\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+CommandLine="cd C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\ogre\CmakeResults_32b&#x0D;&#x0A;C:&#x0D;&#x0A;&quot;C:\Program Files (x86)\CMake 2.8\bin\cpack.exe&quot; -C $(OutDir) --config ./CPackConfig.cmake&#x0D;&#x0A;if errorlevel 1 goto VCReportError"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="PACKAGE.dir\Release"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				ExceptionHandling="0"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Release\&quot;"
+				AssemblerListingLocation="Release"
+				ObjectFile="$(IntDir)\"
+/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Release\&quot;"/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;Release\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+CommandLine="cd C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\ogre\CmakeResults_32b&#x0D;&#x0A;C:&#x0D;&#x0A;&quot;C:\Program Files (x86)\CMake 2.8\bin\cpack.exe&quot; -C $(OutDir) --config ./CPackConfig.cmake&#x0D;&#x0A;if errorlevel 1 goto VCReportError"/>
+		</Configuration>
+		<Configuration
+			Name="MinSizeRel|Win32"
+			OutputDirectory="MinSizeRel"
+			IntermediateDirectory="PACKAGE.dir\MinSizeRel"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				ExceptionHandling="0"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"
+				AssemblerListingLocation="MinSizeRel"
+				ObjectFile="$(IntDir)\"
+/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+CommandLine="cd C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\ogre\CmakeResults_32b&#x0D;&#x0A;C:&#x0D;&#x0A;&quot;C:\Program Files (x86)\CMake 2.8\bin\cpack.exe&quot; -C $(OutDir) --config ./CPackConfig.cmake&#x0D;&#x0A;if errorlevel 1 goto VCReportError"/>
+		</Configuration>
+		<Configuration
+			Name="RelWithDebInfo|Win32"
+			OutputDirectory="RelWithDebInfo"
+			IntermediateDirectory="PACKAGE.dir\RelWithDebInfo"
+			ConfigurationType="10"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				ExceptionHandling="0"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"
+				AssemblerListingLocation="RelWithDebInfo"
+				ObjectFile="$(IntDir)\"
+/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="..\..\..\OgreMain\include;..\..\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\OIS;C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\Dependencies\include\Cg;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;;..\..\..\OgreMain\include\Threading;..\..\..\Samples\Common\include;..\..\..\Components\RTShaderSystem\include;..\..\..\Samples\Grass\include;"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="USE_RTSHADER_SYSTEM,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"
+CommandLine="cd C:\Developpement\Dev\Ogre\GTS_v2_0_vs2008\ogre\CmakeResults_32b&#x0D;&#x0A;C:&#x0D;&#x0A;&quot;C:\Program Files (x86)\CMake 2.8\bin\cpack.exe&quot; -C $(OutDir) --config ./CPackConfig.cmake&#x0D;&#x0A;if errorlevel 1 goto VCReportError"/>
+		</Configuration>
+	</Configurations>
+	<Files>
+		<Filter
+			Name="CMake Rules"
+			Filter="">
+			<File
+				RelativePath="CMakeFiles\PACKAGE_force.rule">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description=" "
+					CommandLine="cd .&#x0D;&#x0A;if errorlevel 1 goto VCReportError"
+					AdditionalDependencies="CMakeFiles\PACKAGE_force.rule"
+					Outputs="CMakeFiles\PACKAGE_force"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description=" "
+					CommandLine="cd .&#x0D;&#x0A;if errorlevel 1 goto VCReportError"
+					AdditionalDependencies="CMakeFiles\PACKAGE_force.rule"
+					Outputs="CMakeFiles\PACKAGE_force"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="MinSizeRel|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description=" "
+					CommandLine="cd .&#x0D;&#x0A;if errorlevel 1 goto VCReportError"
+					AdditionalDependencies="CMakeFiles\PACKAGE_force.rule"
+					Outputs="CMakeFiles\PACKAGE_force"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="RelWithDebInfo|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description=" "
+					CommandLine="cd .&#x0D;&#x0A;if errorlevel 1 goto VCReportError"
+					AdditionalDependencies="CMakeFiles\PACKAGE_force.rule"
+					Outputs="CMakeFiles\PACKAGE_force"/>
+				</FileConfiguration>
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

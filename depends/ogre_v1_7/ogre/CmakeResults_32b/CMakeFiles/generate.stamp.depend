@@ -1,0 +1,110 @@
+# CMake generation dependency list for this directory.
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMakeLists.txt
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeSystem.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeCCompiler.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeCXXCompiler.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeGenericSystem.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/Platform/Windows.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/Platform/WindowsPaths.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeCInformation.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/Platform/Windows-cl.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeCPlatform.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeCXXPlatform.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/Platform/cl.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CmakeResults_32b/CMakeFiles/CMakeRCCompiler.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeRCInformation.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeCXXInformation.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CMakeDependentOption.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CheckCXXCompilerFlag.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CheckCXXSourceCompiles.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/MacroLogFeature.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/OgreConfigTargets.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/PreprocessorUtils.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/OgreGetVersion.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/PreprocessorUtils.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/version.txt.in
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CheckTypeSize.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CheckIncludeFile.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Dependencies.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindZLIB.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindZZip.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindFreeImage.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindFreetype.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindOpenGL.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindOpenGLES.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindDirectX.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindCg.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindBoost.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindBoost.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindBoost.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindPOCO.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindTBB.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindOIS.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindDoxygen.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPackageMessage.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packages/FindCppUnit.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Utils/FindPkgMacros.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/FindPkgConfig.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/InstallDependencies.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/debug/OIS_d.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/OIS.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/OIS.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/OIS.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/debug/cg.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/cg.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/cg.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/Dependencies/bin/release/cg.dll
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/PrepareThreadingOptions.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/ConfigureBuild.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/OgreBuildSettings.h.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/InstallResources.cmake
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/resources.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/plugins.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/quakemap.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples_d.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Templates/samples.cfg.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/Packaging.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/CPack.cmake
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Templates/CPackConfig.cmake.in
+C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Templates/CPackConfig.cmake.in
+C:/Developpement/Dev/Ogre/GTS_v2_0_vs2008/ogre/CMake/FeatureSummary.cmake

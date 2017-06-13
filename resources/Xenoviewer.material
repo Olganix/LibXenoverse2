@@ -1,0 +1,292 @@
+
+
+material White
+{
+	technique
+	{
+		pass
+		{
+			ambient 1.0 1.0 1.0 1.0
+			diffuse 1.0 1.0 1.0 1.0
+			specular 1.0 1.0 1.0 1.0
+			emissive 1.0 1.0 1.0 1.0
+		}
+	}
+}
+
+material White_Light
+{
+	technique
+	{
+		pass
+		{
+			ambient 0.3 0.3 0.3 1.0
+			diffuse 1.0 1.0 1.0 1.0
+			specular 1.0 1.0 1.0 1.0
+			emissive 0.0 0.0 0.0 0.0
+		}
+	}
+}
+
+
+material Red
+{
+	technique
+	{
+		pass
+		{
+			ambient 1.0 0.0 0.0 1.0
+			diffuse 1.0 0.0 0.0 1.0
+			specular 1.0 0.0 0.0 1.0
+			emissive 1.0 0.0 0.0 1.0
+		}
+	}
+}
+
+material Green
+{
+	technique
+	{
+		pass
+		{
+			ambient 0.0 1.0 0.0 1.0
+			diffuse 0.0 1.0 0.0 1.0
+			specular 0.0 1.0 0.0 1.0
+			emissive 0.0 1.0 0.0 1.0
+		}
+	}
+}
+
+material Blue
+{
+	technique
+	{
+		pass
+		{
+			ambient 0.0 0.0 1.0 1.0
+			diffuse 0.0 0.0 1.0 1.0
+			specular 0.0 0.0 1.0 1.0
+			emissive 0.0 0.0 1.0 1.0
+		}
+	}
+}
+
+
+
+material Yellow
+{
+	technique
+	{
+		pass
+		{
+			ambient 1.0 1.0 0.0 1.0
+			diffuse 1.0 1.0 0.0 1.0
+			specular 1.0 1.0 0.0 1.0
+			emissive 1.0 1.0 0.0 1.0
+		}
+	}
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+material VertexColours
+{
+	technique
+	{
+		pass
+		{
+			ambient vertexcolour
+			diffuse vertexcolour
+			specular vertexcolour
+			lighting off
+			cull_hardware none
+			cull_software none
+			//separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+			depth_write off
+			depth_check off
+      //transparent_sorting force
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+material Normal
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref normal_vs
+      {
+      }
+
+      fragment_program_ref normal_ps
+      {
+      }
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+material Tangent
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref tangent_vs
+      {
+      }
+
+      fragment_program_ref tangent_ps
+      {
+      }
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord_vs
+      {
+      }
+
+      fragment_program_ref texCoord_ps
+      {
+      }
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord2
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord2_vs
+      {
+      }
+
+      fragment_program_ref texCoord2_ps
+      {
+      }
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+material Color
+{
+	technique
+	{
+		pass
+		{
+			depth_write off
+      separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      
+			vertex_program_ref color_vs
+      {
+      }
+
+      fragment_program_ref color_ps
+      {
+      }
+		}
+	}
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+material SymmetrySolved
+{
+	technique
+	{
+		pass
+		{
+			lighting off
+      depth_check off
+			
+			/*
+      fragment_program_ref symmetrySolved_ps
+      {
+      }
+      */
+
+			texture_unit
+      {
+          texture empty.png
+          tex_address_mode clamp
+          filtering linear linear none
+          colour_op replace
+          tex_coord_set 0
+      }
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TestOpacity
+{
+	technique
+	{
+		pass
+		{
+			depth_write off
+			cull_hardware none
+      separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      
+			vertex_program_ref testOpacity_vs
+      {
+      }
+
+      fragment_program_ref testOpacity_ps
+      {
+      }
+		}
+	}
+}
+
+
+
+
+/*
+////////////////////////////////////////////////////////////////////////////////
+material Test
+{
+	technique
+	{
+		pass
+		{
+			depth_write off
+			cull_hardware none
+      separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      
+			vertex_program_ref test_vs
+      {
+      }
+
+      fragment_program_ref test_ps
+      {
+      }
+      
+      texture_unit ImageSampler0
+			{
+				texture DATA000.png
+			}
+      
+		}
+	}
+}
+*/

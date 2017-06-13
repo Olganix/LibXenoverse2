@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Qt Resources">
+      <UniqueIdentifier>{71957dcb-2e8d-463b-8574-0cba0a4fa5fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qt-gradient-editor">
+      <UniqueIdentifier>{e5b0f245-5627-4d54-a382-612467ba226b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qt-gradient-editor\gradLib">
+      <UniqueIdentifier>{a7197b47-7e85-43cf-8635-75d5fad39341}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SkeletonDebug">
+      <UniqueIdentifier>{fdc291c9-b05c-48eb-9b17-e5340d5a8bde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SkeletonDebug">
+      <UniqueIdentifier>{7b9bd3b6-9ba9-4d15-99c4-7d7184c5390d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OgreParts">
+      <UniqueIdentifier>{47988729-b5a3-45a8-93f5-4872290085f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\OgreParts">
+      <UniqueIdentifier>{86c08dfa-db8f-479e-add9-c9577a306f9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Interface">
+      <UniqueIdentifier>{8825e7a6-9783-4fb2-b425-15327a2dd4f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Interface">
+      <UniqueIdentifier>{bcbd2a2f-d7f5-410e-b677-403691e1c2e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Interface\FileTree">
+      <UniqueIdentifier>{32781d9c-e455-43dd-a3cc-d87f2f3b9a83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Interface\FileTree">
+      <UniqueIdentifier>{d83c6d40-c126-47a9-adb1-8e6809c0b92b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qt-gradient-editor\gradLib\src\gradLib\arrow.h">
+      <Filter>qt-gradient-editor\gradLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectTextDisplay.h">
+      <Filter>Header Files\SkeletonDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonDebug.h">
+      <Filter>Header Files\SkeletonDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="EANOgre.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="EMBOgre.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="EMDOgre.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="OgreCommon.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="ESKOgre.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="EMMOgre.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="EMDRenderObjectListener.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="FileTreeItemWidget.h">
+      <Filter>Header Files\Interface\FileTree</Filter>
+    </ClInclude>
+    <ClInclude Include="FileTreeWidget.h">
+      <Filter>Header Files\Interface\FileTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewerGrid.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonDebug2.h">
+      <Filter>Header Files\SkeletonDebug</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonDebug.cpp">
+      <Filter>Source Files\SkeletonDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mocs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QMessageBoxes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="res.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qt-gradient-editor\gradLib\src\gradLib\arrow.cpp">
+      <Filter>qt-gradient-editor\gradLib</Filter>
+    </ClCompile>
+    <ClCompile Include="qt-gradient-editor\gradLib\src\gradLib\gradView.cpp">
+      <Filter>qt-gradient-editor\gradLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectTextDisplay.cpp">
+      <Filter>Source Files\SkeletonDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="EANOgre.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="EMBOgre.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDOgre.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="EMMOgre.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="ESKOgre.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="OgreCommon.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="OgreViewerWidget.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="OgreWidget.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewerGrid.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDRenderObjectListener.cpp">
+      <Filter>Source Files\OgreParts</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow.cpp">
+      <Filter>Source Files\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="MainViewer.cpp">
+      <Filter>Source Files\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="FileTreeWidget.cpp">
+      <Filter>Source Files\Interface\FileTree</Filter>
+    </ClCompile>
+    <ClCompile Include="FileTreeItemWidget.cpp">
+      <Filter>Source Files\Interface\FileTree</Filter>
+    </ClCompile>
+    <ClCompile Include="DocumentWindow.cpp">
+      <Filter>Source Files\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonDebug2.cpp">
+      <Filter>Source Files\SkeletonDebug</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="MainViewer.ui">
+      <Filter>Qt Resources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="xenoviewer.qrc">
+      <Filter>Qt Resources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="qt-gradient-editor\gradLib\src\gradLib\gradView.h">
+      <Filter>qt-gradient-editor\gradLib</Filter>
+    </CustomBuild>
+    <CustomBuild Include="OgreWidget.h">
+      <Filter>Header Files\OgreParts</Filter>
+    </CustomBuild>
+    <CustomBuild Include="MainWindow.h">
+      <Filter>Header Files\Interface</Filter>
+    </CustomBuild>
+    <CustomBuild Include="MainViewer.h">
+      <Filter>Header Files\Interface</Filter>
+    </CustomBuild>
+    <CustomBuild Include="DocumentWindow.h">
+      <Filter>Header Files\Interface</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="myapp.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+</Project>

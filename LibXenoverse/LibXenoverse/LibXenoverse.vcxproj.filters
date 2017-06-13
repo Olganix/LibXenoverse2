@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="EMD">
+      <UniqueIdentifier>{13b17b19-50e4-4847-a0a9-796c77f66dec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMB">
+      <UniqueIdentifier>{2e9156e5-1c3d-4a0b-9109-fa513d45336b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMM">
+      <UniqueIdentifier>{6c5b47bc-3c93-49d9-96e2-47568e7b7449}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ESK">
+      <UniqueIdentifier>{0f31a0d7-53e7-4104-a83d-76ff6d7d8367}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{07f1a1e0-b1f1-4844-8680-7ea1a660a047}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{2144ae5c-ad6d-43c8-87b6-bc5d0fbbfeeb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\tinyxml">
+      <UniqueIdentifier>{b3684e13-e2da-4b9b-b3f9-81896efaf6bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMZ">
+      <UniqueIdentifier>{3d21a801-901f-4614-96f0-7e23efebf440}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="XPU/XVU">
+      <UniqueIdentifier>{e0805bd5-7f85-4939-a055-25ff22805ae8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EAN">
+      <UniqueIdentifier>{b0cc70f8-f1d8-49fa-b5c3-24c867793c6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IGGYTEX">
+      <UniqueIdentifier>{d2e75373-4164-493c-ad63-da94524d3602}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMO">
+      <UniqueIdentifier>{2236ac8b-d3df-4a32-8995-a5df50f93693}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMG">
+      <UniqueIdentifier>{cfb65101-a365-4810-83af-21274c25bdf4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SDS">
+      <UniqueIdentifier>{1bf5f810-abb7-4460-b9fc-8c722762e202}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NSK">
+      <UniqueIdentifier>{6add2379-f824-48bd-8357-1e463cb89d4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMA">
+      <UniqueIdentifier>{4e33ec0f-5909-4d37-ba8f-a151bed56dae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AUR">
+      <UniqueIdentifier>{6515206c-14c1-44f2-bdea-84871908e10a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tinyxml\tinystr.h">
+      <Filter>External\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml\tinyxml.h">
+      <Filter>External\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="EMD.h">
+      <Filter>EMD</Filter>
+    </ClInclude>
+    <ClInclude Include="ESK.h">
+      <Filter>ESK</Filter>
+    </ClInclude>
+    <ClInclude Include="EMM.h">
+      <Filter>EMM</Filter>
+    </ClInclude>
+    <ClInclude Include="EMB.h">
+      <Filter>EMB</Filter>
+    </ClInclude>
+    <ClInclude Include="half.h">
+      <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="LibXenoverse.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="XenoMath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="XenoFiles.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="EMZ.h">
+      <Filter>EMZ</Filter>
+    </ClInclude>
+    <ClInclude Include="HLSLASM.h">
+      <Filter>XPU/XVU</Filter>
+    </ClInclude>
+    <ClInclude Include="EAN.h">
+      <Filter>EAN</Filter>
+    </ClInclude>
+    <ClInclude Include="IGGYTEX.h">
+      <Filter>IGGYTEX</Filter>
+    </ClInclude>
+    <ClInclude Include="EMO.h">
+      <Filter>EMO</Filter>
+    </ClInclude>
+    <ClInclude Include="EMG.h">
+      <Filter>EMG</Filter>
+    </ClInclude>
+    <ClInclude Include="EMO_Skeleton.h">
+      <Filter>EMO</Filter>
+    </ClInclude>
+    <ClInclude Include="EMO_BaseFile.h">
+      <Filter>EMO</Filter>
+    </ClInclude>
+    <ClInclude Include="EMO_common.h">
+      <Filter>EMO</Filter>
+    </ClInclude>
+    <ClInclude Include="SDS.h">
+      <Filter>SDS</Filter>
+    </ClInclude>
+    <ClInclude Include="NSK.h">
+      <Filter>NSK</Filter>
+    </ClInclude>
+    <ClInclude Include="EMA.h">
+      <Filter>EMA</Filter>
+    </ClInclude>
+    <ClInclude Include="AUR.h">
+      <Filter>AUR</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tinyxml\tinyxml.cpp">
+      <Filter>External\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml\tinyxmlerror.cpp">
+      <Filter>External\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml\tinyxmlparser.cpp">
+      <Filter>External\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml\tinystr.cpp">
+      <Filter>External\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="EMD.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDMesh.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDModel.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDSubmesh.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDVertex.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="ESK.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="EMM.cpp">
+      <Filter>EMM</Filter>
+    </ClCompile>
+    <ClCompile Include="EMB.cpp">
+      <Filter>EMB</Filter>
+    </ClCompile>
+    <ClCompile Include="EMBFile.cpp">
+      <Filter>EMB</Filter>
+    </ClCompile>
+    <ClCompile Include="ESKBone.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="ESKFBX.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDTriangles.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDSubmeshDefinition.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDImportFBX.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDExportFBX.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="half.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="XenoMath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="XenoFiles.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="EMZ.cpp">
+      <Filter>EMZ</Filter>
+    </ClCompile>
+    <ClCompile Include="HLSLASM.cpp">
+      <Filter>XPU/XVU</Filter>
+    </ClCompile>
+    <ClCompile Include="EAN.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EANAnimation.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EANAnimationNode.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EANKeyframe.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EANKeyframedAnimation.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EMBExportFx.cpp">
+      <Filter>EMB</Filter>
+    </ClCompile>
+    <ClCompile Include="IGGYTEX.cpp">
+      <Filter>IGGYTEX</Filter>
+    </ClCompile>
+    <ClCompile Include="IGGYTEXFile.cpp">
+      <Filter>IGGYTEX</Filter>
+    </ClCompile>
+    <ClCompile Include="EMO.cpp">
+      <Filter>EMO</Filter>
+    </ClCompile>
+    <ClCompile Include="EMG.cpp">
+      <Filter>EMG</Filter>
+    </ClCompile>
+    <ClCompile Include="EMO_Skeleton.cpp">
+      <Filter>EMO</Filter>
+    </ClCompile>
+    <ClCompile Include="EMO_BaseFile.cpp">
+      <Filter>EMO</Filter>
+    </ClCompile>
+    <ClCompile Include="SDS.cpp">
+      <Filter>SDS</Filter>
+    </ClCompile>
+    <ClCompile Include="NSK.cpp">
+      <Filter>NSK</Filter>
+    </ClCompile>
+    <ClCompile Include="EMA.cpp">
+      <Filter>EMA</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDXml.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="ESKXml.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="EANXml.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="AUR.cpp">
+      <Filter>AUR</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

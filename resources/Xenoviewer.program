@@ -1,0 +1,191 @@
+
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program normal_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point normal_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program normal_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point normal_ps
+	target ps_3_0
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program tangent_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point tangent_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program tangent_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point tangent_ps
+	target ps_3_0
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program texCoord_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point texCoord_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program texCoord_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point texCoord_ps
+	target ps_3_0
+}
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program texCoord2_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point texCoord2_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program texCoord2_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point texCoord2_ps
+	target ps_3_0
+}
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program color_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point color_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program color_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point color_ps
+	target ps_3_0
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program symmetrySolved_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point symmetrySolved_ps
+	target ps_3_0
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+vertex_program testOpacity_vs hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point testOpacity_vs
+	target vs_3_0
+
+	default_params
+	{
+		param_named_auto worldViewProj worldviewproj_matrix
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+fragment_program testOpacity_ps hlsl
+{
+	source Xenoviewer.hlsl
+	entry_point testOpacity_ps
+	target ps_3_0
+}
+
+/*
+////////////////////////////////////////////////////////////////////////////////
+vertex_program test_vs asm
+{
+	source test_vs.asm 
+	syntax vs_3_0
+	//manual_named_constants myVertexProgram.constants
+	
+	/*
+	default_params
+	{
+		param_named_auto g_mWVP_VS worldviewproj_matrix
+		param_named_auto g_mWV_VS worldview_matrix
+		
+    param_named g_GlareCoeff_VS float4 0.0 0.0 0.0 0.0
+    param_named g_Incidence_VS float4 0.0 0.0 0.0 0.0
+    
+    param_named g_MaterialCol0_VS float4 0.0 0.0 0.0 1.0
+    param_named g_MaterialCol1_VS float4 0.0 0.0 0.0 1.0
+    param_named g_MaterialCol2_VS float4 0.0 0.0 0.0 1.0
+    param_named g_MaterialCol3_VS float4 0.0 0.0 0.0 1.0
+    
+    
+    param_named g_TexScroll0_VS float4 0.0 0.0 0.0 0.0
+    param_named g_TexScroll1_VS float4 0.0 0.0 0.0 0.0
+    
+    param_named g_bVersatile0_VS float 1.0
+    param_named g_bVersatile1_VS float 1.0
+    param_named g_bVersatile2_VS float 1.0
+    param_named g_bVersatile3_VS float 1.0
+    
+    param_named g_vTexTile01_VS float4 1.0 1.0 1.0 1.0
+    
+	}
+	*//*
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+fragment_program test_ps asm
+{
+	source test_ps.asm 
+	syntax ps_3_0
+	//manual_named_constants myVertexProgram.constants
+	
+	/*
+	default_params
+	{
+		param_named_auto eyePosition camera_position
+		param_named g_bOutputGlareMRT_PS float 0.0
+    param_named g_vTone float4 1 1 1 1
+	}
+	*//*
+}
+
+*/
+
+

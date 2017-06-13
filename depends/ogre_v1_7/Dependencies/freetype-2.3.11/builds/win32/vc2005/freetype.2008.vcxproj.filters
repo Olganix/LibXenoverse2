@@ -1,0 +1,1301 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{621f628e-267c-4a91-8b7b-cfdb12ab139d}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Source Files\FT_MODULES">
+      <UniqueIdentifier>{4a2a2d68-8ccf-4aff-bb78-836122bb61aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{de96b279-6b0e-4744-a406-9c8e3b6b36ee}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Additional Source Files">
+      <UniqueIdentifier>{91f1600c-080b-4a93-b17f-97f490a0b46e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Additional Header Files">
+      <UniqueIdentifier>{c8ce4985-8f11-436e-b661-8da8b3be35fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{0294335e-947e-4585-911d-42ad79bcb2ca}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\autofit\autofit.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\bdf\bdf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cff.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftbase.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftbitmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcache.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ftdebug.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftfstype.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftgasp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftglyph.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\ftgzip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftinit.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\lzw\ftlzw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftstroke.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftsystem.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\smooth\smooth.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftbbox.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftmm.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftpfr.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftsynth.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\fttype1.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftwinfnt.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pcf\pcf.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfr.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\psaux.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshinter.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psnames\psmodule.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\raster\raster.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\sfnt.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\truetype.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\type1.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\type1cid.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type42\type42.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\winfonts\winfnt.c">
+      <Filter>Source Files\FT_MODULES</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\adler32.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afangles.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afcjk.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afdummy.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afglobal.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afhints.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afindic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\aflatin.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\aflatin2.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afloader.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afmodule.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\afmparse.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\autofit\afwarp.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tools\apinames.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\basepic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\bdf\bdfdrivr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\bdf\bdflib.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffcmap.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffdrivr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffgload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffparse.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cff\cffpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\cidgload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\cidload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\cidobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\cidparse.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cid\cidriver.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftadvanc.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftapi.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftbdf.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftcalc.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcbasic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftccache.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftccmap.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcglyph.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftcid.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcimage.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcmanag.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcmru.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\cache\ftcsbits.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftdbgmem.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftdebug.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftgloadr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\smooth\ftgrays.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftgxval.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftlcdfil.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftmac.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftotval.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftoutln.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftpatent.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tools\ftrandom\ftrandom.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\raster\ftraster.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\raster\ftrend1.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftrfork.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\smooth\ftsmooth.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftsnames.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\smooth\ftspic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftstream.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\fttrigon.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftutil.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\base\ftxf86.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\lzw\ftzopen.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvalid.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvbsln.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvcommn.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvfeat.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvfgen.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvjust.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvkern.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvlcar.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmod.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort0.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort1.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort2.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort4.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmort5.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx0.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx1.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx2.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx4.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvmorx5.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvopbd.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvprop.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gxvalid\gxvtrak.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\infblock.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\infcodes.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\inflate.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\inftrees.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\infutil.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvalid.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvbase.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvcommn.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvgdef.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvgpos.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvgsub.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvjstf.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvmath.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\otvalid\otvmod.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pcf\pcfdrivr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pcf\pcfread.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pcf\pcfutil.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrcmap.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrdrivr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrgload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pfr\pfrsbit.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\psauxmod.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\psconv.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshalgo.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshglob.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshmod.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\pshinter\pshrec.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psnames\psnames.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\psobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psnames\pspic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\raster\rastpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\sfdriver.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\sfntpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\sfobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1afm.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\t1cmap.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\psaux\t1decode.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1driver.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1gload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1load.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1objs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type1\t1parse.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type42\t42drivr.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type42\t42objs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\type42\t42parse.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttbdf.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttcmap.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttdriver.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttgload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttgxvar.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttinterp.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttkern.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttmtx.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttobjs.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttpic.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\truetype\ttpload.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttpost.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttsbit.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sfnt\ttsbit0.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\gzip\zutil.c">
+      <Filter>Additional Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\freetype\freetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\ft2build.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftadvanc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftbbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftbdf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftbitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftcache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftchapters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftcid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\config\ftconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\fterrdef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\fterrors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftgasp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftglyph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftgxval.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftgzip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\config\ftheader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftimage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftincrem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftlcdfil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftlist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftlzw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftmac.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftmm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftmodapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftmoderr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\config\ftmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\config\ftoption.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftotval.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftoutln.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftpfr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftrender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftsizes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftsnames.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\config\ftstdlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftstroke.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftsynth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftsystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\fttrigon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\fttypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftwinfnt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ftxf86.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\t1tables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ttnameid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\tttables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\tttags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\freetype\ttunpat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\..\docs\FTL.TXT">
+      <Filter>Docs</Filter>
+    </Text>
+    <Text Include="..\..\..\docs\GPL.TXT">
+      <Filter>Docs</Filter>
+    </Text>
+    <Text Include="..\..\..\docs\LICENSE.TXT">
+      <Filter>Docs</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\README">
+      <Filter>Docs</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\autofit\afangles.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afcjk.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afdummy.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\aferrors.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afglobal.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afhints.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afindic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\aflatin.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\aflatin2.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afloader.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afmodule.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\afmparse.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\aftypes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\autofit\afwarp.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\atari\ATARI.H">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\base\basepic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\bdf\bdf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\bdf\bdfdrivr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\bdf\bdferror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffcmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffdrivr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cfferrs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffgload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffparse.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cffpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cfftoken.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cff\cfftypes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\ciderrs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidgload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidparse.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidriver.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cid\cidtoken.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\winfonts\fnterrs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\devel\ft2build.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\unix\ft2unix.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\base\ftbase.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftcalc.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftccache.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftccback.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcerror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcglyph.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcimage.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcmanag.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcmru.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\vms\ftconfig.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\amiga\include\freetype\config\ftconfig.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\cache\ftcsbits.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftdebug.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftdriver.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftgloadr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\smooth\ftgrays.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftmemory.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\raster\ftmisc.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\amiga\include\freetype\config\ftmodule.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\devel\ftoption.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\raster\ftraster.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\raster\ftrend1.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftrfork.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftserv.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\smooth\ftsmerrs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\smooth\ftsmooth.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\smooth\ftspic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftstream.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\fttrace.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\ftvalid.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\lzw\ftzopen.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvalid.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvcommn.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxverror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvfeat.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvmod.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvmort.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gxvalid\gxvmorx.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\infblock.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\infcodes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\inffixed.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\inftrees.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\infutil.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\internal.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\otvalid\otvalid.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\otvalid\otvcommn.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\otvalid\otverror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\otvalid\otvgpos.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\otvalid\otvmod.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pcf\pcf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pcf\pcfdrivr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pcf\pcferror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pcf\pcfread.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\pcftypes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pcf\pcfutil.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrcmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrdrivr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrerror.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrgload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrsbit.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pfr\pfrtypes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\psaux.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\psauxerr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\psauxmod.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\psconv.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshalgo.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshglob.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\pshints.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshmod.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshnterr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\pshinter\pshrec.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psnames\psmodule.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psnames\psnamerr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\psobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psnames\pspic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psnames\pstables.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\raster\rasterrs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\raster\rastpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\sfdriver.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\sferrors.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\sfnt.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\sfntpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\sfobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svbdf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svcid.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svgldict.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svgxval.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svkern.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svmm.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svotval.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svpfr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svpostnm.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svpscmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svpsinfo.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svsfnt.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svttcmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svtteng.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svttglyf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svwinfnt.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\services\svxf86nm.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1afm.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\t1cmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\psaux\t1decode.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1driver.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1errors.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1gload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1load.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1objs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1parse.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type1\t1tokens.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\t1types.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type42\t42drivr.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type42\t42error.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type42\t42objs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type42\t42parse.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\type42\t42types.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttbdf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttcmap.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttcmapc.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttdriver.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\tterrors.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttgload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttgxvar.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttinterp.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttkern.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttmtx.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttobjs.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttpic.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\truetype\ttpload.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttpost.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\sfnt\ttsbit.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\include\freetype\internal\tttypes.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\winfonts\winfnt.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\zconf.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\zlib.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\gzip\zutil.h">
+      <Filter>Additional Header Files</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>
