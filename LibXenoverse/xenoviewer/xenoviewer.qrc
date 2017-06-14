@@ -1,18 +1,18 @@
 <RCC>
   <qresource>
-    <file>icons/open_files.png</file>
-    <file>icons/emd.png</file>
-    <file>icons/play.png</file>
-    <file>icons/apply_material.png</file>
-    <file>icons/pause.png</file>
-    <file>icons/next_frame.png</file>
-    <file>icons/previous_frame.png</file>
-    <file>icons/stop.png</file>
-    <file>icons/esk.png</file>
-    <file>icons/mesh.png</file>
-    <file>icons/model.png</file>
-    <file>icons/submesh.png</file>
-    <file>icons/animation.png</file>
-    <file>icons/animation_pack.png</file>
+    <file>../../resources/icons/open_files.png</file>
+    <file>../../resources/icons/emd.png</file>
+    <file>../../resources/icons/play.png</file>
+    <file>../../resources/icons/apply_material.png</file>
+    <file>../../resources/icons/pause.png</file>
+    <file>../../resources/icons/next_frame.png</file>
+    <file>../../resources/icons/previous_frame.png</file>
+    <file>../../resources/icons/stop.png</file>
+    <file>../../resources/icons/esk.png</file>
+    <file>../../resources/icons/mesh.png</file>
+    <file>../../resources/icons/model.png</file>
+    <file>../../resources/icons/submesh.png</file>
+    <file>../../resources/icons/animation.png</file>
+    <file>../../resources/icons/animation_pack.png</file>
   </qresource>
 </RCC>
