@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv)
 {
-	if (argc < 3)
+	if (argc < 2)
 	{
 		printf("Usage: fbxemd [options] file.fbx originalFile.ean(not erased, just to keep animations order for making animation) \n options:\n'-noCompressedFlag' .");
 		getchar();
@@ -23,31 +23,49 @@ int main(int argc, char** argv)
 
 	//options
 	bool compressedFlag = true;
-	if (argc > 3)
+	if (argc >= 3)
 	{
-		size_t nbOptions = (size_t)(argc - 2);
+		size_t nbOptions = (size_t)(argc - 1);
 		for (size_t i = 1; i < nbOptions; ++i)
 		{
 			if (ToString(argv[i]) == "-noCompressedFlag")
+			{
 				compressedFlag = false;
+				break;
+			}
 		}
 	}
 
 	
 	//load original ean
+	if (argc >= 3)
 	{
-		printf("-------------- Load original Ean (for bones order). Please wait ...\n");
-		string ean_filename = ToString(argv[argc-1]);
+		string eanFileName = "";
+		string tmp;
+		for (size_t i = 1; i < (size_t)argc; ++i)
+		{
+			tmp = ToString(argv[i]);
+			if ((tmp.size() > 4) && (tmp.substr(tmp.length() - 4, 4) == ".ean"))
+			{
+				eanFileName = tmp;
+				break;
+			}
+		}
 
-		ean_anim->load(ean_filename);
-		
-		//keep animation order for after
-		vector<LibXenoverse::EANAnimation> &animList = ean_anim->getAnimations();
-		size_t nbelements = animList.size();
-		for (size_t i = 0; i < nbelements; i++)
-			listNameOriginalAnimation.push_back(animList.at(i).getName());
+		if (eanFileName.length() != 0)
+		{
+			printf("-------------- Load original Ean (for bones order). Please wait ...\n");
 
-		ean_anim->getAnimations().clear();
+			ean_anim->load(eanFileName);
+
+			//keep animation order for after
+			vector<LibXenoverse::EANAnimation> &animList = ean_anim->getAnimations();
+			size_t nbelements = animList.size();
+			for (size_t i = 0; i < nbelements; i++)
+				listNameOriginalAnimation.push_back(animList.at(i).getName());
+
+			ean_anim->getAnimations().clear();
+		}
 	}
 	
 
@@ -57,7 +75,29 @@ int main(int argc, char** argv)
 
 
 
-	string fbx_filename = ToString(argv[argc - 2]);
+	string fbx_filename = "";
+	
+	if (argc >= 2)
+	{
+		string tmp;
+		for (size_t i = 1; i < (size_t)argc; ++i)
+		{
+			tmp = ToString(argv[i]);
+			if ((tmp.size() > 4) && (tmp.substr(tmp.length() - 4, 4) == ".fbx"))
+			{
+				fbx_filename = tmp;
+				break;
+			}
+		}
+
+		if (fbx_filename.length() == 0)
+		{
+			printf("error: faild to load fbx.\n");
+			getchar();
+			return 1;
+		}
+	}
+	
 	string extension = LibXenoverse::extensionFromFilename(fbx_filename);
 	string folder = LibXenoverse::folderFromFilename(fbx_filename);
 
@@ -252,7 +292,6 @@ int main(int argc, char** argv)
 		printf("-------------- Converting Animations\n");
 		
 		//in first time, we make only one File by animations. TODO generalise to have only one file.
-		if (ean_anim)
 		{
 			ean_anim->importFBXAnimations(lScene, list_AnimStack);
 			
@@ -297,6 +336,7 @@ int main(int argc, char** argv)
 
 
 			//and after, we copy animations in good order.
+			nbelements_oldAnima = newAnimList.size();
 			animList.clear();
 			for (size_t i = 0; i < nbelements_oldAnima; i++)
 				animList.push_back(newAnimList.at(i));

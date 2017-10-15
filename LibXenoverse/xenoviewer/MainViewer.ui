@@ -1392,7 +1392,7 @@
              </property>
              <property name="icon">
               <iconset resource="xenoviewer.qrc">
-               <normaloff>:/icons/play.png</normaloff>:/icons/play.png</iconset>
+               <normaloff>:/resources/icons/play.png</normaloff>:/resources/icons/play.png</iconset>
              </property>
             </widget>
            </item>
@@ -1403,7 +1403,7 @@
              </property>
              <property name="icon">
               <iconset resource="xenoviewer.qrc">
-               <normaloff>:/icons/pause.png</normaloff>:/icons/pause.png</iconset>
+               <normaloff>:/resources/icons/pause.png</normaloff>:/resources/icons/pause.png</iconset>
              </property>
             </widget>
            </item>
@@ -1414,7 +1414,7 @@
              </property>
              <property name="icon">
               <iconset resource="xenoviewer.qrc">
-               <normaloff>:/icons/stop.png</normaloff>:/icons/stop.png</iconset>
+               <normaloff>:/resources/icons/stop.png</normaloff>:/resources/icons/stop.png</iconset>
              </property>
             </widget>
            </item>
@@ -1425,7 +1425,7 @@
              </property>
              <property name="icon">
               <iconset resource="xenoviewer.qrc">
-               <normaloff>:/icons/previous_frame.png</normaloff>:/icons/previous_frame.png</iconset>
+               <normaloff>:/resources/icons/previous_frame.png</normaloff>:/resources/icons/previous_frame.png</iconset>
              </property>
             </widget>
            </item>
@@ -1436,7 +1436,7 @@
              </property>
              <property name="icon">
               <iconset resource="xenoviewer.qrc">
-               <normaloff>:/icons/next_frame.png</normaloff>:/icons/next_frame.png</iconset>
+               <normaloff>:/resources/icons/next_frame.png</normaloff>:/resources/icons/next_frame.png</iconset>
              </property>
             </widget>
            </item>

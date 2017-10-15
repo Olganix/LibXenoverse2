@@ -14,7 +14,7 @@ SkeletonItemWidget::SkeletonItemWidget(ESKOgre *data, QTreeWidget *parent) : Fil
 {
 	data_ptr = data;
 	setText(0, (data->getName() + " (Skeleton)").c_str());
-	setIcon(0, QIcon(":/icons/esk.png"));
+	setIcon(0, QIcon(":/resources/icons/esk.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsDropEnabled | (data->getFlag()!=1 ? Qt::ItemIsDragEnabled : Qt::NoItemFlags));
 
 	type = ItemSkeleton;
@@ -31,7 +31,7 @@ ModelPackItemWidget::ModelPackItemWidget(EMDOgre *data, QTreeWidget *parent) : F
 	{
 		data_ptr = data;
 		updateText();
-		setIcon(0, QIcon(":/icons/emd.png"));
+		setIcon(0, QIcon(":/resources/icons/emd.png"));
 		setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
 
 		type = ItemModelPack;
@@ -76,7 +76,7 @@ AnimationPackItemWidget::AnimationPackItemWidget(EANOgre *data, QTreeWidget *par
 {
 	data_ptr = data;
 	setText(0, (data->getName() + " (Animation Pack)").c_str());
-	setIcon(0, QIcon(":/icons/animation_pack.png"));
+	setIcon(0, QIcon(":/resources/icons/animation_pack.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
 	type = ItemAnimationPack;
@@ -94,7 +94,7 @@ AnimationItemWidget::AnimationItemWidget(EANAnimation *data, QTreeWidget *parent
 {
 	data_ptr = data;
 	setText(0, (data->getName()).c_str());
-	setIcon(0, QIcon(":/icons/animation.png"));
+	setIcon(0, QIcon(":/resources/icons/animation.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
 	type = ItemAnimation;
@@ -104,7 +104,7 @@ BoneItemWidget::BoneItemWidget(ESKBone *data, QTreeWidget *parent) : FileTreeIte
 {
 	data_ptr = data;
 	setText(0, (data->getName()).c_str());
-	setIcon(0, QIcon(":/icons/esk.png"));
+	setIcon(0, QIcon(":/resources/icons/esk.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsDropEnabled);
 
 	type = ItemBone;
@@ -116,7 +116,7 @@ BoneItemWidget::BoneItemWidget(ESKBone *data, QTreeWidget *parent) : FileTreeIte
 MaterialPackItemWidget::MaterialPackItemWidget(EMMOgre *data, QTreeWidget *parent) : FileTreeItemWidget(parent) {
 	data_ptr = data;
 	updateText();
-	setIcon(0, QIcon(":/icons/emd.png"));
+	setIcon(0, QIcon(":/resources/icons/emd.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
 
 	type = ItemMaterialPack;
@@ -144,7 +144,7 @@ MaterialItemWidget::MaterialItemWidget(EMMMaterial *data, QTreeWidget *parent) :
 {
 	data_ptr = data;
 	updateText();
-	setIcon(0, QIcon(":/icons/emd.png"));
+	setIcon(0, QIcon(":/resources/icons/emd.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
 
 	type = ItemMaterial;
@@ -167,7 +167,7 @@ TexturePackItemWidget::TexturePackItemWidget(EMBOgre *data, QTreeWidget *parent)
 {
 	data_ptr = data;
 	updateText();
-	setIcon(0, QIcon(":/icons/emd.png"));
+	setIcon(0, QIcon(":/resources/icons/emd.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
 
 	type = ItemTexturePack;
@@ -197,7 +197,7 @@ TextureItemWidget::TextureItemWidget(EMBFile *data, QTreeWidget *parent) : FileT
 {
 	data_ptr = data;
 	updateText();
-	setIcon(0, QIcon(":/icons/emd.png"));
+	setIcon(0, QIcon(":/resources/icons/emd.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
 
 	type = ItemTexture;

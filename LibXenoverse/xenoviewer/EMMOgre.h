@@ -10,30 +10,22 @@ protected:
 	EMBOgre *texture_pack;
 	EMBOgre *texture_dyt_pack;
 
-	list<Ogre::String> created_materials;
+	std::vector<Ogre::String> created_materials;
+	std::vector<std::vector<size_t>> created_materials_reg_for_textTile;
 public:
 	EMMOgre();
 	~EMMOgre();
 
-	void setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material);
+	std::vector<size_t> setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material);
 	Ogre::Material *createOgreMaterial(EMMMaterial *emm_material, std::vector<SDS*> &sds_list);
 	void createOgreMaterials(std::vector<SDS*> &sds_list);
 
-	void setTexturePack(EMBOgre *v) {
-		texture_pack = v;
-	}
+	size_t getReg(string ogreMaterialName, size_t textTileIndex);
 
-	void setDYTTexturePack(EMBOgre *v) {
-		texture_dyt_pack = v;
-	}
-
-	EMBOgre *getTexturePack() {
-		return texture_pack;
-	}
-
-	EMBOgre *getDYTTexturePack() {
-		return texture_dyt_pack;
-	}
+	void setTexturePack(EMBOgre *v) { texture_pack = v; }
+	void setDYTTexturePack(EMBOgre *v) { texture_dyt_pack = v; }
+	EMBOgre *getTexturePack() { return texture_pack; }
+	EMBOgre *getDYTTexturePack() { return texture_dyt_pack; }
 
 	void destroyResources();
 };

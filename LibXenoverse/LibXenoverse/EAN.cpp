@@ -344,6 +344,8 @@ void EAN::addTPoseAnimation(void)
 void EAN::importFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_AnimStack)
 {
 	//Skeleton is needed because aniamtion use skeleton original position/rotation/scale. definition (name of bone) is written in ean file.
+	if (!skeleton)
+		skeleton = new ESK();
 	skeleton->importFBXSkeleton(scene);
 		
 		

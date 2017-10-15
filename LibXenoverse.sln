@@ -117,6 +117,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Plugin_ParticleFX_xeno", "d
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Plugin_PCZSceneManager_xeno", "depends\ogre_v1_7\ogre\CmakeResults_32b\PlugIns\PCZSceneManager\Plugin_PCZSceneManager_xeno.vcxproj", "{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XenoWxHexEditorColorMaker", "LibXenoverse\XenoWxHexEditorColorMaker\XenoWxHexEditorColorMaker.vcxproj", "{315B9C16-97BE-4CA1-82EE-8DB568E0C640}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AnalyzerXml", "LibXenoverse\AnalyzerXml\AnalyzerXml.vcxproj", "{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -227,6 +234,14 @@ Global
 		{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1}.Debug|Win32.Build.0 = Debug|Win32
 		{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1}.Release|Win32.ActiveCfg = Release|Win32
 		{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1}.Release|Win32.Build.0 = Release|Win32
+		{315B9C16-97BE-4CA1-82EE-8DB568E0C640}.Debug|Win32.ActiveCfg = Debug|Win32
+		{315B9C16-97BE-4CA1-82EE-8DB568E0C640}.Debug|Win32.Build.0 = Debug|Win32
+		{315B9C16-97BE-4CA1-82EE-8DB568E0C640}.Release|Win32.ActiveCfg = Release|Win32
+		{315B9C16-97BE-4CA1-82EE-8DB568E0C640}.Release|Win32.Build.0 = Release|Win32
+		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Debug|Win32.Build.0 = Debug|Win32
+		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Release|Win32.ActiveCfg = Release|Win32
+		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -256,5 +271,7 @@ Global
 		{DA87A3C9-9959-46B1-BC6D-44DDF8A01EE0} = {7360E9CA-F8E8-44BD-9903-B9A018E05FD6}
 		{810918C1-8C1B-4AF9-94A2-C55E1EC58143} = {7360E9CA-F8E8-44BD-9903-B9A018E05FD6}
 		{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1} = {7360E9CA-F8E8-44BD-9903-B9A018E05FD6}
+		{315B9C16-97BE-4CA1-82EE-8DB568E0C640} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
+		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F} = {149BFC27-4BEF-4C72-A2F3-89164172D2BD}
 	EndGlobalSection
 EndGlobal

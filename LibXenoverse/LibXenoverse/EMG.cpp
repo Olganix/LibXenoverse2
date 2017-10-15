@@ -1057,7 +1057,7 @@ void EMG_SubPart::readEmdSubMesh(EMDSubmesh* emd)
 
 
 	size_t nbVertex = emd->vertices.size();
-	for (size_t i = 0; i < nbVertex; i++)
+	for (size_t i = 0; i < nbVertex; i++)				//Todo: try to reduce number of values.
 	{
 		vertex.push_back(EMG_VertexData());
 		vertex.back().readEmdVertex(&emd->vertices.at(i));

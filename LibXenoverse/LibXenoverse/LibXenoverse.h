@@ -40,12 +40,15 @@
 #include "EMD.h"
 #include "EMO.h"
 #include "EMA.h"
+#include "EMA_Material.h"
 #include "EMM.h"
 #include "SDS.h"
 #include "EMZ.h"
 #include "ESK.h"
 #include "NSK.h"
 #include "IGGYTEX.h"
+#include "Fmp.h"
+
 
 using namespace std;
 

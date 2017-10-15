@@ -193,6 +193,7 @@ material Color
 		{
 			depth_write off
       separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      transparent_sorting force
       
 			vertex_program_ref color_vs
       {
@@ -204,6 +205,47 @@ material Color
 		}
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+material Color_RGB
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref color_vs
+      {
+      }
+
+      fragment_program_ref color_RGB_ps
+      {
+      }
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+material Color_A
+{
+	technique
+	{
+		pass
+		{
+			depth_write off
+      separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      transparent_sorting force
+      
+			vertex_program_ref color_vs
+      {
+      }
+
+      fragment_program_ref color_A_ps
+      {
+      }
+		}
+	}
+}
+
 
 
 
@@ -261,7 +303,7 @@ material TestOpacity
 
 
 
-/*
+
 ////////////////////////////////////////////////////////////////////////////////
 material Test
 {
@@ -269,8 +311,8 @@ material Test
 	{
 		pass
 		{
-			depth_write off
-			cull_hardware none
+			//depth_write off
+			//cull_hardware none
       separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
       
 			vertex_program_ref test_vs
@@ -283,10 +325,10 @@ material Test
       
       texture_unit ImageSampler0
 			{
-				texture DATA000.png
+				texture DATA000_swd.dds
 			}
       
 		}
 	}
 }
-*/
+

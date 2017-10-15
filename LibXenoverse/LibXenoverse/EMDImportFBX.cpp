@@ -615,11 +615,33 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 	if (geoElemNorm)
 	{
 		flags = flags | EMD_VTX_FLAG_NORM;
-		listNormals = &geoElemNorm->GetDirectArray();
+		if (geoElemNorm->GetReferenceMode() == FbxLayerElement::eIndexToDirect)				// take care of indirect index array.
+		{
+			FbxLayerElementArrayTemplate<int> &listIndex = geoElemNorm->GetIndexArray();
+			FbxLayerElementArrayTemplate< FbxVector4 > &listNorms_base = geoElemNorm->GetDirectArray();
+
+			listNormals = new FbxLayerElementArrayTemplate<FbxVector4>(eFbxDouble4);
+
+			size_t nbElements = listIndex.GetCount();
+			listNormals->Resize(nbElements);
+
+			size_t nbValues = listNorms_base.GetCount();
+			for (size_t j = 0; j < nbElements; j++)
+			{
+				size_t index = listIndex.GetAt(j);
+				if (index < nbValues)
+				{
+					listNormals->SetAt(j, listNorms_base.GetAt(index));
+				}
+			}
+
+		}else {
+			listNormals = &geoElemNorm->GetDirectArray();
+		}
 		nbNormals = listNormals->GetCount();
 	}
 
-
+	
 
 	FbxLayerElementArrayTemplate< FbxVector4 >* listTangentes = 0;
 	FbxGeometryElementTangent* geoElemTang = fbxMesh->GetElementTangent(0);		//fbx miss the equivalente fonction of GetPolygonVertexNormals. so use own.
@@ -627,7 +649,29 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 	if (geoElemTang)
 	{
 		flags = flags | EMD_VTX_FLAG_TANGENT;
-		listTangentes = &geoElemTang->GetDirectArray();
+		if (geoElemTang->GetReferenceMode() == FbxLayerElement::eIndexToDirect)				// take care of indirect index array.
+		{
+			FbxLayerElementArrayTemplate<int> &listIndex = geoElemTang->GetIndexArray();
+			FbxLayerElementArrayTemplate< FbxVector4 > &listTangs_base = geoElemTang->GetDirectArray();
+
+			listTangentes = new FbxLayerElementArrayTemplate<FbxVector4>(eFbxDouble4);
+
+			size_t nbElements = listIndex.GetCount();
+			listTangentes->Resize(nbElements);
+
+			size_t nbValues = listTangs_base.GetCount();
+			for (size_t j = 0; j < nbElements; j++)
+			{
+				size_t index = listIndex.GetAt(j);
+				if (index < nbValues)
+				{
+					listTangentes->SetAt(j, listTangs_base.GetAt(index));
+				}
+			}
+		}
+		else {
+			listTangentes = &geoElemTang->GetDirectArray();
+		}
 		nbTangentes = listTangentes->GetCount();
 	}
 
@@ -680,10 +724,32 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 	if (geoElemColor)
 	{
 		flags = flags | EMD_VTX_FLAG_COLOR;
-		listVertexColors = &geoElemColor->GetDirectArray();
+		
+		if (geoElemColor->GetReferenceMode() == FbxLayerElement::eIndexToDirect)				// take care of indirect index array.
+		{
+			FbxLayerElementArrayTemplate<int> &listIndex = geoElemColor->GetIndexArray();
+			FbxLayerElementArrayTemplate< FbxColor > &listColors_base = geoElemColor->GetDirectArray();
+
+			listVertexColors = new FbxLayerElementArrayTemplate<FbxColor>(eFbxDouble4);
+
+			size_t nbElements = listIndex.GetCount();
+			listVertexColors->Resize(nbElements);
+
+			size_t nbValues = listColors_base.GetCount();
+			for (size_t j = 0; j < nbElements; j++)
+			{
+				size_t index = listIndex.GetAt(j);
+				if (index < nbValues)
+					listVertexColors->SetAt(j, listColors_base.GetAt(index));
+			}
+
+		}else{
+			listVertexColors = &geoElemColor->GetDirectArray();
+		}
 		nbVertexColor = listVertexColors->GetCount();
 	}
 
+	
 
 
 	vector<vector<pair<double, FbxNode *>>> control_points_skin_bindings;
@@ -1144,6 +1210,41 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		definitions.push_back(EMDSubmeshDefinition(0));
 	}
 
+
+
+
+
+
+
+
+
+
+	//clean for indirect array
+
+	if((geoElemNorm) && (geoElemNorm->GetReferenceMode() == FbxLayerElement::eIndexToDirect))
+	{
+		delete listNormals;
+		listNormals = 0;
+	}
+	
+		
+
+	for (size_t i = 0; i < nbUvs; i++)
+	{
+		FbxGeometryElementUV* geoElemUV = fbxMesh->GetElementUV(uv_sets[i]);
+
+		if((geoElemUV) && (geoElemUV->GetReferenceMode() == FbxLayerElement::eIndexToDirect))				//todo: deal with this case on others flags.
+		{
+			delete listUVs.at(i);
+			listUVs.at(i) = 0;
+		}
+	}
+
+	if ((geoElemColor) &&(geoElemColor->GetReferenceMode() == FbxLayerElement::eIndexToDirect))
+	{
+		delete listVertexColors;
+		listVertexColors = 0;
+	}
 }
 /*-------------------------------------------------------------------------------\
 |                             getTexture										 |

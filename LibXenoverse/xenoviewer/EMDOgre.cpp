@@ -289,6 +289,14 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 		if (flags & EMD_VTX_FLAG_COLOR)
 		{
 			vertices[index] = *((float*)&v.color);			//must be uint32, but is the same size, bytes we be copy normally.
+			
+			//uint32_t argb = ((v.color >> 8) & 0xFFFFFF ) + ((v.color & 0xFF) << 24) ;			// RGBA -> ARGB
+			//vertices[index] = *((float*)&argb);			//must be uint32, but is the same size, bytes we be copy normally.
+
+			//uint32_t abgr = ((v.color & 0xFF) << 24) + ((v.color & 0xFF00) << 8) + ((v.color & 0xFF0000) >> 8) + ((v.color & 0xFF000000) >> 24);			// RGBA -> ABGR
+			//vertices[index] = *((float*)&abgr);			//must be uint32, but is the same size, bytes we be copy normally.
+
+
 			index += 1;
 		}
 
@@ -473,6 +481,7 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 		
 	string meshName = mesh_name + "_" + submesh->getMaterialName();
 	string materialName = name + "_" + submesh->getMaterialName();
+	Ogre::StringUtil::toLowerCase(materialName);
 
 	if (Ogre::MeshManager::getSingleton().getByName(meshName).isNull())
 		return;
@@ -503,6 +512,16 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 	entity->setMaterialName(mat->getName());
 
 
+	/*
+	// Hack : push Additive alphaBlending to a next renderingOrder, to solve problem with transparent alpha.
+	{
+		Ogre::Pass* pass = mat->getTechnique(0)->getPass(0);
+		if ((pass->getSourceBlendFactor()==Ogre::SBF_ONE)&&(pass->getDestBlendFactor() == Ogre::SBF_ONE) && (pass->getSourceBlendFactorAlpha() == Ogre::SBF_ONE) && (pass->getDestBlendFactorAlpha() == Ogre::SBF_ZERO))	//additive
+			entity->setRenderQueueGroup(Ogre::RenderQueueGroupID::RENDER_QUEUE_WORLD_GEOMETRY_2);
+	}
+	*/
+	
+	
 
 
 
@@ -537,21 +556,36 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 					texIndex = textures_ptr->size() - 1;
 
 				
-
-
-
-
-
-
-
 				//Here a new problem : when you use shaders, you have to deal with textureScale into shader. but the Dbx2 shaders don't do this.
 				//so changing TextureScale of TextureUnitStates don't have any influence.
 				//And as the goal is to not modify shader by hands, We need to create a new texture with the repetition. it's not a good hack. 
 				// Todo do better, or try to understand how the game do.
-				if ((definitions.at(k).textScale_u != 1.0) || (definitions.at(k).textScale_v))
+				if ((definitions.at(k).textScale_u != 1.0) || (definitions.at(k).textScale_v  != 1.0))
 				{
+					
+					
+					//test if shader have entry for that.
+					bool allreadyHaveShaderEntry = false;
+
+					string targetTextTile = Ogre::StringConverter::toString(texIndex + 1);
+					if (targetTextTile.length() == 1)
+						targetTextTile = "0" + targetTextTile;
+
+					size_t reg = material_pack->getReg(mat->getName(), texIndex + 1);
+
+					if ((reg!=(size_t)-1) && (pass->hasVertexProgram()))				//hyp: TextTile only on vertexShader
+					{
+						Ogre::GpuProgramParametersSharedPtr fp_parameters =  pass->getVertexProgramParameters();
+						if (!fp_parameters.isNull())
+						{
+							fp_parameters->setConstant(reg, Ogre::Vector4(definitions.at(k).textScale_u, definitions.at(k).textScale_v, 1.0, 1.0));
+							allreadyHaveShaderEntry = true;
+						}
+					}
+					
+					
 					Ogre::TexturePtr text = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().getByName(name + "_" + Ogre::StringConverter::toString(texIndex));
-					if (!text.isNull())
+					if ((!allreadyHaveShaderEntry) && (!text.isNull()))				//if allready used by shader entry , we didn't need to create a new texture for repetitions.
 					{
 						Ogre::PixelFormat pf = text->getFormat();
 
@@ -600,15 +634,24 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 						}
 
 						pass->getTextureUnitState(k)->setTextureName(textRepete->getName());
+
+					}else {
+						pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));
 					}
 				}else {
 					pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));
 				}
 
+				
+				
+				/*
 				//test for stage textures, witch have trouble with filtering, aliasing or mipmapping.
-				//pass->getTextureUnitState(k)->setNumMipmaps(0);
-				//pass->getTextureUnitState(k)->setTextureAnisotropy(1.0);
-				//pass->getTextureUnitState(k)->setTextureFiltering(Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE);
+				pass->getTextureUnitState(k)->setNumMipmaps(0);
+				pass->getTextureUnitState(k)->setTextureAnisotropy(1.0);
+				pass->getTextureUnitState(k)->setTextureFiltering(Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE);
+				*/
+
+				//pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));			//test bug scouter before skin.
 			}
 		}
 	}

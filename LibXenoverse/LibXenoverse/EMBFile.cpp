@@ -26,4 +26,18 @@ namespace LibXenoverse {
 			file.close();
 		}
 	}
+
+
+	EMBFile* EMBFile::clone(void)
+	{
+		EMBFile* embfile = new EMBFile(name);
+
+		embfile->index = index;
+		embfile->data_size = data_size;
+		embfile->data = (char*)malloc(data_size);
+
+		memcpy(embfile->data, data, data_size);
+
+		return embfile;
+	}
 }

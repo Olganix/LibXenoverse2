@@ -181,6 +181,13 @@ public:
 		{
 			mName = name;
 			mType = s_type;
+
+			if (mType == "bool")
+			{
+				positionInBuffer /= 4;
+				size /= 4;
+			}
+
 			mPositionInBuffer = positionInBuffer;
 			mSize = size;
 			
@@ -246,6 +253,47 @@ public:
 
 						}else if ((var.mType == "bool") || (var.mType == "float") || (var.mType == "int") ) {
 
+							if ((var.mType == "bool") && (onRight != "") && (onRight != ".x") && (onRight != ".xx") && (onRight != ".xxx") && (onRight != ".xxxx"))
+							{
+								string channel = onRight.substr(1);					//remove the '.'
+								std::vector<string> channelToBool;
+
+								string currentChannel = "";
+								size_t indexFromCurrent = 0;
+								bool isAllTheSame = true;
+								size_t nbChar = channel.length();
+								for (size_t j = 0; j < nbChar; j++)
+								{
+									currentChannel = channel.at(j);
+									indexFromCurrent = (size_t)-1;
+									if (currentChannel == "x") indexFromCurrent = 0;
+									if (currentChannel == "y") indexFromCurrent = 1;
+									if (currentChannel == "z") indexFromCurrent = 2;
+									if (currentChannel == "w") indexFromCurrent = 3;
+
+									if (indexFromCurrent == (size_t)-1)
+										continue;
+
+									ShaderCBuffer_Var &var_b = mListShaderCBuffer_Var.at(i + indexFromCurrent);
+									channelToBool.push_back(var_b.mName);
+
+									if (((isAllTheSame) && (channelToBool.size() >= 2)) && (channelToBool.at(channelToBool.size()-2)!= channelToBool.back()) )
+										isAllTheSame = false;
+								}
+
+								if (channelToBool.size())
+								{
+									if (isAllTheSame)							// ex : .yyyy or .wwww
+										return channelToBool.at(0);
+
+									onLeft = "float" + std::to_string(channelToBool.size()) + "(";
+									size_t nbElemn = channelToBool.size();
+									for (size_t j = 0; j < nbElemn; j++)
+										onLeft += ((j != 0) ? "," : "") + channelToBool.at(j);
+									onLeft += ")";
+								}
+							}
+							
 							return onLeft;					//for simple values , no need right channel informations
 
 						}else if ( (var.mType == "float4x4") || (var.mType == "float4x3") ) {

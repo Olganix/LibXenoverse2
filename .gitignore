@@ -181,3 +181,7 @@ FakesAssemblies/
 
 data/
 data2/
+/LibXenoverse.VC.db
+/LibXenoverse.VC.VC.opendb
+/.vs
+/lib

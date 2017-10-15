@@ -274,4 +274,17 @@ namespace LibXenoverse {
 
 		return !only_data_dds;
 	}
+
+
+	EMB* EMB::clone(void)
+	{
+		EMB* emb = new EMB();
+		emb->name = name;
+
+		size_t nbFile = files.size();
+		for (size_t i = 0; i < nbFile; i++)
+			emb->files.push_back(files.at(i)->clone());
+
+		return emb;
+	}
 }

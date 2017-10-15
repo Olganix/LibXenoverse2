@@ -841,7 +841,7 @@ public:
         PlayButton = new QPushButton(groupBox_2);
         PlayButton->setObjectName(QStringLiteral("PlayButton"));
         QIcon icon;
-        icon.addFile(QStringLiteral(":/icons/play.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(QStringLiteral(":/resources/icons/play.png"), QSize(), QIcon::Normal, QIcon::Off);
         PlayButton->setIcon(icon);
 
         horizontalLayout_4->addWidget(PlayButton);
@@ -849,7 +849,7 @@ public:
         PauseButton = new QPushButton(groupBox_2);
         PauseButton->setObjectName(QStringLiteral("PauseButton"));
         QIcon icon1;
-        icon1.addFile(QStringLiteral(":/icons/pause.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon1.addFile(QStringLiteral(":/resources/icons/pause.png"), QSize(), QIcon::Normal, QIcon::Off);
         PauseButton->setIcon(icon1);
 
         horizontalLayout_4->addWidget(PauseButton);
@@ -857,7 +857,7 @@ public:
         StopButton = new QPushButton(groupBox_2);
         StopButton->setObjectName(QStringLiteral("StopButton"));
         QIcon icon2;
-        icon2.addFile(QStringLiteral(":/icons/stop.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon2.addFile(QStringLiteral(":/resources/icons/stop.png"), QSize(), QIcon::Normal, QIcon::Off);
         StopButton->setIcon(icon2);
 
         horizontalLayout_4->addWidget(StopButton);
@@ -865,7 +865,7 @@ public:
         PreviousFrameButton = new QPushButton(groupBox_2);
         PreviousFrameButton->setObjectName(QStringLiteral("PreviousFrameButton"));
         QIcon icon3;
-        icon3.addFile(QStringLiteral(":/icons/previous_frame.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon3.addFile(QStringLiteral(":/resources/icons/previous_frame.png"), QSize(), QIcon::Normal, QIcon::Off);
         PreviousFrameButton->setIcon(icon3);
 
         horizontalLayout_4->addWidget(PreviousFrameButton);
@@ -873,7 +873,7 @@ public:
         NextFrameButton = new QPushButton(groupBox_2);
         NextFrameButton->setObjectName(QStringLiteral("NextFrameButton"));
         QIcon icon4;
-        icon4.addFile(QStringLiteral(":/icons/next_frame.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QStringLiteral(":/resources/icons/next_frame.png"), QSize(), QIcon::Normal, QIcon::Off);
         NextFrameButton->setIcon(icon4);
 
         horizontalLayout_4->addWidget(NextFrameButton);

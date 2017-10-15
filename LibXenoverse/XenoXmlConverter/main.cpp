@@ -4,22 +4,34 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		printf("Usage: 'XenoXmlConverter.exe FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support sds, emm , emd , esk, ean, nsk, aur files");
+		printf("Usage: 'XenoXmlConverter.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support sds, emm , emd , esk, ean, mat.ema, nsk, aur files");
 		getchar();
 		return 1;
 	}
 
 	LibXenoverse::initializeDebuggingLog();
 
+	bool endWaitEnable = true;
 	for (int i = 1; i < argc; i++)
 	{
 		string filename = ToString(argv[i]);
+
+		if (filename == "-noEndWait")
+		{
+			endWaitEnable = false;
+			continue;
+		}
+
 		string extension = LibXenoverse::extensionFromFilename(filename, true);
 		string basefilename = filename.substr(0, filename.length() - (extension.size() + 1)) ;
 		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
 		string basefilename2 = basefilename.substr(0, basefilename.length() - (extension2.size() + 1));
+		string extension3 = LibXenoverse::extensionFromFilename(basefilename2, true);
+		string basefilename3 = basefilename2.substr(0, basefilename2.length() - (extension3.size() + 1));
 
 	
+
+		/////////////////////////////////////////////////////////////
 		if (extension == "sds")
 		{
 			LibXenoverse::SDS* sds = new LibXenoverse::SDS();
@@ -35,7 +47,7 @@ int main(int argc, char** argv)
 
 
 
-
+		/////////////////////////////////////////////////////////////
 		}else if (extension == "emm") {		// .emm  .ptcl.emm  .trc.emm  .tbind.emm  .pbind.emm
 			
 			if((extension2 == "tbind") || (extension2 == "pbind"))
@@ -59,6 +71,9 @@ int main(int argc, char** argv)
 
 
 
+
+
+		/////////////////////////////////////////////////////////////
 		}else if (extension == "emd") {
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
 			if(emd->load(filename))
@@ -73,6 +88,8 @@ int main(int argc, char** argv)
 			delete emd;
 
 
+
+		/////////////////////////////////////////////////////////////
 		}else if (extension == "esk") {
 			LibXenoverse::ESK* esk = new LibXenoverse::ESK();
 			if (esk->load(filename))
@@ -88,6 +105,7 @@ int main(int argc, char** argv)
 
 
 
+		/////////////////////////////////////////////////////////////
 		}else if (extension.substr(extension.length()-3) == "ean") {		//.ean, .fce.ean, .cam.ena
 			LibXenoverse::EAN* ean = new LibXenoverse::EAN();
 			if (ean->load(filename))
@@ -103,6 +121,24 @@ int main(int argc, char** argv)
 
 
 
+
+		/////////////////////////////////////////////////////////////
+		}else if ((extension == "ema") && (extension2 == "mat")) {		//mat.ema
+			LibXenoverse::EMA_Material* ema = new LibXenoverse::EMA_Material();
+			if (ema->load(filename))
+				ema->saveXml(filename + ".xml");
+			delete ema;
+
+		}else if ((extension == "xml") && (extension2 == "ema") && (extension3 == "mat")) {
+
+			LibXenoverse::EMA_Material* ema = new LibXenoverse::EMA_Material();
+			if (ema->loadXml(filename))
+				ema->save(basefilename2 + ".ema");
+			delete ema;
+
+
+
+		/////////////////////////////////////////////////////////////
 		}else if (extension == "nsk") {
 			LibXenoverse::NSK* nsk = new LibXenoverse::NSK();
 			if (nsk->load(filename))
@@ -118,6 +154,7 @@ int main(int argc, char** argv)
 
 
 
+		/////////////////////////////////////////////////////////////
 		}else if (extension == "aur") {
 			LibXenoverse::AUR* aur = new LibXenoverse::AUR();
 			if (aur->load(filename))
@@ -131,12 +168,22 @@ int main(int argc, char** argv)
 			if (aur->loadXml(filename))
 				aur->save(basefilename2 + ".aur");
 			delete aur;
+
+
+
+		/////////////////////////////////////////////////////////////  For Tests/debug
+		}else if (extension == "map") {
+			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
+			fmp->save_Xml(filename);
+			delete fmp;
 		}
 
 
 	}
 
-
+	printf("finished.\n");
+	if(endWaitEnable)
+		getchar();
 
 
 	return 0;

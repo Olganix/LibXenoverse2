@@ -92,7 +92,7 @@ MainWindow::MainWindow()
 
 void MainWindow::createActions()
 {
-	openAct = new QAction(QIcon(":/icons/open_files.png"), tr("&Add Files..."), this);
+	openAct = new QAction(QIcon(":/resources/icons/open_files.png"), tr("&Add Files..."), this);
 	openAct->setShortcuts(QKeySequence::Open);
 	connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 

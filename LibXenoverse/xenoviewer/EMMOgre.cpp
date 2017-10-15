@@ -254,6 +254,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 	
 	
 	string ogre_material_name = name + "_" + emm_material->getName();
+	Ogre::StringUtil::toLowerCase(ogre_material_name);
 
 	Ogre::MaterialPtr compile_material = (Ogre::MaterialPtr)Ogre::MaterialManager::getSingleton().create(ogre_material_name, XENOVIEWER_RESOURCE_GROUP);
 	if (compile_material.isNull())
@@ -274,14 +275,14 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 
 	Ogre::LogManager::getSingleton().logMessage("MatName: " + name + " emmMaterial: " + emm_material->getName() + " VertexShader: " + vertex_shader_name + " pixel_shader_name:" + pixel_shader_name);
 	
-
+	std::vector<size_t> listRegForTextTile;
 	bool vertex_shader_exists = Ogre::GpuProgramManager::getSingleton().resourceExists(vertex_shader_name);
 	if (vertex_shader_exists)
 	{
 		pass->setVertexProgram(vertex_shader_name);
 		Ogre::GpuProgramParametersSharedPtr vp_parameters = pass->getVertexProgramParameters();
 		
-		setUpMaterialParameters(vertex_shader_name, vp_parameters, pass, emm_material);
+		listRegForTextTile = setUpMaterialParameters(vertex_shader_name, vp_parameters, pass, emm_material);
 	}
 
 
@@ -296,11 +297,13 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 
 
 	created_materials.push_back(ogre_material_name);
+	created_materials_reg_for_textTile.push_back(listRegForTextTile);
 	return compile_material.getPointer();
 }
 
-void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material)
+std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material)
 {
+	std::vector<size_t> listRegForTextTile;
 
 	Ogre::GpuProgramPtr program = Ogre::GpuProgramManager::getSingletonPtr()->getByName(shader_name);
 
@@ -336,35 +339,65 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 
 	//config of pass
 	EMMParameter* params = emm_material->getParameter("BackFace");
-	if((params)&& (params->uint_value == 1))					//TOdo check into Emm, if we have backface other than 1. I thincking about : 0 none, 1 anticlockwise, 2 clockwise.
+	if((params)&& (params->uint_value == 1))
 		pass->setCullingMode(Ogre::CULL_NONE);
 
+	
+
 	params = emm_material->getParameter("AlphaBlend");
-	if ((params) && (params->uint_value==1))		//1 : premultiplié
+	if ((params) && (params->uint_value == 1))
 	{
 		pass->setTransparentSortingEnabled(true);
 
-		pass->setSeparateSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA); //premultiplié
-		//Todo activate texture premultiplication on loading
 
-		//pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA);		//no premultiplied
+		params = emm_material->getParameter("AlphaBlendType");			// with the name of material, we could say : 0: nml (normal or multiply ?), 1: additive, 2: sub
+		size_t value = 0;
+		if (params)
+			value = params->uint_value;
+
+		switch (value)
+		{
+		case 0:										 //nml (normal or multiply ?)
+			{
+				pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA);		//no premultiplied
+				//pass->setSeparateSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA); //premultiplié	//Todo activate texture premultiplication on loading
+			}
+			break;
+
+		case 1:
+			pass->setSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE);
+			break;	//additive
+		case 2:
+			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_COLOUR, Ogre::SBF_ONE_MINUS_DEST_COLOUR, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_DEST_ALPHA);
+			break;	//sub
+
+		default:
+			{
+				int aa = 42;
+				//assert(false);
+			}
+		}
+
+		//pass->setSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ZERO);			//test todo remove.
+
+		
 	}
 
-	params = emm_material->getParameter("AlphaTest");
+
+
+	params = emm_material->getParameter("AlphaTest");										//Dbxv1
 	if (params)
-	{
 		pass->setAlphaRejectSettings(Ogre::CompareFunction::CMPF_GREATER, params->uint_value);
-		pass->setTransparentSortingEnabled(true);
-		pass->setSeparateSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_ONE_MINUS_SOURCE_ALPHA);
-	}
-	
-	
-	params = emm_material->getParameter("ZWriteMask");
-	if (params)
-		pass->setDepthWriteEnabled(params->bool_value);
+
 
 	//todo : LowRez, AnimationChannel, MipMapLod0, CustomFlag, 
 
+	
+	params = emm_material->getParameter("ZWriteMask");
+	if (params)
+		pass->setDepthWriteEnabled(params->uint_value == 1);
+	else
+		pass->setDepthWriteEnabled(true);					//default value
 
 
 
@@ -468,7 +501,6 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 				//SamplerToon is the color swap from dyt texture. it isn't in definition of sampler - embPack, so we have to add it here.
 				if ((paramName == "SamplerToon")||(paramName == "Texture_SamplerToon"))
 				{
-
 					pass->getTextureUnitState(reg)->setTextureName(name + ".dyt_0");											//todo add something in UI to change the index of dyt (dyt is about color degrade pallette, witch change with charater's slot).
 					pass->getTextureUnitState(reg)->setTextureFiltering(Ogre::TextureFilterOptions::TFO_NONE);
 					pass->getTextureUnitState(reg)->setTextureAddressingMode(Ogre::TextureUnitState::TextureAddressingMode::TAM_CLAMP);
@@ -481,7 +513,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					pass->getTextureUnitState(reg)->setTextureAddressingMode(Ogre::TextureUnitState::TextureAddressingMode::TAM_CLAMP);
 				}
 
-				if ((paramName == "Texture_ImageSamplerTemp15") || (paramName == "Texture_ImageSamplerTemp15"))
+				if ((paramName == "ImageSamplerTemp15") || (paramName == "Texture_ImageSamplerTemp15"))
 				{
 					/*
 					//TODO: try to understand the real enviroronement map done in game.
@@ -490,8 +522,24 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 						text = Ogre::TextureManager::getSingleton().createManual("ImgEnvi_15","General", Ogre::TextureType::TEX_TYPE_2D, 128, 8, 0, Ogre::PixelFormat::PF_BYTE_RGB);
 					*/
 					
-					pass->getTextureUnitState(reg)->setTextureName("ImgEnvi_15.jpg");
+					pass->getTextureUnitState(reg)->setTextureName("ImgEnvi_15.jpg");			//Test todo remettre
 				}
+
+				if ((paramName == "ImageSamplerShadowMap") || (paramName == "Texture_SamplerShadowMap") ||
+					(paramName == "ImageSamplerProjectionMap") || (paramName == "Texture_SamplerProjectionMap") ||
+
+					(paramName == "ImageSamplerReflect") || (paramName == "Texture_SamplerReflect") ||
+					(paramName == "ImageSamplerRefract") || (paramName == "Texture_SamplerRefract") ||
+					(paramName == "ImageSamplerReflectGlare") || (paramName == "Texture_SamplerReflectGlare") ||
+					(paramName == "ImageSamplerSphereMap") || (paramName == "Texture_SamplerSphereMap") ||
+
+					(paramName == "ImageYTexture") || (paramName == "Texture_YTexture") ||
+					(paramName == "ImageUTexture") || (paramName == "Texture_UTexture") ||
+					(paramName == "ImageVTexture") || (paramName == "Texture_VTexture")
+					)
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+
+				
 
 				//ok, we found it's a sampler2D, but the information , the link with texturepacks, is definied in submesh, so we have information after.
 				emm_material->getListSampler2D().push_back(EMMMaterial::Sampler2D_shaderDefinition(paramName, reg, size));
@@ -536,7 +584,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					fp_parameters->setConstant(reg, 0.0f);								//for not crahsing
 					isUsed = true;
 				}
-				if (paramName.substr(0,12) == "g_bVersatile")		//g_bVersatile0_VS
+				if (paramName.substr(0,12) == "g_bVersatile")		//g_bVersatile0_VS, g_bVersatile0_VS
 				{
 					
 					params = emm_material->getParameter("VsFlag"+ paramName.substr(12, 1));
@@ -612,14 +660,6 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					params = emm_material->getParameter(indexMatCol + "A");
 					if (params) vect_tmp.w = params->float_value;
 
-
-					// Override Battle Damage
-					if (indexMatCol == "MatCol3")					//olganix: todo check this
-					{
-						vect_tmp.x = 0.0;							// Scratch Mark Multiplier
-						vect_tmp.y = 0.0;							// Blood Mark Multiplier
-					}
-
 					fp_parameters->setConstant(reg, vect_tmp);
 					isUsed = true;
 				}
@@ -650,14 +690,24 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 				}
 
 
-				if (paramName.substr(0, 16) == "g_MaterialOffset")			//for g_MaterialOffset0_VS, g_MaterialOffset1_VS,  ...
+				if (paramName.substr(0, 16) == "g_MaterialOffset")			//for g_MaterialOffset0_VS, g_MaterialOffset1_VS, g_MaterialOffset0_PS, g_MaterialOffset1_PS,  ...
 				{
 					string indexMatCol = "MatOffset" + paramName.substr(16, 1);
 					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
 
 					params = emm_material->getParameter(indexMatCol + "X");
 					if (params)
+					{
 						vect_tmp.x = params->float_value;
+					}else {
+
+						EMMParameter* params_tmp = emm_material->getParameter("g_MaterialOffset"+ indexMatCol +"_VS");			// for HUF_835, we have "g_MaterialOffset0_VS" directly, instead of "MatOffset0"
+						if (!params_tmp)
+							params_tmp = emm_material->getParameter("g_MaterialOffset" + indexMatCol + "_PS");
+						
+						if (params_tmp)
+							vect_tmp.x = params->float_value;
+					}
 
 					params = emm_material->getParameter(indexMatCol + "Y");
 					if (params)
@@ -679,7 +729,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 
 
 
-				if ((paramName == "g_vTone")||(paramName == "g_vTone_PS"))			//color multiplicator at the end.
+				if ((paramName == "g_vTone") ||(paramName == "g_vTone_PS"))			//color multiplicator at the end.
 				{
 					string indexMatCol = "Tone";
 					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
@@ -705,9 +755,14 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 				}
 
 
-				if (paramName == "g_vTexTile01_VS")						//use with UVscroll to scroll into a textureTile.
+				if (paramName.substr(0, 10) == "g_vTexTile")						//g_vTexTile01_VS, ... use with UVscroll to scroll into a textureTile. The question is, it is the value for TextScale ? witch is on textureDefinition on emd ?
 				{
-					string indexMatCol = "TextTile01";					//todo find in material the real name (keep 0 on default)
+					size_t index = std::stoi(paramName.substr(10, 2));
+					if (listRegForTextTile.size() <= index)
+						listRegForTextTile.resize(index +1 , (size_t)-1 );
+					listRegForTextTile.at(index) = reg;
+					
+					string indexMatCol = "TextTile"+ paramName.substr(10, 2);
 					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
 
 					params = emm_material->getParameter(indexMatCol + "X");
@@ -730,7 +785,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					isUsed = true;
 				}
 
-				if (paramName.substr(0, 11) == "g_TexScroll")			//for g_TexScroll0_VS, g_TexScroll1_VS
+				if (paramName.substr(0, 11) == "g_TexScroll")			//for g_TexScroll0_VS, g_TexScroll1_VS, g_TexScroll0_PS, g_TexScroll1_PS
 				{
 					string indexMatCol = "TexScrl" + paramName.substr(11, 1);
 					Ogre::Vector4 vect_tmp(0, 0, 0, 0);
@@ -749,8 +804,9 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 
 				if (paramName == "g_Incidence_VS")
 				{
-					Ogre::Vector4 vect_tmp(0, 0, 0, 0);
+					Ogre::Vector4 vect_tmp(1.0, 0.0, 0, 0);
 
+					
 					params = emm_material->getParameter("IncidencePower");
 					if (params)
 						vect_tmp.x = params->float_value;
@@ -758,6 +814,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					params = emm_material->getParameter("IncidenceAlphaBias");
 					if (params)
 						vect_tmp.y = params->float_value;
+					
 
 					fp_parameters->setConstant(reg, vect_tmp);
 					isUsed = true;
@@ -855,7 +912,57 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					fp_parameters->setConstant(reg, vect_tmp);
 					isUsed = true;
 				}
+
+				if ((paramName == "g_vRim_VS") || (paramName == "g_vRim_PS"))
+				{
+					Ogre::Vector4 vect_tmp(0, 0, 0, 0);
+
+					params = emm_material->getParameter("RimCoeff");
+					if (params)
+						vect_tmp.x = params->float_value;
+
+					params = emm_material->getParameter("RimPower");
+					if (params)
+						vect_tmp.y = params->float_value;
+
+					fp_parameters->setConstant(reg, vect_tmp);
+					isUsed = true;
+				}
+
+				if ((paramName == "g_Reflection_VS") || (paramName == "g_Reflection_PS"))
+				{
+					Ogre::Vector4 vect_tmp(0, 0, 0, 0);
+
+					params = emm_material->getParameter("ReflectCoeff");
+					if (params)
+						vect_tmp.x = params->float_value;
+
+					params = emm_material->getParameter("ReflectFresnelBias");
+					if (params)
+						vect_tmp.y = params->float_value;
+
+					params = emm_material->getParameter("ReflectFresnelCoeff");
+					if (params)
+						vect_tmp.z = params->float_value;
+
+					fp_parameters->setConstant(reg, vect_tmp);
+					isUsed = true;
+				}
 				
+
+				if (paramName == "g_vAlphaTest_PS")							//DBXv2
+				{
+					Ogre::Vector4 vect_tmp(0.5, 0.5, 0.5, 0.5);
+
+					params = emm_material->getParameter("AlphaTest");
+					if (params)
+						vect_tmp = Ogre::Vector4( ((float)(params->uint_value)) / 255.0 );
+
+					fp_parameters->setConstant(reg, vect_tmp);
+					isUsed = true;
+				}
+
+
 				//Todo check g_vTexTile01_VS		, link to AnimationChannel ? 
 
 
@@ -864,21 +971,27 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 
 
 				//case given by Ogre system:
-				if( (paramName == "g_vLightVec0_VS") || (paramName == "g_vLightVec0_PS") || (paramName == "g_vLightVec1_VS") || (paramName == "g_vLightVec1_PS"))	//only one light for now.
+				if(paramName.substr(0,11) == "g_vLightVec")															//g_vLightVec0_VS, g_vLightVec0_PS, g_vLightVec1_VS, g_vLightVec1_PS, etc ...
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_POSITION_OBJECT_SPACE);
+					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
+					
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_POSITION_OBJECT_SPACE, index);
 					isUsed = true;
 				}
-				if ((paramName == "g_vLightDif0_VS") || (paramName == "g_vLightDif0_PS"))
+				if(paramName.substr(0,11) == "g_vLightDif")															//g_vLightDif0_VS, g_vLightDif0_PS, g_vLightDif1_VS, g_vLightDif1_PS, etc ...
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR);
+					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR, index);
 					isUsed = true;
 				}
-				if ((paramName == "g_vLightSpc0_VS") || (paramName == "g_vLightSpc0_PS"))
+				if(paramName.substr(0, 11) == "g_vLightSpc")													//g_vLightSpc0_VS, g_vLightSpc0_PS, g_vLightSpc1_VS, g_vLightSpc1_PS, etc ...
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR);
+					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR, index);
 					isUsed = true;
 				}
+
+				
 
 				if (paramName == "g_vEyePos_VS")
 				{
@@ -899,14 +1012,13 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					isUsed = true;
 				}
 				
-				if (paramName == "g_SystemTime_VS")
+				if ((paramName == "g_SystemTime_VS") || (paramName == "g_ElapsedTime_VS") ||(paramName == "g_SystemTime_PS") || (paramName == "g_ElapsedTime_PS"))
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_TIME);
 					isUsed = true;
 				}
 
 				
-				//todo found other thing like time, etc .. for that i need to look all shaders/material/sds.
 				
 
 				//case gived by defaults values from previous code (the difference is registers are not hardcoded). 
@@ -969,12 +1081,6 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
 					isUsed = true;
 				}
-
-				if (paramName == "g_vAlphaTest_PS")							//DBXv2
-				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.5));	//only X is used, todo check.
-					isUsed = true;
-				}
 				
 
 				if (paramName == "g_vUserFlag0_VS")							//DBXv2
@@ -989,7 +1095,7 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
 					isUsed = true;
 				}
-				if (paramName == "g_vSubSurface_VS")						//DBXv2  => subSurfaceScaterring ?
+				if ((paramName == "g_vSubSurface_VS") || (paramName == "g_vSubSurface_PS"))			//DBXv2  => subSurfaceScaterring ?
 				{
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
 					isUsed = true;
@@ -1117,12 +1223,31 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					isUsed = true;
 				}
 
-				if (paramName == "g_mWLPB_SM_VS")							//DBXv2. World Light Projection (B ? backward ?) ShadowMap ?
+
+				
+
+				if (paramName == "g_mWLP_SM_VS")							//DBXv2. World Light Projection (SM = ShadowMap)
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 0);
 					isUsed = true;
 				}
+				if (paramName == "g_mWLPB_SM_VS")							//DBXv2. World Light Projection (SM = ShadowMap), (B ? backward ?) ShadowMap ?, or may be B for a second one ? because of g_mWLP_SM_VS (and g_mWLP_PM_VS, g_mWLPB_PM_VS)
+				{
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 1);
+					isUsed = true;
+				}
 				
+				if (paramName == "g_mWLP_PM_VS")							//DBXv2. World Light Projection, projection matrix ? Todo look deeper into TOON shader
+				{
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 0);
+					isUsed = true;
+				}
+				if (paramName == "g_mWLPB_PM_VS")							//DBXv2. World Light Projection, projection matrix ? Todo look deeper into TOON shader
+				{
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 1);
+					isUsed = true;
+				}
+
 
 				isDone = true;
 			}
@@ -1140,14 +1265,19 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLD_MATRIX_ARRAY_3x4);
 					isUsed = true;
 				}
+				if (paramName == "g_mMatrixPalettePrev_VS")								// Matrix Worl View Proj, todo loo after the "Prev", may be for motionBlur.
+				{
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLD_MATRIX_ARRAY_3x4);
+					isUsed = true;
+				}
 				
-				if (paramName == "g_mWV_VS")								// Matrix Worl View par contre Ogre ne delivre pas une version en 4x3, todo oir si ca marche
+				if (paramName == "g_mWV_VS")								// Matrix Worl View par contre Ogre ne delivre pas une version en 4x3
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLDVIEW_MATRIX_3x4);
 					isUsed = true;
 				}
 
-				if (paramName == "g_mW_VS")								// Matrix Worl par contre Ogre ne delivre pas une version en 4x3, todo oir si ca marche
+				if (paramName == "g_mW_VS")								// Matrix Worl par contre Ogre ne delivre pas une version en 4x3
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLD_MATRIX_4x3);
 					isUsed = true;
@@ -1159,15 +1289,16 @@ void EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParame
 
 			if (!isUsed)
 			{
-				string aa = paramName;
+				string ab = paramName;
 				//todo warning
-				assert(false);	//if pass here, complete by reading shaders
+				int aa = 42;
+				//assert(false);	//if pass here, complete by reading shaders
 			}
 		}
-		
-		pass->setFog(false);
+
 	}
 
+	return listRegForTextTile;
 }
 
 
@@ -1179,6 +1310,21 @@ void EMMOgre::createOgreMaterials(std::vector<SDS*> &sds_list)
 	for (size_t i = 0; i < materials.size(); i++)
 		createOgreMaterial(materials[i], sds_list);
 	material_resources_created = true;
+}
+
+size_t EMMOgre::getReg(string ogreMaterialName, size_t textTileIndex)
+{
+	size_t nbMaterial = created_materials.size();
+	for (size_t i = 0; i < nbMaterial; i++)
+	{
+		if (created_materials.at(i) == ogreMaterialName)
+		{
+			std::vector<size_t> &listReg = created_materials_reg_for_textTile.at(i);
+			return ((textTileIndex < listReg.size()) ? listReg.at(textTileIndex) : (size_t)-1);
+		}
+	}
+	return (size_t)-1;
+	
 }
 
 void EMMOgre::destroyResources()

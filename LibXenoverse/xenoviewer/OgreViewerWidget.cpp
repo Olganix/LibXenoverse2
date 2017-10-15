@@ -459,7 +459,88 @@ namespace QtOgre
 	{
 		printf("\nkey event in board: %i", event->key());
 		if (event->key() == Qt::Key_F12)
+		{
 			doScreenShot();
+
+		}else if (event->key() == Qt::Key_F11){
+				
+
+			if (!mIsFullscreen)
+			{
+				//refresh parent and grand parent because there is lots of operation on widgets, hierarchy change
+				mpParentWidget = this->parentWidget();
+				mpGrandParentWidget = mpParentWidget->parentWidget();
+
+				mpParentWidget->setParent(0);
+				mpParentWidget->showFullScreen();
+				mpParentWidget->show();
+
+				QPoint position = this->pos();
+				this->move(0, 0);
+
+				QLayout* layout = mpParentWidget->layout();
+				if (layout)
+				{
+					layout->setSpacing(0);
+					layout->setMargin(0);
+				}
+
+				mIsFullscreen = true;
+
+			} else {
+
+				QLayout* layout = mpParentWidget->layout();
+				if (layout)
+				{
+					layout->setSpacing(6);
+					layout->setMargin(11);
+				}
+				mpParentWidget->showNormal();
+
+				this->move(9, 9);
+
+				if (mpGrandParentWidget->layout())
+				{
+					mpGrandParentWidget->layout()->addWidget(mpParentWidget);
+				}
+				else {
+					mpParentWidget->setParent(mpGrandParentWidget);
+				}
+
+				mpParentWidget->show();
+				mpGrandParentWidget->show();
+
+				mIsFullscreen = false;
+			}
+
+		} else if (event->key() == Qt::Key_Escape) {
+			
+			if (mIsFullscreen)
+			{
+				QLayout* layout = mpParentWidget->layout();
+				if (layout)
+				{
+					layout->setSpacing(6);
+					layout->setMargin(11);
+				}
+				mpParentWidget->showNormal();
+
+				this->move(9, 9);
+
+				if (mpGrandParentWidget->layout())
+				{
+					mpGrandParentWidget->layout()->addWidget(mpParentWidget);
+				}
+				else {
+					mpParentWidget->setParent(mpGrandParentWidget);
+				}
+
+				mpParentWidget->show();
+				mpGrandParentWidget->show();
+
+				mIsFullscreen = false;
+			}
+		}
 	}
 
 	void OgreWidget::doScreenShot()
@@ -539,61 +620,74 @@ namespace QtOgre
 				QMenu myMenu;
 				QMenu* displayMenu = myMenu.addMenu("Display");
 
+				QAction* displayFullscreen = NULL;
+				if (mIsFullscreen)
+					displayFullscreen = new QAction(QIcon(":/resources/icons/pause.png"), tr("&Windowed"), this);
+				else
+					displayFullscreen = new QAction(QIcon(":/resources/icons/play.png"), tr("&Fullscreen"), this);
+				displayMenu->addAction(displayFullscreen);
+
+				
+
 				QAction* displayPolygoneModeAct = NULL;
 				if (mCamera->getPolygonMode() == Ogre::PM_SOLID)
-					displayPolygoneModeAct = new QAction(QIcon(":/icons/pause.png"), tr("&Wireframe"), this);
+					displayPolygoneModeAct = new QAction(QIcon(":/resources/icons/pause.png"), tr("&Wireframe"), this);
 				else if (mCamera->getPolygonMode() == Ogre::PM_WIREFRAME)
-					displayPolygoneModeAct = new QAction(QIcon(":/icons/play.png"), tr("&Point"), this);
+					displayPolygoneModeAct = new QAction(QIcon(":/resources/icons/play.png"), tr("&Point"), this);
 				else
-					displayPolygoneModeAct = new QAction(QIcon(":/icons/stop.png"), tr("&Solid"), this);
+					displayPolygoneModeAct = new QAction(QIcon(":/resources/icons/stop.png"), tr("&Solid"), this);
 				displayMenu->addAction(displayPolygoneModeAct);
 
-				QAction* displayMeshAct = new QAction(QIcon(  ((mGeometryVisible) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Geometry"), this);
+				QAction* displayMeshAct = new QAction(QIcon(  ((mGeometryVisible) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Geometry"), this);
 				displayMenu->addAction(displayMeshAct);
 
-				QAction* displaySkeletonAct = new QAction(QIcon(((mSkeletonVisible) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Skeleton"), this);
+				QAction* displaySkeletonAct = new QAction(QIcon(((mSkeletonVisible) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Skeleton"), this);
 				displayMenu->addAction(displaySkeletonAct);
 				
 				QAction* showAxesAct = NULL, *showBonesAct = NULL, *showNamesAct = NULL;
 				if ((mSkeletonVisible) && (skeleton_debug2))
 				{
-					showAxesAct = new QAction(QIcon(((skeleton_debug2->axesShown()) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Sk Axes"), this);
+					showAxesAct = new QAction(QIcon(((skeleton_debug2->axesShown()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Sk Axes"), this);
 					displayMenu->addAction(showAxesAct);
 
-					showBonesAct = new QAction(QIcon(((skeleton_debug2->bonesShown()) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Sk bones"), this);
+					showBonesAct = new QAction(QIcon(((skeleton_debug2->bonesShown()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Sk bones"), this);
 					displayMenu->addAction(showBonesAct);
 
-					showNamesAct = new QAction(QIcon(((skeleton_debug2->namesShown()) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Sk Names"), this);
+					showNamesAct = new QAction(QIcon(((skeleton_debug2->namesShown()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Sk Names"), this);
 					displayMenu->addAction(showNamesAct);
 				}
 
-				QAction* displayGridAct = new QAction(QIcon(((mGridVisible) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Grid"), this);
+				QAction* displayGridAct = new QAction(QIcon(((mGridVisible) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Grid"), this);
 				displayMenu->addAction(displayGridAct);
 
 
-				QAction* displayRepereAct = new QAction(QIcon(((mRepereVisible) ? ":/icons/play.png" : ":/icons/stop.png")), tr("&Repere"), this);
+				QAction* displayRepereAct = new QAction(QIcon(((mRepereVisible) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png")), tr("&Repere"), this);
 				displayMenu->addAction(displayRepereAct);
 
 
 				//////////////////////// debug of mesh by using adapted materials
 				QMenu* displayMenu_materials = displayMenu->addMenu("Material");
 
-				QAction* displayApplyMaterialAct_White = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat White"), this);
+				QAction* displayApplyMaterialAct_White = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat White"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_White);
-				QAction* displayApplyMaterialAct_Normals = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat Normals"), this);
+				QAction* displayApplyMaterialAct_Normals = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Normals"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Normals);
-				QAction* displayApplyMaterialAct_Tangents = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat Tangents"), this);
+				QAction* displayApplyMaterialAct_Tangents = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Tangents"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Tangents);
-				QAction* displayApplyMaterialAct_TexCoord = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat UV"), this);
+				QAction* displayApplyMaterialAct_TexCoord = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord);
-				QAction* displayApplyMaterialAct_TexCoord2 = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat UV2"), this);
+				QAction* displayApplyMaterialAct_TexCoord2 = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV2"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord2);
-				QAction* displayApplyMaterialAct_Color = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat Color"), this);
+				QAction* displayApplyMaterialAct_Color = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Color"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Color);
+				QAction* displayApplyMaterialAct_ColorRGB = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat ColorRGB"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_ColorRGB);
+				QAction* displayApplyMaterialAct_ColorA = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat ColorA"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_ColorA);
 				
-				QAction* displayApplyMaterialAct_TestOpacity = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat TestOpacity"), this);
+				QAction* displayApplyMaterialAct_TestOpacity = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat TestOpacity"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_TestOpacity);
-				QAction* displayApplyMaterialAct_Kmh_Bas_Cor = new QAction(QIcon(":/icons/apply_material.png"), tr("&Mat Kmh_Bas_Cor"), this);
+				QAction* displayApplyMaterialAct_Kmh_Bas_Cor = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Kmh_Bas_Cor"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Kmh_Bas_Cor);
 
 
@@ -601,9 +695,9 @@ namespace QtOgre
 				//////////////////////// 
 				QMenu* displayMenu_Camera = displayMenu->addMenu("Camera");
 
-				QAction* displayCameraAct_Charac = new QAction(QIcon(":/icons/apply_material.png"), tr("&Reset for Charac"), this);
+				QAction* displayCameraAct_Charac = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Reset for Charac"), this);
 				displayMenu_Camera->addAction( displayCameraAct_Charac );
-				QAction* displayCameraAct_Stage = new QAction(QIcon(":/icons/apply_material.png"), tr("&Reset for Stages"), this);
+				QAction* displayCameraAct_Stage = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Reset for Stages"), this);
 				displayMenu_Camera->addAction(displayCameraAct_Stage);
 
 
@@ -651,8 +745,60 @@ namespace QtOgre
 				//menuBar()->addSeparator();
 
 				QAction* selectedItem = myMenu.exec(event->globalPos());
-				if (selectedItem == displayPolygoneModeAct)
+
+				if (selectedItem == displayFullscreen)
 				{
+					if (!mIsFullscreen)
+					{
+						//refresh parent and grand parent because there is lots of operation on widgets, hierarchy change
+						mpParentWidget = this->parentWidget();
+						mpGrandParentWidget = mpParentWidget->parentWidget();
+
+						mpParentWidget->setParent(0);
+						mpParentWidget->showFullScreen();
+						mpParentWidget->show();
+
+						QPoint position = this->pos();
+						this->move(0, 0);
+
+						QLayout* layout = mpParentWidget->layout();
+						if (layout)
+						{
+							layout->setSpacing(0);
+							layout->setMargin(0);
+						}
+
+						mIsFullscreen = true;
+
+					} else {
+
+						QLayout* layout = mpParentWidget->layout();
+						if (layout)
+						{
+							layout->setSpacing(6);
+							layout->setMargin(11);
+						}
+						mpParentWidget->showNormal();
+
+						this->move(9, 9);
+
+						if (mpGrandParentWidget->layout())
+						{
+							mpGrandParentWidget->layout()->addWidget(mpParentWidget);
+						}
+						else {
+							mpParentWidget->setParent(mpGrandParentWidget);
+						}
+
+						mpParentWidget->show();
+						mpGrandParentWidget->show();
+
+
+						mIsFullscreen = false;
+					}
+
+
+				}else if (selectedItem == displayPolygoneModeAct){
 					switch (mCamera->getPolygonMode())
 					{
 					case Ogre::PM_SOLID:
@@ -687,6 +833,8 @@ namespace QtOgre
 					|| (selectedItem == displayApplyMaterialAct_TexCoord)
 					|| (selectedItem == displayApplyMaterialAct_TexCoord2)
 					|| (selectedItem == displayApplyMaterialAct_Color)
+					|| (selectedItem == displayApplyMaterialAct_ColorRGB)
+					|| (selectedItem == displayApplyMaterialAct_ColorA)
 					|| (selectedItem == displayApplyMaterialAct_TestOpacity)
 					|| (selectedItem == displayApplyMaterialAct_Kmh_Bas_Cor)
 
@@ -706,6 +854,10 @@ namespace QtOgre
 						materialName = "TexCoord2";
 					else if (selectedItem == displayApplyMaterialAct_Color)
 						materialName = "Color";
+					else if (selectedItem == displayApplyMaterialAct_ColorRGB)
+						materialName = "Color_RGB";
+					else if (selectedItem == displayApplyMaterialAct_ColorA)
+						materialName = "Color_A";
 					else if (selectedItem == displayApplyMaterialAct_TestOpacity)
 						//materialName = "TestOpacity";
 						materialName = "Test";

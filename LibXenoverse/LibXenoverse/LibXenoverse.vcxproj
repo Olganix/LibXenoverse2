@@ -94,6 +94,7 @@
     <ClInclude Include="AUR.h" />
     <ClInclude Include="EAN.h" />
     <ClInclude Include="EMA.h" />
+    <ClInclude Include="EMA_Material.h" />
     <ClInclude Include="EMB.h" />
     <ClInclude Include="EMD.h" />
     <ClInclude Include="EMG.h" />
@@ -104,6 +105,7 @@
     <ClInclude Include="EMO_Skeleton.h" />
     <ClInclude Include="EMZ.h" />
     <ClInclude Include="ESK.h" />
+    <ClInclude Include="Fmp.h" />
     <ClInclude Include="HLSLASM.h" />
     <ClInclude Include="IGGYTEX.h" />
     <ClInclude Include="NSK.h" />
@@ -125,6 +127,7 @@
     <ClCompile Include="EANAnimationNode.cpp" />
     <ClCompile Include="EANXml.cpp" />
     <ClCompile Include="EMA.cpp" />
+    <ClCompile Include="EMA_Material.cpp" />
     <ClCompile Include="EMB.cpp" />
     <ClCompile Include="EMBExportFx.cpp" />
     <ClCompile Include="EMBFile.cpp" />
@@ -148,6 +151,7 @@
     <ClCompile Include="ESKBone.cpp" />
     <ClCompile Include="ESKFBX.cpp" />
     <ClCompile Include="ESKXml.cpp" />
+    <ClCompile Include="Fmp.cpp" />
     <ClCompile Include="HLSLASM.cpp" />
     <ClCompile Include="IGGYTEX.cpp" />
     <ClCompile Include="IGGYTEXFile.cpp" />

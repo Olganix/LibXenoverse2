@@ -95,7 +95,9 @@ namespace QtOgre
 		Ogre::Viewport* mViewport;
 
 	private:
+		bool mIsFullscreen;
 		QWidget* mpParentWidget;
+		QWidget* mpGrandParentWidget;
 		Ogre::RenderSystem* mActiveRenderSystem;
 		Ogre::Root* mRoot;
 		Ogre::Camera* mCamera;

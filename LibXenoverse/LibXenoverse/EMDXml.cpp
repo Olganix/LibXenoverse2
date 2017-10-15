@@ -361,7 +361,7 @@ bool EMDVertex::importXml(TiXmlElement* xmlCurrentNode, uint16_t parentflags)
 		colorNode->QueryFloatAttribute("r", &r);
 		colorNode->QueryFloatAttribute("g", &g);
 		colorNode->QueryFloatAttribute("b", &b);
-		colorNode->QueryFloatAttribute("b", &a);
+		colorNode->QueryFloatAttribute("a", &a);
 
 		setColorFromRGBAFloat(r, g, b, a);
 	}

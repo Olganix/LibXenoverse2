@@ -13,6 +13,9 @@ namespace QtOgre
 	{
 		QWidget *q_parent = dynamic_cast <QWidget *> (parent());
 
+		mpGrandParentWidget = mpParentWidget->parentWidget();
+		mIsFullscreen = false;
+
 		setMouseTracking(true);
 		grabKeyboard();
 

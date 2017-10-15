@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	{
 		string parameter = ToString(argv[i]);
 
-		string extension = LibXenoverse::extensionFromFilename(parameter);
+		string extension = LibXenoverse::extensionFromFilename(parameter, true);
 
 		if (extension == "emd")
 			model_filenames.push_back(parameter);
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 		if (extension == "nsk")
 			skeleton_filenames.push_back(parameter);
 
-		if ((extension == "ean") || (extension == "fce.ean"))
+		if (extension == "ean")
 			animation_filenames.push_back(parameter);
 
 		if (extension == "fbx")
@@ -328,7 +328,7 @@ int main(int argc, char** argv)
 		{
 			printf("Warning : No EMB DYT Pack with the name %s found. we will try to use %s instead ", (baseFileName + ".dyt.emb").c_str(), (baseFileName + ".emb").c_str());
 			if(emb)
-				mListEmb.push_back(emb);
+				mListEmb.push_back(emb->clone());
 		}else{
 			emb = new LibXenoverse::EMB();
 			if (!emb->load(baseFileName + ".dyt.emb"))

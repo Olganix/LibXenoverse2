@@ -95,6 +95,7 @@ class EmaCommand
 {
 	friend class EMA;
 	friend class EmaAnimation;
+	friend class EMA_Material_Animation;
 
 private:
 	EMO_Bone *bone;
@@ -111,16 +112,8 @@ public:
 	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame);
 
 
-
-	inline EMO_Bone *GetBone()
-	{
-		return bone;
-	}
-
-	inline uint16_t GetNumSteps() const
-	{
-		return steps.size();
-	}
+	inline EMO_Bone *GetBone() { return bone; }
+	inline uint16_t GetNumSteps() const { return steps.size(); }
 
 	inline bool RemoveStep(uint16_t id)
 	{
@@ -140,27 +133,19 @@ public:
 		{
 			if (rhs.bone)
 				return false;
-		}
-		else if (!rhs.bone)
-		{
+		} else if (!rhs.bone) {
 			return false;
 		}
 
-		if (this->bone)
-		{
-			if (this->bone->GetName() != rhs.bone->GetName())
-				return false;
-		}
+		if((this->bone)&& (this->bone->GetName() != rhs.bone->GetName()))
+			return false;
 
 		return (this->transform == rhs.transform &&
 			this->transformComponent == rhs.transformComponent &&
 			this->steps == rhs.steps);
 	}
 
-	inline bool operator!=(const EmaCommand &rhs) const
-	{
-		return !(*this == rhs);
-	}
+	inline bool operator!=(const EmaCommand &rhs) const { return !(*this == rhs); }
 
 
 	inline EmaStep &operator[](size_t n) { return steps[n]; }
@@ -179,8 +164,10 @@ public:
 
 class EmaAnimation
 {
-private:
+	friend class EMA;
+	friend class EMA_Material_Animation;
 
+private:
 	std::string name;
 	uint16_t duration;
 
@@ -188,8 +175,6 @@ private:
 	std::vector<EmaCommand> commands;
 
 	uint32_t unk_08;
-
-	friend class EMA;
 
 public:
 
@@ -265,6 +250,8 @@ public:
 
 class EMA : public EMO_Skeleton
 {
+	friend class EMA_Material;
+
 private:
 
 	std::vector<EmaAnimation> animations;

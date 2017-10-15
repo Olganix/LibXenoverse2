@@ -1,0 +1,263 @@
+
+
+
+
+
+------------------------ Ogre Param auto Named
+c0	x4	float4x4	g_mWVP_VS	=>	TOON	(Sds:technique_age_sds)										=> ACT_WORLDVIEWPROJ_MATRIX
+c8	x4	float4x4	g_mWVP_Prev_VS	=>	TOON	(Sds:technique_age_sds)							=> ACT_WORLDVIEWPROJ_MATRIX , todo find what is really is (diff with g_mWVP_VS), I think is about previous state, so you could do a motionBlur effect, by duplicate mesh (geometry shader could do that)
+c40	x72	float4x3	g_mMatrixPalette_VS	=>	TOON	(Sds:technique_age_sds)					=> ACT_WORLD_MATRIX_ARRAY_3x4
+c125	x72	float4x3	g_mMatrixPalettePrev_VS	=>	TOON	(Sds:technique_age_sds)		=> ACT_WORLD_MATRIX_ARRAY_3x4
+c32	x3	float4x3	g_mWV_VS	=>	TOON	(Sds:technique_age_sds)										=> ACT_WORLDVIEW_MATRIX_3x4
+c4	x4	float4x4	g_mVP_VS	=>	TOON	(Sds:technique_age_sds)										=> ACT_VIEWPROJ_MATRIX
+c36	x2	float4x3	g_mW_VS	=>	TOON	(Sds:technique_age_sds)											=> ACT_WORLD_MATRIX_4x3
+
+c16	x4	float4x4	g_mWLP_SM_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX 0
+c20	x4	float4x4	g_mWLPB_SM_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX 1
+c24	x4	float4x4	g_mWLP_PM_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX 0, todo revoir
+c28	x4	float4x4	g_mWLPB_PM_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX 1, todo revoir
+
+c57	x1	float4	g_vEyePos_VS	=>	TOON	(Sds:technique_age_sds)									=> ACT_CAMERA_POSITION
+
+c45	x1	float4	g_vLightVec0_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_POSITION_OBJECT_SPACE 0
+c20	x1	float4	g_vLightVec0_PS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_POSITION_OBJECT_SPACE 0
+c46	x1	float4	g_vLightDif0_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_DIFFUSE_COLOUR 0
+c21	x1	float4	g_vLightDif0_PS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_DIFFUSE_COLOUR 0
+c60	x1	float4	g_vLightSpc0_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_SPECULAR_COLOUR 0
+c22	x1	float4	g_vLightSpc0_PS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_SPECULAR_COLOUR 0
+c61	x1	float4	g_vLightVec1_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_POSITION_OBJECT_SPACE 1
+c23	x1	float4	g_vLightVec1_PS	=>																							=> ACT_LIGHT_POSITION_OBJECT_SPACE 1
+c62	x1	float4	g_vLightDif1_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_DIFFUSE_COLOUR 1
+c25	x1	float4	g_vLightDif1_PS	=>																							=> ACT_LIGHT_DIFFUSE_COLOUR 1
+c25	x1	float4	g_vLightSpc1_PS	=>																							=> ACT_LIGHT_SPECULAR_COLOUR 1
+c64	x1	float4	g_vLightVec2_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_POSITION_OBJECT_SPACE 2
+c65	x1	float4	g_vLightDif2_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_DIFFUSE_COLOUR 2
+c67	x1	float4	g_vLightVec3_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_POSITION_OBJECT_SPACE 3
+c68	x1	float4	g_vLightDif3_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_LIGHT_DIFFUSE_COLOUR 3
+
+c52	x1	float4	g_SystemTime_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_TIME
+c60	x1	float4	g_ElapsedTime_VS	=>	TOON	(Sds:technique_age_sds)							=> ACT_TIME
+c55	x1	float4	g_ElapsedTime_PS	=>	TOON	(Sds:technique_age_sds)							=> ACT_TIME	
+
+c50	x1	float4	g_vHeightFog_VS	=>	TOON	(Sds:technique_age_sds)								=> ACT_FOG_PARAMS (density, linear start, linear end, 1/(end-start)), todo a tester
+c51	x1	float4	g_vFog_VS	=>	TOON	(Sds:technique_age_sds)											=> ACT_FOG_COLOUR, todo a tester
+
+
+------------------------ EMD informations (texture index)
+
+s4	x1	sampler2D	Texture_SamplerToon	=>	TOON	(Sds:technique_age_sds)					=> Dyt
+
+s0	x1	sampler2D	Texture_ImageSampler0	=>	TOON	(Sds:technique_age_sds)				=> 
+s1	x1	sampler2D	Texture_ImageSampler1	=>	TOON	(Sds:technique_age_sds)				=> 
+s2	x1	sampler2D	Texture_ImageSampler2	=>	TOON	(Sds:technique_age_sds)
+s3	x1	sampler2D	Texture_ImageSampler3	=>	TOON	(Sds:technique_age_sds)
+s14	x1	sampler2D	Texture_ImageSamplerTemp14	=>																=> Dyt
+s15	x1	sampler2D	Texture_ImageSamplerTemp15	=>	TOON	(Sds:technique_age_sds)
+
+s8	x1	sampler2D	Texture_SamplerReflect	=>	TOON	(Sds:technique_age_sds)			=> empty par defaut
+s9	x1	sampler2D	Texture_SamplerRefract	=>																		=> empty par defaut
+s9	x1	sampler2D	Texture_SamplerReflectGlare	=>																=> empty par defaut
+
+s5	x1	sampler2D	Texture_SamplerSphereMap	=>																	=> empty par defaut
+s5	x1	samplerCUBE	Texture_SamplerCubeMap	=>	TOON	(Sds:technique_age_sds)		=> Todo empty par defaut
+
+s7	x1	sampler2D	Texture_SamplerShadowMap	=>	TOON	(Sds:technique_age_sds)		, empty par defaut. todo soit faire des vrai shadowMap 
+s6	x1	sampler2D	Texture_SamplerProjectionMap	=>	TOON	(Sds:technique_age_sds), projection ma, ok mais depuis quel point et orientation ? empty par defaut
+
+
+s11	x1	sampler2D	Texture_SamplerCurrentScene	=>	TOON	(Sds:technique_age_sds)	=> RTT de la camera en cours, todo
+s10	x1	sampler2D	Texture_SamplerAlphaDepth	=>	TOON	(Sds:technique_age_sds)		=> RTT de la depthmap, todo
+s12	x1	sampler2D	Texture_SamplerSmallScene	=>	TOON	(Sds:technique_age_sds)		=> RTT de la scene (vue de dessus ? ou version plus light de la camera en cours ?), todo
+
+s0	x1	sampler2D	Texture_YTexture	=>	espaces color metrique  YUV ? pour la correction gamma et chrominance  ? => empty par defaut, todo check
+s1	x1	sampler2D	Texture_UTexture	=>																					=> empty par defaut, todo check
+s2	x1	sampler2D	Texture_VTexture	=>																					=> empty par defaut, todo check
+
+
+
+------------------------ SDS informations
+b0	x1	bool	g_bSkinning_VS	=>	TOON	(Sds:technique_age_sds)									=> SkinningEnable, but for now , force to false
+
+------------------------ EMM informations
+
+c0	x1	float4	g_vAlphaTest_PS	=>	TOON	(Sds:technique_age_sds)								=> AlphaTest
+c33	x1	float4	g_vSpecular_PS	=>	TOON	(Sds:technique_age_sds)								=> X: SpcCoeff, Y: SpcPower
+
+c72	x1	float4	g_vRim_VS	=>	TOON	(Sds:technique_age_sds)											=> X: RimCoeff, Y: RimPower 
+c19	x1	float4	g_vRim_PS	=>															 											=> X: RimCoeff, Y: RimPower
+
+c82	x1	float4	g_Reflection_VS	=>	TOON	(Sds:technique_age_sds)								=> X: ReflectCoeff, Y: ReflectFresnelBias, Z: ReflectFresnelCoeff, Todo check that
+c57	x1	float4	g_Reflection_PS	=>	TOON	(Sds:technique_age_sds)								=> X: ReflectCoeff, Y: ReflectFresnelBias, Z: ReflectFresnelCoeff, Todo check that
+
+c53	x1	float4	g_MaterialScale0_VS	=>	MatScale0X	(Mat:skin_head)							=> MatScale0
+c33	x1	float4	g_MaterialScale0_PS	=>	MatScale0X	(Mat:skin_head)							=> MatScale0
+c55	x1	float4	g_MaterialOffset0_VS	=>	MatOffset0X	(Mat:hair_front)					=> MatOffset0 ou g_MaterialOffset0_VS ou g_MaterialOffset0_PS
+c50	x1	float4	g_MaterialOffset0_PS	=>	MatOffset0X	(Mat:hair_front)					=> MatOffset0 ou g_MaterialOffset0_VS ou g_MaterialOffset0_PS
+c58	x1	float4	g_MaterialCol0_VS	=>	MatCol0R	(Mat:skin_head)									=> MatCol0
+c25	x1	float4	g_MaterialCol0_PS	=>																						=> MatCol0
+
+c59	x1	float4	g_MaterialCol1_VS	=>	MatCol1R	(Mat:skin_head)									=> MatCol1
+c41	x1	float4	g_MaterialCol1_PS	=>	MatCol1R	(Mat:skin_head)									=> MatCol1
+c76	x1	float4	g_MaterialOffset1_VS	=>	MatOffset1X	(Mat:boots_jewelry)				=> MatOffset1 ou g_MaterialOffset1_VS ou g_MaterialOffset1_PS
+c51	x1	float4	g_MaterialOffset1_PS	=>	MatOffset1X	(Mat:boots_jewelry)				=> MatOffset1 ou g_MaterialOffset1_VS ou g_MaterialOffset1_PS
+c87	x1	float4	g_MaterialScale1_VS	=>	MatScale1X	(Mat:skin_head)							=> MatScale1
+c49	x1	float4	g_MaterialScale1_PS	=>	MatScale1X	(Mat:skin_head)							=> MatScale1
+c60	x1	float4	g_MaterialCol2_VS	=>	MatCol2R	(Mat:skin_head)									=> MatCol2
+c42	x1	float4	g_MaterialCol2_PS	=>	MatCol2R	(Mat:skin_head)									=> MatCol2
+c61	x1	float4	g_MaterialCol3_VS	=>	MatCol3R	(Mat:skin_head)									=> MatCol3
+c43	x1	float4	g_MaterialCol3_PS	=>	MatCol3R	(Mat:skin_head)									=> MatCol3
+
+
+
+
+c41	x1	float4	g_TexScroll0_VS	=>	TexScrl0U	(Mat:eye_R)												=> TexScrl0
+c37	x1	float4	g_TexScroll0_PS	=>	TexScrl0U	(Mat:eye_R)												=> TexScrl0
+c55	x1	float4	g_TexScroll1_VS	=>	TOON	(Sds:technique_age_sds)								=> TexScrl1
+c38	x1	float4	g_TexScroll1_PS	=>	TOON	(Sds:technique_age_sds)								=> TexScrl1
+
+
+c61	x1	float4	g_GlareCoeff_VS	=>	Glare	(Mat:skin_head)												=> GlareCol
+c58	x1	float4	g_Incidence_VS	=>	TOON	(Sds:technique_age_sds)								=> X: IncidencePower, Y: IncidenceAlphaBias
+
+c8	x1	float4	g_vFogMultiColor_PS	=>	TOON	(Sds:technique_age_sds)						=> FogMultiCol
+c9	x1	float4	g_vFogAddColor_PS	=>	TOON	(Sds:technique_age_sds)							=> FogAddCol
+
+c7	x1	float4	g_vTone_PS	=>	TOON	(Sds:technique_age_sds)										=> Tone
+
+
+------------------------ Xenoviewer hardCoded (for Charac)
+
+c44	x1	float4	g_vHemiC_VS	=>	TOON	(Sds:technique_age_sds)										=> 0.2
+c53	x1	float4	g_vAmbUni_VS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c73	x1	float4	g_vSubSurface_VS	=>	TOON	(Sds:technique_age_sds)							=> 0.0
+c35	x1	float4	g_vSubSurface_PS	=>																						=> 0.0
+
+c40	x1	float4	g_vParam0_VS	=>	TOON	(Sds:technique_age_sds)									=> 1.0
+c19	x1	float4	g_vParam3_PS	=>	TOON	(Sds:technique_age_sds)									=> 1.0
+c20	x1	float4	g_vParam4_PS	=>	TOON	(Sds:technique_age_sds)									=> (0.25, 0.75)
+c21	x1	float4	g_vParam5_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c23	x1	float4	g_vParam7_PS	=>	TOON	(Sds:technique_age_sds)									=> (0.0, 23.2558f, 0.04587f)
+c2	x1	float4	g_vUserFlag0_VS	=>	TOON	(Sds:technique_age_sds)								=> 0.0
+
+c0	x1	float4	g_vColor0_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c1	x1	float4	g_vColor1_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c2	x1	float4	g_vColor2_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c3	x1	float4	g_vColor3_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c4	x1	float4	g_vColor4_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+
+c5	x1	float4	g_vColor5_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c12	x1	float4	g_vColor12_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c13	x1	float4	g_vColor13_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+
+c0	x1	float4	g_vShadowMap_PS	=>	TOON	(Sds:technique_age_sds)								=> 0.0
+c6	x1	float4	g_vShadowColor_PS	=>	TOON	(Sds:technique_age_sds)							=> 0.0
+c15	x1	float4	g_vShadowParam_PS	=>	TOON	(Sds:technique_age_sds)							=> 0.0
+
+c2	x1	float4	g_vGlare_PS	=>																									=> 0.0
+
+c3	x1	float4	g_vLerp_PS	=>																									=> 0.0, may be between WVP and WVP_PRev, for motionBlur
+
+c10	x1	float4	g_vFadeMulti_PS	=>	TOON	(Sds:technique_age_sds)								=> 0.0
+c12	x1	float4	g_vFadeAdd_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+c11	x1	float4	g_vFadeRim_PS	=>	TOON	(Sds:technique_age_sds)									=> 0.0
+
+
+------------------------ Unkown for now
+
+c12	x4	float4x4	g_mWIT_VS	=>	TOON	(Sds:technique_age_sds)
+
+b2	x1	bool	g_bFixProjection_VS	=>	TOON	(Sds:technique_age_sds)
+
+c32	x1	float4	g_vThreshold0_PS	=>																						=> ca veut dire seuil
+c33	x1	float4	g_vThreshold1_PS	=>	
+c34	x1	float4	g_vThreshold2_PS	=>	
+
+
+c42	x1	float4	g_vHemiA_VS	=>	TOON	(Sds:technique_age_sds)
+c3	x1	float4	g_vHemiA_PS	=>
+c43	x1	float4	g_vHemiB_VS	=>	TOON	(Sds:technique_age_sds)
+c4	x1	float4	g_vHemiB_PS	=>	
+c5	x1	float4	g_vHemiC_PS	=>
+c15	x1	float4	g_vAmbUni_PS	=>	TOON	(Sds:technique_age_sds)	
+c40	x1	float4	g_vAmbOcl_VS	=>	TOON	(Sds:technique_age_sds)
+c71	x1	float4	g_vSpecular_VS	=>	TOON	(Sds:technique_age_sds)
+c1	x1	float4	g_vEdge_PS	=>	TOON	(Sds:technique_age_sds)
+
+
+c4	x1	float4	g_vOffset_PS	=>	TOON	(Sds:technique_age_sds)
+c5	x1	float4	g_vScale_PS	=>	TOON	(Sds:technique_age_sds)
+
+c16	x1	float4	g_vParam0_PS	=>	TOON	(Sds:technique_age_sds)
+c41	x1	float4	g_vParam1_VS	=>	TOON	(Sds:technique_age_sds)
+c17	x1	float4	g_vParam1_PS	=>	TOON	(Sds:technique_age_sds)
+c18	x1	float4	g_vParam2_PS	=>	TOON	(Sds:technique_age_sds)
+c22	x1	float4	g_vParam6_PS	=>	TOON	(Sds:technique_age_sds)	
+c24	x1	float4	g_vParam8_PS	=>	TOON	(Sds:technique_age_sds)
+c25	x1	float4	g_vParam9_PS	=>	TOON	(Sds:technique_age_sds)
+c26	x1	float4	g_vParam10_PS	=>	TOON	(Sds:technique_age_sds)
+c27	x1	float4	g_vParam11_PS	=>	TOON	(Sds:technique_age_sds)
+c28	x1	float4	g_vParam12_PS	=>	TOON	(Sds:technique_age_sds)
+c29	x1	float4	g_vParam13_PS	=>	TOON	(Sds:technique_age_sds)
+c30	x1	float4	g_vParam14_PS	=>	TOON	(Sds:technique_age_sds)
+c31	x1	float4	g_vParam15_PS	=>	TOON	(Sds:technique_age_sds)
+
+
+c3	x1	float4	g_vUserFlag1_VS	=>	TOON	(Sds:technique_age_sds)
+c4	x1	float4	g_vUserFlag2_VS	=>	TOON	(Sds:technique_age_sds)
+c5	x1	float4	g_vUserFlag3_VS	=>	TOON	(Sds:technique_age_sds)
+
+
+c41	x1	float4	g_vTexTile01_VS	=>	TOON	(Sds:technique_age_sds)								=> par defaut a (1,1,1,1), on aurait dit que ca pourrais etre sur le material, mais on ne le trouve pas, donc c'est peut etre le textureScale dans les textureDefinition sur l'Emd ? Je n'arrive absolument pas a retrouver ca meme dans TOON
+c42	x1	float4	g_vTexTile23_VS	=>	TOON	(Sds:technique_age_sds)
+
+c44	x1	float4	g_vDepth_VS	=>	TOON	(Sds:technique_age_sds)										=> depth bias parameters ?
+c46	x1	float4	g_vMotionBlur_VS	=>	TOON	(Sds:technique_age_sds)							=> link with "Prev" matrix
+c3	x1	float4	g_vScreen_VS	=>	TOON	(Sds:technique_age_sds)
+
+c70	x1	float4	g_AlphaFade_VS	=>	TOON	(Sds:technique_age_sds)								=> doit servir pour les animations des effets
+c13	x1	float4	g_vAltFadeMulti_PS	=>	TOON	(Sds:technique_age_sds)						=> depend de l'altitude ?
+c14	x1	float4	g_vAltFadeAdd_PS	=>	TOON	(Sds:technique_age_sds)							=> depend de l'altitude ?
+
+c16	x1	float4	g_vRimColor_PS	=>	TOON	(Sds:technique_age_sds)
+
+
+c58	x1	float4	g_Brush_PS	=>	TOON	(Sds:technique_age_sds)	
+b0	x1	bool	ps_bool_padding0	=>	TOON	(Sds:technique_age_sds)			
+
+c6	x1	float4	g_vColor6_PS	=>	TOON	(Sds:technique_age_sds)
+c7	x1	float4	g_vColor7_PS	=>	TOON	(Sds:technique_age_sds)
+c8	x1	float4	g_vColor8_PS	=>	TOON	(Sds:technique_age_sds)
+c9	x1	float4	g_vColor9_PS	=>	TOON	(Sds:technique_age_sds)
+c10	x1	float4	g_vColor10_PS	=>	TOON	(Sds:technique_age_sds)
+c11	x1	float4	g_vColor11_PS	=>	TOON	(Sds:technique_age_sds)
+c14	x1	float4	g_vColor14_PS	=>	TOON	(Sds:technique_age_sds)
+c15	x1	float4	g_vColor15_PS	=>
+
+
+
+
+UnLinked EmmMaterialParameters :------------------------------------------
+=> AlphaBlend (sct_D,APL_000)																										=> done
+=> AlphaBlendType (sct_D,APL_000)																								=> done, a tester.
+=> BackFace (hide_from_Pants_Belt_Pants,FRI_611_Bust)														=> done, todo check
+
+=> SpcCoeff (FR4_00_face,FR5_01_dyt)																						=> done on g_vSpecular_PS
+=> SpcPower (FR4_00_face,FR5_01_dyt)																						=> done on g_vSpecular_PS
+
+=> RimCoeff (FR4_00_face,FR5_01_dyt)																						=> done on g_vRim_VS or g_vRim_PS
+=> RimPower (FR4_00_face,FR5_01_dyt)																						=> done on g_vRim_VS or g_vRim_PS
+
+=> ReflectCoeff (boots_jewelry,BRL_000_Boots)																		=> done on g_Reflection_VS or g_Reflection_PS, a tester
+=> ReflectFresnelBias (boots_jewelry,BRL_000_Boots)															=> done on g_Reflection_VS or g_Reflection_PS, a tester
+=> ReflectFresnelCoeff (boots_jewelry,BRL_000_Boots)														=> done on g_Reflection_VS or g_Reflection_PS, a tester
+
+
+=> g_MaterialOffset0_VS (HAIR_main,HUF_835)																			=> done
+
+
+
+
+=> gToonTextureWidth (CC03_BUST_waist,FRI_360_obi_SCD)
+=> gToonTextureHeight (CC03_BUST_waist,FRI_360_obi_SCD)
+
+

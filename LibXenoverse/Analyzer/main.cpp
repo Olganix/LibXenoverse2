@@ -140,12 +140,17 @@ void analyzeSds(string filename)
 ***************************************************************************************/
 void analyzeEmm(string filename)
 {
-	//saddly, we have to wait having shaders analyse before try to do the link. So we just load the file
-	LibXenoverse::EMM *emm = new LibXenoverse::EMM();
-	if (emm->load(filename))
-		mListEmmFiles->push_back(emm);
-	else
-		delete emm;
+	try
+	{
+		//saddly, we have to wait having shaders analyse before try to do the link. So we just load the file
+		LibXenoverse::EMM *emm = new LibXenoverse::EMM();
+		if (emm->load(filename))
+			mListEmmFiles->push_back(emm);
+		else
+			delete emm;
+	}catch (...) {
+		printf("error, exception on %s\n", filename.c_str());
+	}
 }
 /**************************************************************************************
 									analyzeShaderSourceAsm
@@ -370,6 +375,8 @@ void analyzeFolder(QString folderPath)													//recursive
 			analyzeFolder( file.absoluteFilePath() );
 			continue;
 		}
+
+		string debug_str3 = file.absolutePath().toStdString();
 
 		filename = file.absolutePath().toStdString() + file.fileName().toStdString();
 		extension = file.suffix().toStdString();
@@ -971,6 +978,8 @@ int main(int argc, char** argv)
 	delete mListSdsFiles;
 	delete mListEmmFiles;
 
+	printf("Finish.");
+	getchar();
 
 	return 0;
 }
