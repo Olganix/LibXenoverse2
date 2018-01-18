@@ -486,8 +486,10 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 	if (Ogre::MeshManager::getSingleton().getByName(meshName).isNull())
 		return;
 
+	Ogre::SceneNode* node =  model_node->createChildSceneNode(meshName);
+
 	Ogre::Entity* entity = scene_manager->createEntity(meshName);
-	model_node->attachObject(entity);
+	node->attachObject(entity);
 
 	entity->setCastShadows(false);
 
@@ -562,26 +564,18 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 				// Todo do better, or try to understand how the game do.
 				if ((definitions.at(k).textScale_u != 1.0) || (definitions.at(k).textScale_v  != 1.0))
 				{
-					
-					
-					//test if shader have entry for that.
-					bool allreadyHaveShaderEntry = false;
-
 					string targetTextTile = Ogre::StringConverter::toString(texIndex + 1);
 					if (targetTextTile.length() == 1)
 						targetTextTile = "0" + targetTextTile;
 
-					size_t reg = material_pack->getReg(mat->getName(), texIndex + 1);
+					
+					//test if shader have entry for that.
+					string indexStr = std::to_string(texIndex + 1);
+					if (indexStr.length() == 1)
+						indexStr = "0" + indexStr;
+					bool allreadyHaveShaderEntry = material_pack->setShaderParameter(mat->getName(), "g_vTexTile"+ indexStr + "_VS", Ogre::Vector4(definitions.at(k).textScale_u, definitions.at(k).textScale_v, 1.0, 1.0));
+					allreadyHaveShaderEntry = ((allreadyHaveShaderEntry) || (material_pack->setShaderParameter(mat->getName(), "g_vTexTile" + indexStr + "_PS", Ogre::Vector4(definitions.at(k).textScale_u, definitions.at(k).textScale_v, 1.0, 1.0)) ));
 
-					if ((reg!=(size_t)-1) && (pass->hasVertexProgram()))				//hyp: TextTile only on vertexShader
-					{
-						Ogre::GpuProgramParametersSharedPtr fp_parameters =  pass->getVertexProgramParameters();
-						if (!fp_parameters.isNull())
-						{
-							fp_parameters->setConstant(reg, Ogre::Vector4(definitions.at(k).textScale_u, definitions.at(k).textScale_v, 1.0, 1.0));
-							allreadyHaveShaderEntry = true;
-						}
-					}
 					
 					
 					Ogre::TexturePtr text = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().getByName(name + "_" + Ogre::StringConverter::toString(texIndex));
@@ -714,6 +708,39 @@ void EMDOgre::setVisible(bool enable)
 	mVisible = enable;
 }
 /*-------------------------------------------------------------------------------\
+|                             setVisible			                             |
+\-------------------------------------------------------------------------------*/
+void EMDOgre::setVisible(string materialName, bool enable)
+{
+	if (scene_nodes.size() == 0)
+		return;
+	Ogre::SceneManager* scene_manager = scene_nodes.back()->getCreator();
+	
+	
+	size_t nbMesh, nbSubMesh;
+	size_t nbModel = models.size();
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		vector<EMDMesh*> &meshes = models.at(i)->getMeshes();
+		nbMesh = meshes.size();
+		for (size_t j = 0; j < nbMesh; j++)
+		{
+			vector<EMDSubmesh *> &submeshes = meshes.at(j)->getSubmeshes();
+			nbSubMesh = submeshes.size();
+			for (size_t k = 0; k < nbSubMesh; k++)
+			{
+				if (submeshes.at(k)->getMaterialName() != materialName)
+					continue;
+
+				string meshName = meshes.at(j)->getName() + "_" + submeshes.at(k)->getMaterialName();
+				
+				Ogre::SceneNode* node = scene_manager->getSceneNode(meshName);
+				node->setVisible(enable);
+			}
+		}
+	}
+}
+/*-------------------------------------------------------------------------------\
 |                             setAllVisible			                             |
 \-------------------------------------------------------------------------------*/
 void EMDOgre::setAllVisible(bool enable)
@@ -746,5 +773,15 @@ void EMDOgre::setMaterialName(const Ogre::String &materialName, Ogre::SceneNode 
 			setMaterialName(materialName, (Ogre::SceneNode*)node->getChild(i));
 	}
 }
+/*-------------------------------------------------------------------------------\
+|                             setMaterialParameter		                         |
+\-------------------------------------------------------------------------------*/
+void EMDOgre::setMaterialParameter(const Ogre::String &paramName, Ogre::Vector4 value)
+{
+	if (material_pack)
+		material_pack->setShaderParameter(paramName, value);
+}
+
+
 
 

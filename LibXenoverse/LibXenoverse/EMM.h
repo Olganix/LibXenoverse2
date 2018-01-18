@@ -61,7 +61,7 @@ protected:
 			
 
 public:
-	EMMMaterial(void) { }
+	EMMMaterial(string name = "") { this->name = name; shaderProgramName = ""; }
 	~EMMMaterial(void);
 
 	string	getName(void) { return string(name); }
@@ -83,6 +83,8 @@ public:
 \-------------------------------------------------------------------------------*/
 class EMM
 {
+	friend class EMP;
+
 protected:
 	string name;
 	vector<EMMMaterial*> materials;

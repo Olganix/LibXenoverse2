@@ -257,7 +257,10 @@ TiXmlElement* EAN::exportXml(void)
 	TiXmlElement* eanAnimsNode = new TiXmlElement("EANAnimations");
 	size_t nbAnim = animations.size();
 	for (size_t i = 0; i < nbAnim; i++)
+	{
+		eanAnimsNode->LinkEndChild(new TiXmlComment(("index:" + std::to_string(i)).c_str()));
 		eanAnimsNode->LinkEndChild(animations.at(i).exportXml());
+	}
 
 	xmlCurrentNode->LinkEndChild(eanAnimsNode);
 

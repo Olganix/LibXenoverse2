@@ -22,6 +22,55 @@ public:
 	{
 		string mValue_str;									//value in string.
 		string mOrigineFromFile;							//"f,i,j,k,..." f : index for file origine, i: index of first child list, j: index of second child list, ...		
+
+		bool isBool;
+		bool isHexa;
+		bool isNumber;
+		bool isFloatNumber;
+		
+		valueWithRef()
+		{
+			isBool = isHexa = isNumber = isFloatNumber = false;
+		}
+
+		void testCompatibily()
+		{
+			isBool = isHexa = isNumber = isFloatNumber = false;
+			
+			if (mValue_str.length() == 0)
+				return;
+
+			string value_lowercase = mValue_str;
+			std::transform(value_lowercase.begin(), value_lowercase.end(), value_lowercase.begin(), ::tolower);
+
+			isBool = ((value_lowercase == "true") || (value_lowercase == "false"));
+			if (isBool)
+				return;
+
+			//isHexa = ((value_lowercase.length()>2) && (value_lowercase.substr(0, 2) == "0x") && (LibXenoverse::isIntNumber(value_lowercase.substr(2))) );
+			isHexa = ((value_lowercase.length()>2) && (value_lowercase.substr(0, 2) == "0x"));	//todo do better
+			if (isHexa)
+			{
+				isNumber = true;
+
+				uint32_t test = LibXenoverse::parseHexaUnsignedInt(value_lowercase);
+				float test_f = *(float*)(&test);
+				
+				if (!(test_f != test_f))		// To test NaN  https://stackoverflow.com/questions/570669/checking-if-a-double-or-float-is-nan-in-c
+				{
+					if (test_f < 0.0)
+						test_f = -test_f;
+
+					isFloatNumber =  ((test_f==0.0) || ((test_f>1.0e-30f) && (test_f<1.0e30f)) );
+				}
+				
+				
+
+			}else {
+				isNumber = LibXenoverse::isNumber(value_lowercase);
+				isFloatNumber = ((isNumber) && (value_lowercase.find(".") != std::string::npos));
+			}
+		}
 	};
 	
 	string mName;
@@ -53,6 +102,7 @@ public:
 			valueWithRef value;
 			value.mValue_str = ((TiXmlText*)node)->ValueStr();
 			value.mOrigineFromFile = origineFromFile;
+			value.testCompatibily();
 
 			mListValuesPossibilities.push_back(value);
 
@@ -61,6 +111,7 @@ public:
 			valueWithRef value;
 			value.mValue_str = *(node->Attribute(mName));
 			value.mOrigineFromFile = origineFromFile;
+			value.testCompatibily();
 			mListValuesPossibilities.push_back(value);
 			return;
 		}
@@ -182,8 +233,12 @@ public:
 	string getValues()
 	{
 		string str = "";
-		
+
+
+		size_t limitOrigines = 30;
+
 		std::vector<valueWithRef> mlistUniques;
+		std::vector<size_t> mlistUniques_count;
 
 		size_t nbElements = mListValuesPossibilities.size();
 		for (size_t i = 0; i < nbElements; ++i)			//premiere chose a faire c'est de merger les elements, pour n'avoir que les uniques.
@@ -202,24 +257,151 @@ public:
 			}
 
 			if (isfound == (size_t)-1)
+			{
 				mlistUniques.push_back(valueRef);
-			else
-				mlistUniques.at(isfound).mOrigineFromFile += ";" + valueRef.mOrigineFromFile;		//merge des references.
+				mlistUniques_count.push_back(1);
+			}
+			else {
+				mlistUniques_count.at(isfound) += 1;
+				if(mlistUniques_count.at(isfound)<limitOrigines)			//that will speed up a little the process time.
+					mlistUniques.at(isfound).mOrigineFromFile += ";" + valueRef.mOrigineFromFile;		//merge des references.
+			}
 		}
+
+
+		//avoid too long string on Origine witch break the Analyzer.
+		nbElements = mlistUniques.size();
+		for (size_t i = 0; i < nbElements; i++)
+		{
+			if (mlistUniques_count.at(i) < limitOrigines)
+				continue;
+			
+			size_t firstPart = mlistUniques.at(i).mOrigineFromFile.find(';');
+			if (firstPart != std::string::npos)
+				mlistUniques.at(i).mOrigineFromFile = mlistUniques.at(i).mOrigineFromFile.substr(0, firstPart + 1) + " ... x " + std::to_string(mlistUniques_count.at(i));
+		}
+
+
+
+		//search for the "Most"
+		size_t most = (size_t)-1;
+		size_t mostIndex = (size_t)-1;
+		for (size_t i = 0; i < nbElements; i++)
+		{
+			if ((i == 0) || (mlistUniques_count.at(i) > most))
+			{
+				most = mlistUniques_count.at(i);
+				mostIndex = i;
+			}
+		}
+		string most_value_str = "lksqjdlkqjlsdjlqkjd akjzmalzkemalkdqjsdkbsvbishofdialsdnqlksjdlqkjw****";
+		if (mostIndex != (size_t)-1)
+			most_value_str = mlistUniques.at(mostIndex).mValue_str;
+
+
+
+
+		//here, we just order by asc if number.
+		struct TestToOrder
+		{
+			bool operator() (const valueWithRef & a, const valueWithRef & b) const
+			{
+				if ((!a.isNumber) && (!b.isNumber))
+				{
+					return (a.mValue_str.compare(b.mValue_str) < 0);
+				}
+				if ((!a.isNumber) && (b.isNumber))
+					return false;
+				if ((a.isNumber) && (!b.isNumber))
+					return true;
+
+				//so now we have 2 numbers. But it's could be different Types.
+
+				double value_a = 0;
+				if (a.isHexa)
+				{
+					uint32_t test = LibXenoverse::parseHexaUnsignedInt(a.mValue_str);
+					float test_f = *(float*)(&test);
+					value_a = ((a.isFloatNumber) ? (double)test_f : (double)test);
+				}
+				else {
+					value_a = ((a.isFloatNumber) ? (double)stof(a.mValue_str) : (double)stoul(a.mValue_str));
+				}
+
+				double value_b = 0;
+				if (b.isHexa)
+				{
+					uint32_t test = LibXenoverse::parseHexaUnsignedInt(b.mValue_str);
+					float test_f = *(float*)(&test);
+					value_b = ((b.isFloatNumber) ? (double)test_f : (double)test);
+				}
+				else {
+					value_b = ((b.isFloatNumber) ? (double)stof(b.mValue_str) : (double)stoul(b.mValue_str));
+				}
+
+				return (value_a < value_b);
+			}
+		};
+		std::sort(mlistUniques.begin(), mlistUniques.end(), TestToOrder());
+
+
+
+
 
 		nbElements = mlistUniques.size();
 
 		if (nbElements == 1)				//if we have only one value, we will simplify the view
-			return mlistUniques.at(0).mValue_str;
+		{
+			string value_str = mlistUniques.at(0).mValue_str;
 
+			//little adaptation to work faster
+			bool allreadyModified = false;
+			if (mlistUniques.at(0).isNumber)
+			{
+				//hypothese : previously the hexa format is privilegied on uint. So don't need to convert it on each number.
+
+				if ((mlistUniques.at(0).isHexa) && (mlistUniques.at(0).isFloatNumber))			//if a Hexa could be converted into a float, we display it.
+				{
+					uint32_t test = LibXenoverse::parseHexaUnsignedInt(value_str);
+					float test_f = *(float*)(&test);
+					value_str += " = " + std::to_string(test_f);
+					allreadyModified = true;
+				}
+			}
+
+			return value_str;
+		}
+
+		string value_str = "";
+		bool allreadyModified = false;
 		for (size_t i = 0; i < nbElements; ++i)			//puis creation de la string.
-			str += ((str.length() != 0) ? "|" : "") + mlistUniques.at(i).mValue_str + "[" + mlistUniques.at(i).mOrigineFromFile +"] ";
+		{
+			value_str = mlistUniques.at(i).mValue_str;
+
+			//little adaptation to work faster
+			allreadyModified = false;
+			if (mlistUniques.at(i).isNumber)
+			{
+				//hypothese : previously the hexa format is privilegied on uint. So don't need to convert it on each number.
+
+				if ((mlistUniques.at(i).isHexa) && (mlistUniques.at(i).isFloatNumber) )			//if a Hexa could be converted into a float, we display it.
+				{
+					uint32_t test = LibXenoverse::parseHexaUnsignedInt(value_str);
+					float test_f = *(float*)(&test);
+					value_str += " = " + std::to_string(test_f);
+					allreadyModified = true;
+				}
+
+				if (value_str == most_value_str)
+					value_str += " (most) ";
+			}
+			
+			str += ((str.length() != 0) ? "|" : "") + value_str + "[" + mlistUniques.at(i).mOrigineFromFile + "] ";
+		}
 
 		return str;
 	}
 };
-
-
 
 
 

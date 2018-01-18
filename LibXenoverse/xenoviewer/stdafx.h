@@ -29,6 +29,7 @@
 #include <OgreHardwarePixelBuffer.h>
 #include <OgreManualObject.h>
 #include <OgreCommon.h>
+
 #include <OgrePrerequisites.h>
 
 #include <QApplication>

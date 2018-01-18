@@ -17,7 +17,7 @@ namespace QtOgre
 		mIsFullscreen = false;
 
 		setMouseTracking(true);
-		grabKeyboard();
+		//grabKeyboard();
 
 		setAttribute(Qt::WA_PaintOnScreen);
 		setContextMenuPolicy(Qt::CustomContextMenu);

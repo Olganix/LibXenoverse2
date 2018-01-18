@@ -17,7 +17,7 @@ public:
 	MainViewer(QWidget *parent = 0, QtOgre::OgreWidget* ogre_widget = 0);
 
 	//events
-	void	keyPressEvent(QKeyEvent * event);
+	//void	keyPressEvent(QKeyEvent * event);
 
 	private slots:
 
@@ -47,4 +47,6 @@ public:
 	void	loopAnimation();
 
 	void	paintCluster();
+
+	void	recursiveDeleteQwidgetChildren(QWidget* widget);
 };

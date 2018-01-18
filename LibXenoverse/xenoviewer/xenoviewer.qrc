@@ -14,5 +14,6 @@
     <file>../../resources/icons/submesh.png</file>
     <file>../../resources/icons/animation.png</file>
     <file>../../resources/icons/animation_pack.png</file>
+    
   </qresource>
 </RCC>

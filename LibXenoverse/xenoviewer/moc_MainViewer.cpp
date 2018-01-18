@@ -19,8 +19,8 @@
 
 QT_BEGIN_MOC_NAMESPACE
 struct qt_meta_stringdata_MainViewer_t {
-    QByteArrayData data[31];
-    char stringdata[469];
+    QByteArrayData data[34];
+    char stringdata[516];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -59,7 +59,10 @@ QT_MOC_LITERAL(26, 386, 13), // "stopAnimation"
 QT_MOC_LITERAL(27, 400, 22), // "previousFrameAnimation"
 QT_MOC_LITERAL(28, 423, 18), // "nextFrameAnimation"
 QT_MOC_LITERAL(29, 442, 13), // "loopAnimation"
-QT_MOC_LITERAL(30, 456, 12) // "paintCluster"
+QT_MOC_LITERAL(30, 456, 12), // "paintCluster"
+QT_MOC_LITERAL(31, 469, 30), // "recursiveDeleteQwidgetChildren"
+QT_MOC_LITERAL(32, 500, 8), // "QWidget*"
+QT_MOC_LITERAL(33, 509, 6) // "widget"
 
     },
     "MainViewer\0fileItemDoubleClicked\0\0"
@@ -74,7 +77,9 @@ QT_MOC_LITERAL(30, 456, 12) // "paintCluster"
     "list<EANOgre*>&\0new_ean_list\0clearFileTree\0"
     "playAnimation\0pauseAnimation\0stopAnimation\0"
     "previousFrameAnimation\0nextFrameAnimation\0"
-    "loopAnimation\0paintCluster"
+    "loopAnimation\0paintCluster\0"
+    "recursiveDeleteQwidgetChildren\0QWidget*\0"
+    "widget"
 };
 #undef QT_MOC_LITERAL
 
@@ -84,7 +89,7 @@ static const uint qt_meta_data_MainViewer[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-      18,   14, // methods
+      19,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -92,24 +97,25 @@ static const uint qt_meta_data_MainViewer[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags
-       1,    2,  104,    2, 0x08 /* Private */,
-       6,    2,  109,    2, 0x08 /* Private */,
-       7,    2,  114,    2, 0x08 /* Private */,
-       8,    2,  119,    2, 0x08 /* Private */,
-       9,    1,  124,    2, 0x08 /* Private */,
-      11,    1,  127,    2, 0x08 /* Private */,
-      12,    1,  130,    2, 0x08 /* Private */,
-      13,    1,  133,    2, 0x08 /* Private */,
-      15,    0,  136,    2, 0x08 /* Private */,
-      16,    3,  137,    2, 0x0a /* Public */,
-      23,    0,  144,    2, 0x08 /* Private */,
-      24,    0,  145,    2, 0x08 /* Private */,
-      25,    0,  146,    2, 0x08 /* Private */,
-      26,    0,  147,    2, 0x08 /* Private */,
-      27,    0,  148,    2, 0x08 /* Private */,
-      28,    0,  149,    2, 0x08 /* Private */,
-      29,    0,  150,    2, 0x08 /* Private */,
-      30,    0,  151,    2, 0x08 /* Private */,
+       1,    2,  109,    2, 0x08 /* Private */,
+       6,    2,  114,    2, 0x08 /* Private */,
+       7,    2,  119,    2, 0x08 /* Private */,
+       8,    2,  124,    2, 0x08 /* Private */,
+       9,    1,  129,    2, 0x08 /* Private */,
+      11,    1,  132,    2, 0x08 /* Private */,
+      12,    1,  135,    2, 0x08 /* Private */,
+      13,    1,  138,    2, 0x08 /* Private */,
+      15,    0,  141,    2, 0x08 /* Private */,
+      16,    3,  142,    2, 0x0a /* Public */,
+      23,    0,  149,    2, 0x08 /* Private */,
+      24,    0,  150,    2, 0x08 /* Private */,
+      25,    0,  151,    2, 0x08 /* Private */,
+      26,    0,  152,    2, 0x08 /* Private */,
+      27,    0,  153,    2, 0x08 /* Private */,
+      28,    0,  154,    2, 0x08 /* Private */,
+      29,    0,  155,    2, 0x08 /* Private */,
+      30,    0,  156,    2, 0x08 /* Private */,
+      31,    1,  157,    2, 0x08 /* Private */,
 
  // slots: parameters
     QMetaType::Void, 0x80000000 | 3, QMetaType::Int,    4,    5,
@@ -130,6 +136,7 @@ static const uint qt_meta_data_MainViewer[] = {
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
+    QMetaType::Void, 0x80000000 | 32,   33,
 
        0        // eod
 };
@@ -157,6 +164,7 @@ void MainViewer::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 15: _t->nextFrameAnimation(); break;
         case 16: _t->loopAnimation(); break;
         case 17: _t->paintCluster(); break;
+        case 18: _t->recursiveDeleteQwidgetChildren((*reinterpret_cast< QWidget*(*)>(_a[1]))); break;
         default: ;
         }
     }
@@ -187,13 +195,13 @@ int MainViewer::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 18)
+        if (_id < 19)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 18;
+        _id -= 19;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 18)
+        if (_id < 19)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 18;
+        _id -= 19;
     }
     return _id;
 }

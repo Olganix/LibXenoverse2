@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 
 	string pack_name = ToString(argv[1]);
 
-	if (pack_name.find(".iggytex") != string::npos)
+	if((pack_name.find(".iggytex") != string::npos)|| (pack_name.find(".iggyted") != string::npos))
 	{
 		LibXenoverse::IGGYTEX *iggytext_pack = new LibXenoverse::IGGYTEX();
 		iggytext_pack->load(pack_name);

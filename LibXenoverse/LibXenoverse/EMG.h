@@ -97,7 +97,7 @@ static_assert(sizeof(EMG_EMG_TextureHeader) == 0xC, "Incorrect structure size.")
 
 struct EMG_EMG_SubMeshHeader
 {
-	float vector[4]; // 0				// may be, it is for add a position offset to : be good with bone, reduce float precision on position TODO: use it into conversion on Emd.
+	float barycenter[4]; // 0				// seam to be the barycenter for each submesh
 	uint16_t tl_index; // 0x10
 	uint16_t face_count; // 0x12
 	uint16_t linked_bones_count; // 0x14 bone mapping
@@ -301,7 +301,7 @@ public:
 	size_t ExportObj(std::string *vertex_out, std::string *uvmap_out, std::string *normal_out, std::string *topology_out, size_t v_start_idx = 0, bool write_group = true) const;
 	bool InjectObj(const std::string &obj, bool do_uv, bool do_normal, int v_start_idx = 0, int vt_start_idx = 0, int vn_start_idx = 0, bool show_error = true);
 
-	void Decompile(TiXmlNode *root, uint16_t id) const;
+	void Decompile(TiXmlNode *root) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton *skl);
 
 	
@@ -368,7 +368,7 @@ public:
 	size_t GetEmbIndexes(std::vector<uint8_t> &list, bool clear_vector, bool unique = true, bool sort = false) const;
 	size_t ReplaceEmbIndex(uint8_t old_index, uint8_t new_index);
 
-	void Decompile(TiXmlNode *root, uint16_t id) const;
+	void Decompile(TiXmlNode *root) const;
 	bool Compile(const TiXmlElement *root);
 };
 
@@ -386,9 +386,10 @@ class EMG_SubMesh
 private:
 	std::string emm_material;
 	uint16_t tl_index;
+
 	std::vector<uint16_t> faces;
 	std::vector<EMO_Bone *> linked_bones;
-	float vector[4];
+	float barycenter[4];						//seam to be the barycenter of each submesh
 
 	// METADATA - DON'T USE IN COMPARISON
 	std::string meta_name;
@@ -417,7 +418,7 @@ public:
 
 	bool IsEdge() const;
 
-	void Decompile(TiXmlNode *root, uint32_t id, size_t polygon_count) const;
+	void Decompile(TiXmlNode *root, size_t polygon_count) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton *skl);
 
 	void readEmdSubMesh(EMDSubmesh* emd, size_t textlist_index, size_t indexTriangle, EMO* emo);
@@ -474,11 +475,12 @@ class EMG : public EMO_BaseFile
 {
 	friend class EMO_PartsGroup;
 	friend class EMO;
+	friend class EMP;
 
 private:
-	std::vector<EMG_SubPart> subparts;
-
 	uint16_t unk_04; // from EMG_ChunkHeader		// it's seam to be a section increment, by take care of header (begin at 2)
+
+	std::vector<EMG_SubPart> subparts;
 
 	// METADATA - DON'T USE IN COMPARISON
 	std::string meta_name;

@@ -45,10 +45,12 @@ class EMDOgre : public EMD
 		
 		bool	getVisible(void) { return mVisible; }
 		void	setVisible(bool enable);
+		void	setVisible(string materialName, bool enable);
 		void	setAllVisible(bool enable);
 		void	setMaterialName(const Ogre::String &materialName, Ogre::SceneNode *node = 0);			//debug by using a material on all the entities.
 		void	setMaterialPack(EMMOgre *v) { material_pack = v; }
 		EMMOgre*	getMaterialPack() { return material_pack; }
+		void	setMaterialParameter(const Ogre::String &paramName, Ogre::Vector4 value);
 		const	Ogre::String&	getTag() { return tag; }
 		void	tagForRebuild() { to_rebuild = true; }
 		bool	toRebuild() { return to_rebuild; }

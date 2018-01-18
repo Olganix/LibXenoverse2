@@ -203,80 +203,20 @@ size_t EMO_PartsGroup::ExportObj(std::string *vertex_out, std::string *uvmap_out
 	return count;
 }
 
-void EMO_PartsGroup::Decompile(TiXmlNode *root) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMO_PartsGroup");
 
-	entry_root->SetAttribute("name", name);
 
-	for (size_t i = 0; i < parts.size(); i++)
-	{
-		parts[i].Decompile(entry_root, i);
-	}
 
-	root->LinkEndChild(entry_root);
-}
 
-bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
-{
-	parts.clear();
 
-	if (root->QueryStringAttribute("name", &name) != TIXML_SUCCESS)
-	{
-		LOG_DEBUG("%s: Cannot get name of EMO_PartsGroup\n", FUNCNAME);
-		return false;
-	}
 
-	size_t count = EMO_BaseFile::GetElemCount(root, "EMG");
-	if (count > 0)
-	{
-		std::vector<bool> initialized;
 
-		parts.resize(count);
-		initialized.resize(count);
 
-		for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-		{
-			if (elem->ValueStr() == "EMG")
-			{
-				uint32_t id;
 
-				if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-				{
-					LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-					return false;
-				}
 
-				if (id >= parts.size())
-				{
-					LOG_DEBUG("%s: EMG id 0x%x out of range.\n", FUNCNAME, id);
-					return false;
-				}
 
-				if (initialized[id])
-				{
-					LOG_DEBUG("%s: EMG id 0x%x was already specified.\n", FUNCNAME, id);
-					return false;
-				}
 
-				if (!parts[id].Compile(elem, skl))
-				{
-					LOG_DEBUG("%s: Compilation of EMG failed.\n", FUNCNAME);
-					return false;
-				}
 
-				char meta_name[2048];
-				snprintf(meta_name, sizeof(meta_name), "%s_%04x", name.c_str(), id);
 
-				parts[id].meta_name = meta_name;
-				initialized[id] = true;
-			}
-		}
-	}
-
-	meta_original_offset = 0xFFFFFFFF;
-	return true;
-}
 
 
 
@@ -1129,6 +1069,7 @@ uint8_t *EMO::CreateFile(unsigned int *psize)
 	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, offset, true);
 	offset += groups.size() * sizeof(uint32_t);
 
+	std::vector<string> listEMG;
 	for (size_t i = 0; i < groups.size(); i++)
 	{
 		EMO_PartsGroup &pg = groups[i];
@@ -1137,13 +1078,15 @@ uint8_t *EMO::CreateFile(unsigned int *psize)
 
 		strcpy((char *)buf + offset, pg.name.c_str());
 		offset += pg.name.length() + 1;
+		
+		listEMG.push_back(pg.name);
 	}
 
 	if (offset & 0x3F)
 		offset += (0x40 - (offset & 0x3F));
 
 	unsigned int skl_size;
-	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size);
+	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, listEMG);
 	if (!skl)
 	{
 		delete[] buf;
@@ -1185,132 +1128,11 @@ uint8_t *EMO::CreateFile(unsigned int *psize)
 
 
 
-bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
-{
-	Reset();
-	this->big_endian = big_endian;
-
-	if (!EMO_Skeleton::Compile(doc, big_endian))
-		return false;
-
-	TiXmlHandle handle(doc);
-	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMO");
-
-	if (!root)
-	{
-		LOG_DEBUG("Cannot find\"EMO\" in xml.\n");
-		return false;
-	}
-
-	unsigned int value;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "MATERIAL_COUNT", &value))
-		return false;
-
-	if (value > 0xFFFF)
-	{
-		LOG_DEBUG("%s: material_count must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	material_count = value;
-
-	std::vector<uint16_t> unk_08;
-	std::vector<uint32_t> unk_18;
-
-	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "U_08", unk_08))
-		return false;
-
-	if (unk_08.size() != 2)
-	{
-		LOG_DEBUG("%s: Invalid size of U_08\n", FUNCNAME);
-		return false;
-	}
-
-	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "U_18", unk_18))
-		return false;
-
-	if (unk_18.size() != 2)
-	{
-		LOG_DEBUG("%s: Invalid size of U_18\n", FUNCNAME);
-		return false;
-	}
-
-	for (int i = 0; i < 2; i++)
-	{
-		this->unk_08[i] = unk_08[i];
-		this->unk_18[i] = unk_18[i];
-	}
-
-	for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-	{
-		const std::string &str = elem->ValueStr();
-
-		if (str == "EMO_PartsGroup")
-		{
-			EMO_PartsGroup pg;
-
-			if (!pg.Compile(elem, this))
-			{
-				LOG_DEBUG("%s: EMO_PartsGroup compilation failed.\n", FUNCNAME);
-				return false;
-			}
-
-			groups.push_back(pg);
-		}
-	}
-
-	return true;
-}
-TiXmlDocument *EMO::Decompile() const
-{
-	TiXmlDocument *doc = new TiXmlDocument();
-
-	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
-	doc->LinkEndChild(decl);
-
-	TiXmlElement *root = new TiXmlElement("EMO");
-
-	EMO_BaseFile::WriteParamUnsigned(root, "MATERIAL_COUNT", material_count);
-	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_08", std::vector<uint16_t>(unk_08, unk_08 + 2), true);
-	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_18", std::vector<uint32_t>(unk_18, unk_18 + 2), true);
-
-	for (const EMO_PartsGroup &pg : groups)
-	{
-		pg.Decompile(root);
-	}
-
-	doc->LinkEndChild(root);
-	EMO_Skeleton::Decompile(doc);
-
-	return doc;
-}
 
 
-bool EMO::DecompileToFile(const std::string &path, bool show_error, bool build_path)
-{
-	LOG_DEBUG("Emo is being saved to .xml file. This process may take several seconds.\n");
-	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
 
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been saved to .xml.\n");
-	}
 
-	return ret;
-}
-bool EMO::CompileFromFile(const std::string &path, bool show_error, bool big_endian)
-{
-	LOG_DEBUG("Emo is being loaded from .xml file. This process may take several seconds.\n");
-	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
 
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been loaded from .xml.\n");
-	}
-
-	return ret;
-}
 
 unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 {
@@ -1653,7 +1475,6 @@ void EMO::readEsk(ESK* esk)
 						++inc;
 
 						childBone->sibling = &bones.at(i - 1);
-						bones.at(i - 1).indexInChildren = inc;
 					}
 
 					break;
@@ -1663,201 +1484,6 @@ void EMO::readEsk(ESK* esk)
 	}
 
 }
-/*-------------------------------------------------------------------------------\
-|                             writeEsk				                             |
-\-------------------------------------------------------------------------------*/
-void EMO::writeEsk(ESK* esk)
-{
-	esk->name = name;
-
-
-	esk->bones.clear();
-	EskTreeNode* rootNode = esk->getTreeOrganisation();
-	
-	
-		
-
-	//to secure, we begin to build bones, and after we will made the hierarchy.
-	std::vector<EskTreeNode*> listTreeNode;
-	ESKBone* bone;
-	EskTreeNode* node;
-	size_t nbElements = bones.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		bone = new ESKBone();
-		bones.at(i).writeESKBone(bone);
-		esk->bones.push_back(bone);
-
-		node = new EskTreeNode(esk->bones.at(i), i, rootNode);			//by default, rootnode is the parent of all.
-		listTreeNode.push_back(node);
-	}
-
-
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		EMO_Bone &emoBone = bones.at(i);
-		
-		EMO_Bone* emoBone_ptr = &emoBone;
-		if (!emoBone_ptr->parent)									//we take care only bone witch have rootNode as parent.
-		{
-			rootNode->mChildren.push_back(listTreeNode.at(i));
-			listTreeNode.at(i)->mParent = rootNode;
-
-			writeEsk__recursive(emoBone_ptr, bones, listTreeNode.at(i), listTreeNode);		//after, we take care of children recursively.
-		}
-	}
-
-
-	//all the recursive try to take care of child and sibling informations. saddly, there could have wrong information about child information.
-	//saddly, by adding security on it, it could break the link witch could have with the parent information.
-	//SO, we have to look after missing bone. if the parent informaiton is good, we could add it in hierarchy, else, it will still on rootNode.
-	size_t nbNode = listTreeNode.size();
-	for (size_t i = 0; i < nbNode; i++)											//we look at all bones
-	{
-		if (rootNode->getBoneWithIndex(i))
-			continue;
-
-		//if we miss someone in hierarchy.
-		EMO_Bone &emoBone = bones.at(i);
-		if (emoBone.parent)										//try with parent information (instead of child and sibling)
-		{
-			bool isGood = true;
-			EMO_Bone* emoBone_tmp = emoBone.parent;
-			while (emoBone_tmp)
-			{
-				if (emoBone_tmp == &emoBone)						//try to avoid bone be the parent of the parent, or him self directly.
-				{
-					isGood = false;
-					break;
-				}
-				emoBone_tmp = emoBone_tmp->parent;
-			}
-
-			if (isGood)
-			{
-				size_t isFound = (size_t)-1;
-				size_t nbElements = bones.size();
-				for (size_t j = 0; j < nbElements; j++)
-				{
-					if (&bones.at(j) == emoBone.parent)
-					{
-						isFound = j;
-						break;
-					}
-				}
-
-				if (isFound != (size_t)-1)					//if we find it, we update the treeNode.
-				{
-					//another check, if there isn't a fail on sibling, to avoid infinite loop
-					size_t nbchildren_tmp = listTreeNode.at(isFound)->mChildren.size();
-					for (size_t m = 0; m < nbchildren_tmp; m++)
-					{
-						if (listTreeNode.at(isFound)->mChildren.at(m) == listTreeNode.at(i))
-						{
-							printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", listTreeNode.at(i)->mBone->getName().c_str());
-							isFound = (size_t)-1;
-							break;
-						}
-					}
-
-					if (isFound != (size_t)-1)
-					{
-						listTreeNode.at(i)->mParent = listTreeNode.at(isFound);
-						listTreeNode.at(isFound)->mChildren.push_back(listTreeNode.at(i));
-					}else {
-						rootNode->mChildren.push_back(listTreeNode.at(i));
-						listTreeNode.at(i)->mParent = rootNode;
-					}
-
-				}else {
-					rootNode->mChildren.push_back(listTreeNode.at(i));
-					listTreeNode.at(i)->mParent = rootNode;
-				}
-
-			}else{
-				rootNode->mChildren.push_back(listTreeNode.at(i));
-				listTreeNode.at(i)->mParent = rootNode;
-			}
-
-		}else {
-			rootNode->mChildren.push_back(listTreeNode.at(i));
-			listTreeNode.at(i)->mParent = rootNode;
-		}
-	}
-
-
-	esk->setTreeOrganisation(rootNode);
-}
-/*-------------------------------------------------------------------------------\
-|                             writeEsk__recursive				                 |
-\-------------------------------------------------------------------------------*/
-void EMO::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode)
-{
-	
-
-	//we look after all children (child and sibling), to make the hierarchy.
-	EMO_Bone* emoBone_child = emoBone->child;
-	size_t inc = 0;
-
-	while (emoBone_child != nullptr)
-	{
-		//to secure on wrong informations about hierarchy (in some emo), we have to break possible infinite loops.
-		if (emoBone_child == emoBone)				//I see a case witch the bone was its parent himself, and the child ...
-		{
-			printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
-			return;
-		}
-
-		EMO_Bone* emoBone_tmp = emoBone->parent;
-		while (emoBone_tmp)										//case of a bad link between parent/child. lets check if parents are not used as a child of a child.
-		{
-			if (emoBone_child == emoBone_tmp)
-			{
-				printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
-				return;
-			}
-			emoBone_tmp = emoBone_tmp->parent;
-		}
-
-
-		//normal case:
-
-		size_t isFound = (size_t)-1;
-		size_t nbElements = bones.size();
-		for (size_t j = 0; j < nbElements; j++)
-		{
-			if (&bones.at(j) == emoBone_child)
-			{
-				isFound = j;
-				break;
-			}
-		}
-
-		if (isFound != (size_t)-1)					//if we find it, we update the treeNode.
-		{
-			listTreeNode.at(isFound)->mParent = treeNode;
-
-
-			//another check, if there isn't a fail on sibling, to avoid infinite loop
-			size_t nbchildren_tmp = treeNode->mChildren.size();
-			for (size_t j = 0; j < nbchildren_tmp; j++)
-			{
-				if (treeNode->mChildren.at(j) == listTreeNode.at(isFound))
-				{
-					printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
-					return;
-				}
-			}
-
-			treeNode->mChildren.push_back(listTreeNode.at(isFound));
-
-			writeEsk__recursive(emoBone_child, bones, listTreeNode.at(isFound), listTreeNode);		//same for children
-		}
-
-		emoBone_child = emoBone_child->sibling;
-	}
-}
-
 
 
 
@@ -2067,6 +1693,217 @@ bool EMO::operator==(const EMO &rhs) const
 
     return true;
 }
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// load/save the Xml version	/////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             DecompileToFile		                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::DecompileToFile(const std::string &path, bool show_error, bool build_path)	//save
+{
+	LOG_DEBUG("Emo is being saved to .xml file. This process may take several seconds.\n");
+	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
+
+	if (ret)
+	{
+		LOG_DEBUG("Emo has been saved to .xml.\n");
+	}
+
+	return ret;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+TiXmlDocument *EMO::Decompile() const
+{
+	TiXmlDocument *doc = new TiXmlDocument();
+
+	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
+	doc->LinkEndChild(decl);
+
+	TiXmlElement *root = new TiXmlElement("EMO");
+
+	EMO_BaseFile::WriteParamUnsigned(root, "MATERIAL_COUNT", material_count);
+	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_08", std::vector<uint16_t>(unk_08, unk_08 + 2), true);
+	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_18", std::vector<uint32_t>(unk_18, unk_18 + 2), true);
+
+	for (const EMO_PartsGroup &pg : groups)
+		pg.Decompile(root);
+
+	doc->LinkEndChild(root);
+	EMO_Skeleton::Decompile(doc);
+
+	return doc;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMO_PartsGroup::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("PartsGroup");
+
+	entry_root->SetAttribute("name", name);
+
+	for (size_t i = 0; i < parts.size(); i++)
+		parts.at(i).Decompile(entry_root, i);
+
+	root->LinkEndChild(entry_root);
+}
+
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             CompileFromFile		                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::CompileFromFile(const std::string &path, bool show_error, bool big_endian)		//load
+{
+	LOG_DEBUG("Emo is being loaded from .xml file. This process may take several seconds.\n");
+	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
+
+	if (ret)
+	{
+		LOG_DEBUG("Emo has been loaded from .xml.\n");
+	}
+
+	return ret;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
+{
+	Reset();
+	this->big_endian = big_endian;
+
+	if (!EMO_Skeleton::Compile(doc, big_endian))
+		return false;
+
+	TiXmlHandle handle(doc);
+	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMO");
+
+	if (!root)
+	{
+		LOG_DEBUG("Cannot find\"EMO\" in xml.\n");
+		return false;
+	}
+
+	unsigned int value;
+	if (!EMO_BaseFile::GetParamUnsigned(root, "MATERIAL_COUNT", &value))
+		value = 0;
+
+	if (value > 0xFFFF)
+	{
+		LOG_DEBUG("%s: material_count must be a 16 bits value.\n", FUNCNAME);
+		return false;
+	}
+	material_count = value;
+
+
+	std::vector<uint16_t> unk_08;
+	EMO_BaseFile::GetParamMultipleUnsigned(root, "U_08", unk_08);
+
+	if (unk_08.size() != 2)
+	{
+		LOG_DEBUG("%s: Invalid size of U_08. must be 2.\n", FUNCNAME);
+		
+		for (size_t i = unk_08.size(); i < 2; i++)			// get the minimum
+			unk_08.push_back(0);
+	}
+
+	std::vector<uint32_t> unk_18;
+	EMO_BaseFile::GetParamMultipleUnsigned(root, "U_18", unk_18);
+
+	if (unk_18.size() != 2)
+	{
+		LOG_DEBUG("%s: Invalid size of U_18. must be 2.\n", FUNCNAME);
+		
+		for (size_t i = unk_18.size(); i < 2; i++)			// get the minimum
+			unk_08.push_back(0);
+	}
+
+
+	for (int i = 0; i < 2; i++)
+	{
+		this->unk_08[i] = unk_08.at(i);
+		this->unk_18[i] = unk_18.at(i);
+	}
+
+
+	for (const TiXmlElement *elem = root->FirstChildElement("PartsGroup"); elem; elem = elem->NextSiblingElement("PartsGroup"))
+	{
+		EMO_PartsGroup pg;
+
+		if (!pg.Compile(elem, this))
+		{
+			LOG_DEBUG("%s: PartsGroup compilation failed.\n", FUNCNAME);
+			continue;
+		}
+
+		groups.push_back(pg);
+	}
+
+	return true;
+}
+
+
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
+{
+	parts.clear();
+
+
+	if (root->QueryStringAttribute("name", &name) != TIXML_SUCCESS)
+	{
+		LOG_DEBUG("%s: Cannot get name of PartsGroup\n", FUNCNAME);
+		return false;
+	}
+
+	meta_original_offset = 0xFFFFFFFF;
+
+	
+	for (const TiXmlElement *elem = root->FirstChildElement("EMG"); elem; elem = elem->NextSiblingElement("EMG"))
+	{
+		EMG emg;
+
+		if (!emg.Compile(elem, skl))
+		{
+			LOG_DEBUG("%s: Compilation of EMG failed.\n", FUNCNAME);
+			continue;
+		}
+
+		char meta_name[2048];
+		snprintf(meta_name, sizeof(meta_name), "%s_%04x", name.c_str(), parts.size());
+		emg.meta_name = meta_name;				//may be for unique name.
+
+		parts.push_back(emg);
+	}
+
+	return true;
+}
+
+
+
+
+
+
 
 
 

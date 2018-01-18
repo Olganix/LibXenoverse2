@@ -259,12 +259,8 @@ public:
 
 	void readEmd(EMD* emd);
 	void readEsk(ESK* esk);
-	void writeEsk(ESK* esk);										//need read esk before emd, because of pointer
 	void writeEmd(EMD* emd);										//need read esk before emd, because of pointer
 	void writeEmdEsk(EMD* emd, ESK* esk) { writeEsk(esk); writeEmd(emd);}
-
-	void writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode);
-
 
 #ifdef FBX_SUPPORT
 	bool ExportFbx(FbxScene *scene, bool normal_parts, bool edges) const;

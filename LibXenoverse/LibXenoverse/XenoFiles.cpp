@@ -746,6 +746,14 @@ namespace LibXenoverse
 		return !str.fail() && str.eof();
 	}
 
+	bool isIntNumber(const string& val)
+	{
+		std::basic_stringstream<char, std::char_traits<char>, std::allocator<char> > str(val);
+		int tst;
+		str >> tst;
+		return !str.fail() && str.eof();
+	}
+
 	std::string toStringHexa(size_t val, unsigned short width, char fill, std::ios::fmtflags flags)
 	{
 		stringstream stream;

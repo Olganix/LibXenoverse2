@@ -59,7 +59,7 @@ namespace LibXenoverse
 ********************************************************************************************/
 class EMO_BaseFile
 {
-protected:
+public:
 
 	bool big_endian;
 	std::string name;
@@ -88,6 +88,8 @@ public:
 	// Don't make any function abstract, instead let's provide an empty default implementation
 
 	virtual ~EMO_BaseFile() { }
+
+	inline const string &getName() { return name; }
 
 	inline bool IsBigEndian() { return big_endian; }
 	inline void SetEndianess(bool big_endian) { this->big_endian = big_endian; }

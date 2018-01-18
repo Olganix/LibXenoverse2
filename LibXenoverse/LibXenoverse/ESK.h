@@ -113,6 +113,7 @@ public:
 \-------------------------------------------------------------------------------*/
 class ESK
 {
+	friend class EMO_Skeleton;
 	friend class EMO;
 	friend class EMA;
 

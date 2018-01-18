@@ -1,10 +1,83 @@
 #include "LibXenoverse.h"
 
+
+
+
+
+
+
+
+
+/*
+//test for change type flags.
+
+void recursiveChangeEmpTagName(TiXmlElement* parent, TiXmlElement* rootNode)
+{
+	/*
+		}else if ((extension == "xml") && (extension2.substr(0,3) == "emp")) {				//test for analyzeXml from lazybone converter TODO remove, 
+
+			
+			
+			TiXmlDocument doc(filename);
+			if (!doc.LoadFile())
+				return false;
+
+			TiXmlHandle hDoc(&doc);
+			TiXmlHandle hRoot(0);
+
+			TiXmlElement* rootNode = hDoc.FirstChildElement("EMP").Element();
+			if (rootNode)
+				rootNode = rootNode->FirstChildElement("ParticleEffects");
+
+			if (!rootNode)
+			{
+				printf("%s don't have 'EMP' and 'ParticleEffects' tags. skip.'\n", filename);
+				getchar();
+				return false;
+			}
+
+			recursiveChangeEmpTagName(rootNode, rootNode);
+
+			doc.SaveFile(basefilename2 + "."+ extension2 +".xml");
+		}
+	
+	*//*
+
+	std::vector<TiXmlElement*> list;
+
+	for (TiXmlElement* node = parent->FirstChildElement("ParticleEffect"); node; node = node->NextSiblingElement("ParticleEffect"))
+	{
+		recursiveChangeEmpTagName(node, rootNode);
+
+		string attr = "";
+		node->QueryStringAttribute("Data_Flags", &attr);
+
+		if(attr.length())
+			node->SetValue("ParticleEffect_"+ attr.substr(0, 1) + "_" + attr.substr(3, 1));
+
+		list.push_back(node);
+	}
+
+
+	
+
+	size_t nbNodes = list.size();
+	for (size_t i = 0; i < nbNodes; i++)					//we do afer because the LinkEndChild() break the node->NextSiblingElement()
+	{
+		rootNode->LinkEndChild(list.at(i)->Clone());
+		parent->RemoveChild(list.at(i));
+	}
+}
+*/
+
+
+
+
 int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		printf("Usage: 'XenoXmlConverter.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support sds, emm , emd , esk, ean, mat.ema, nsk, aur files");
+		printf("Usage: 'XenoXmlConverter.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support sds, emm , emd , esk, ean, mat.ema, nsk, aur, emo files");
 		getchar();
 		return 1;
 	}
@@ -120,6 +193,21 @@ int main(int argc, char** argv)
 			delete ean;
 
 
+		/////////////////////////////////////////////////////////////
+		}
+		else if (extension == "emo") {										//.emo
+			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
+			if (emo->load(filename))
+				emo->DecompileToFile(filename + ".xml");
+			delete emo;
+
+		}
+		else if ((extension == "xml") && (extension2 == "emo")) {
+
+			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
+			if (emo->load(filename))
+				emo->SaveToFile(basefilename2 + ".emo");
+			delete emo;
 
 
 		/////////////////////////////////////////////////////////////
@@ -161,8 +249,7 @@ int main(int argc, char** argv)
 				aur->saveXml(filename + ".xml");
 			delete aur;
 
-		}
-		else if ((extension == "xml") && (extension2 == "aur")) {
+		}else if ((extension == "xml") && (extension2 == "aur")) {
 
 			LibXenoverse::AUR* aur = new LibXenoverse::AUR();
 			if (aur->loadXml(filename))
@@ -171,13 +258,63 @@ int main(int argc, char** argv)
 
 
 
+
+		///////////////////////////////////////////////////////////// 
+		}else if (extension == "etr") {
+			LibXenoverse::Etr* etr = new LibXenoverse::Etr();
+			if (etr->load(filename))
+				etr->saveXml(filename + ".xml");
+			delete etr;
+
+		}else if ((extension == "xml") && (extension2 == "etr")) {
+
+			LibXenoverse::Etr* etr = new LibXenoverse::Etr();
+			if (etr->load(filename))
+				etr->SaveToFile(basefilename2 + ".etr");
+			delete etr;
+
+
+
+
+
 		/////////////////////////////////////////////////////////////  For Tests/debug
 		}else if (extension == "map") {
-			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
-			fmp->save_Xml(filename);
-			delete fmp;
-		}
 
+			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
+			if (fmp->load(filename))
+			{
+				//fmp->SaveToFile(filename + "_modified.map");			//test Todo remove
+
+				fmp->saveXml(filename + ".xml");
+				
+				//fmp->save_Xml(filename);								//test Xml version debug.
+			}
+			delete fmp;
+
+		}else if ((extension == "xml") && (extension2 == "map")) {
+
+			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
+			fmp->originefilename = filename;
+			if (fmp->load(filename))
+				fmp->SaveToFile(basefilename2 + ".map");
+			delete fmp;
+
+
+
+		}else if (extension == "spm") {
+
+			LibXenoverse::Spm* spm = new LibXenoverse::Spm();
+			spm->save_Xml(filename);								//test Xml version debug.
+			delete spm;
+
+		}else if ((extension == "xml") && (extension2 == "spm")) {
+
+			LibXenoverse::Spm* spm = new LibXenoverse::Spm();
+			spm->originefilename = basefilename2 +".spm";
+			spm->load(filename);						//also Save from Xml
+
+			delete spm;
+		}
 
 	}
 

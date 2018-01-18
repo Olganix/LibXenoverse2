@@ -48,6 +48,9 @@
 #include "NSK.h"
 #include "IGGYTEX.h"
 #include "Fmp.h"
+#include "Etr.h"
+#include "EMP.h"
+#include "Spm.h"
 
 
 using namespace std;

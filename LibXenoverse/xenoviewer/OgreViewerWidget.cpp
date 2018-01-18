@@ -454,94 +454,97 @@ namespace QtOgre
 
 	///////////////////////////////// inputs
 
-
+	
 	void OgreWidget::keyPressEvent(QKeyEvent* event)
 	{
-		printf("\nkey event in board: %i", event->key());
-		if (event->key() == Qt::Key_F12)
+		//for fast navigation in stage.
+		if(event->key() == Qt::Key_PageUp)
 		{
-			doScreenShot();
-
-		}else if (event->key() == Qt::Key_F11){
-				
-
-			if (!mIsFullscreen)
-			{
-				//refresh parent and grand parent because there is lots of operation on widgets, hierarchy change
-				mpParentWidget = this->parentWidget();
-				mpGrandParentWidget = mpParentWidget->parentWidget();
-
-				mpParentWidget->setParent(0);
-				mpParentWidget->showFullScreen();
-				mpParentWidget->show();
-
-				QPoint position = this->pos();
-				this->move(0, 0);
-
-				QLayout* layout = mpParentWidget->layout();
-				if (layout)
-				{
-					layout->setSpacing(0);
-					layout->setMargin(0);
-				}
-
-				mIsFullscreen = true;
-
-			} else {
-
-				QLayout* layout = mpParentWidget->layout();
-				if (layout)
-				{
-					layout->setSpacing(6);
-					layout->setMargin(11);
-				}
-				mpParentWidget->showNormal();
-
-				this->move(9, 9);
-
-				if (mpGrandParentWidget->layout())
-				{
-					mpGrandParentWidget->layout()->addWidget(mpParentWidget);
-				}
-				else {
-					mpParentWidget->setParent(mpGrandParentWidget);
-				}
-
-				mpParentWidget->show();
-				mpGrandParentWidget->show();
-
-				mIsFullscreen = false;
-			}
-
-		} else if (event->key() == Qt::Key_Escape) {
 			
-			if (mIsFullscreen)
-			{
-				QLayout* layout = mpParentWidget->layout();
-				if (layout)
-				{
-					layout->setSpacing(6);
-					layout->setMargin(11);
-				}
-				mpParentWidget->showNormal();
-
-				this->move(9, 9);
-
-				if (mpGrandParentWidget->layout())
-				{
-					mpGrandParentWidget->layout()->addWidget(mpParentWidget);
-				}
-				else {
-					mpParentWidget->setParent(mpGrandParentWidget);
-				}
-
-				mpParentWidget->show();
-				mpGrandParentWidget->show();
-
-				mIsFullscreen = false;
-			}
 		}
 	}
+	
+	void OgreWidget::toggleFullScreen()
+	{
+		if (!mIsFullscreen)
+		{
+			//refresh parent and grand parent because there is lots of operation on widgets, hierarchy change
+			mpParentWidget = this->parentWidget();
+			mpGrandParentWidget = mpParentWidget->parentWidget();
+
+			mpParentWidget->setParent(0);
+			mpParentWidget->showFullScreen();
+			mpParentWidget->show();
+
+			QPoint position = this->pos();
+			this->move(0, 0);
+
+			QLayout* layout = mpParentWidget->layout();
+			if (layout)
+			{
+				layout->setSpacing(0);
+				layout->setMargin(0);
+			}
+
+			mIsFullscreen = true;
+
+		}
+		else {
+
+			QLayout* layout = mpParentWidget->layout();
+			if (layout)
+			{
+				layout->setSpacing(6);
+				layout->setMargin(11);
+			}
+			mpParentWidget->showNormal();
+
+			this->move(9, 9);
+
+			if (mpGrandParentWidget->layout())
+			{
+				mpGrandParentWidget->layout()->addWidget(mpParentWidget);
+			}
+			else {
+				mpParentWidget->setParent(mpGrandParentWidget);
+			}
+
+			mpParentWidget->show();
+			mpGrandParentWidget->show();
+
+			mIsFullscreen = false;
+		}
+	}
+
+	void OgreWidget::cancelFullScreen()
+	{
+		if (mIsFullscreen)
+		{
+			QLayout* layout = mpParentWidget->layout();
+			if (layout)
+			{
+				layout->setSpacing(6);
+				layout->setMargin(11);
+			}
+			mpParentWidget->showNormal();
+
+			this->move(9, 9);
+
+			if (mpGrandParentWidget->layout())
+			{
+				mpGrandParentWidget->layout()->addWidget(mpParentWidget);
+			}
+			else {
+				mpParentWidget->setParent(mpGrandParentWidget);
+			}
+
+			mpParentWidget->show();
+			mpGrandParentWidget->show();
+
+			mIsFullscreen = false;
+		}
+	}
+
 
 	void OgreWidget::doScreenShot()
 	{
@@ -577,6 +580,8 @@ namespace QtOgre
 
 	void OgreWidget::mousePressEvent(QMouseEvent * event)
 	{
+		this->setFocus();
+		
 		if (event->button() == Qt::LeftButton)
 			enable_spinning = true;
 
@@ -607,7 +612,8 @@ namespace QtOgre
 	}
 
 	void OgreWidget::mouseReleaseEvent(QMouseEvent * event)
-	{		
+	{
+		
 		if (event->button() == Qt::LeftButton)
 			enable_spinning = false;
 

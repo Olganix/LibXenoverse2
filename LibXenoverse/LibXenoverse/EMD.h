@@ -218,6 +218,7 @@ class EMDMesh
 {
 	friend class EMD;
 	friend class EMG;
+	friend class EMP;
 
 protected:
 	string name;
@@ -273,6 +274,7 @@ class EMDModel
 {
 	friend class EMD;
 	friend class EMO_PartsGroup;
+	friend class EMP;
 
 protected:
 	string name;
@@ -310,6 +312,7 @@ public:
 class EMD
 {
 	friend class EMO;
+	friend class EMP;
 
 protected:
 	string name;

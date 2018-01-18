@@ -46,11 +46,16 @@ namespace QtOgre
 		void	resetCamera_Charac();
 		void	resetCamera_Stage();
 
+		
+
 	protected:
 		void	paintEvent(QPaintEvent* evt);
 		void	resizeEvent(QResizeEvent* evt);
-
+	public:
 		void	keyPressEvent(QKeyEvent* event);
+
+		void	toggleFullScreen();
+		void	cancelFullScreen();
 		void	doScreenShot();
 		void	mousePressEvent(QMouseEvent * event);
 		void	mouseMoveEvent(QMouseEvent * event);
@@ -140,6 +145,7 @@ namespace QtOgre
 		Ogre::SceneNode* mRepereNode;
 		Ogre::SceneNode* mGridNode;
 
+	public:
 		list<EMDOgre *> emd_list;
 		list<ESKOgre *> esk_list;
 		list<EANOgre *> ean_list;

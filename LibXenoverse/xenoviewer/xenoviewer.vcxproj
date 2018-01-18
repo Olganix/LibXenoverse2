@@ -104,7 +104,14 @@
     <ClInclude Include="EMDRenderObjectListener.h" />
     <ClInclude Include="EMMOgre.h" />
     <ClInclude Include="ESKOgre.h" />
-    <ClInclude Include="FileTreeItemWidget.h" />
+    <CustomBuild Include="FileTreeItemWidget.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\depends\qt\bin\moc.exe %(RootDir)%(Directory)%(Filename).h -o %(RootDir)%(Directory)moc_%(Filename).cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MOC</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\depends\qt\bin\moc.exe %(RootDir)%(Directory)%(Filename).h -o %(RootDir)%(Directory)moc_%(Filename).cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MOC</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <ClInclude Include="FileTreeWidget.h" />
     <ClInclude Include="OgreCommon.h" />
     <ClInclude Include="qt-gradient-editor\gradLib\src\gradLib\arrow.h" />

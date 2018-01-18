@@ -22,6 +22,7 @@
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QScrollArea>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QTreeWidget>
@@ -76,6 +77,13 @@ public:
     QWidget *MeshTab;
     QWidget *SubmeshTab;
     QWidget *MaterialTab;
+    QVBoxLayout *verticalLayout_30;
+    QLabel *label_00;
+    QScrollArea *ParametersTree2Scroll;
+    QWidget *ParametersTree2;
+    QLabel *label_01;
+    QScrollArea *ParametersTreeScroll;
+    QWidget *ParametersTree;
     QWidget *TextureTab;
     QHBoxLayout *horizontalLayout_9;
     QFrame *frame_9;
@@ -384,6 +392,38 @@ public:
         tabWidget->addTab(SubmeshTab, QString());
         MaterialTab = new QWidget();
         MaterialTab->setObjectName(QStringLiteral("MaterialTab"));
+        verticalLayout_30 = new QVBoxLayout(MaterialTab);
+        verticalLayout_30->setObjectName(QStringLiteral("verticalLayout_30"));
+        label_00 = new QLabel(MaterialTab);
+        label_00->setObjectName(QStringLiteral("label_00"));
+
+        verticalLayout_30->addWidget(label_00);
+
+        ParametersTree2Scroll = new QScrollArea(MaterialTab);
+        ParametersTree2Scroll->setObjectName(QStringLiteral("ParametersTree2Scroll"));
+        ParametersTree2Scroll->setWidgetResizable(true);
+        ParametersTree2Scroll->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop);
+        ParametersTree2 = new QWidget();
+        ParametersTree2->setObjectName(QStringLiteral("ParametersTree2"));
+        ParametersTree2Scroll->setWidget(ParametersTree2);
+
+        verticalLayout_30->addWidget(ParametersTree2Scroll);
+
+        label_01 = new QLabel(MaterialTab);
+        label_01->setObjectName(QStringLiteral("label_01"));
+
+        verticalLayout_30->addWidget(label_01);
+
+        ParametersTreeScroll = new QScrollArea(MaterialTab);
+        ParametersTreeScroll->setObjectName(QStringLiteral("ParametersTreeScroll"));
+        ParametersTreeScroll->setWidgetResizable(true);
+        ParametersTreeScroll->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop);
+        ParametersTree = new QWidget();
+        ParametersTree->setObjectName(QStringLiteral("ParametersTree"));
+        ParametersTreeScroll->setWidget(ParametersTree);
+
+        verticalLayout_30->addWidget(ParametersTreeScroll);
+
         tabWidget->addTab(MaterialTab, QString());
         TextureTab = new QWidget();
         TextureTab->setObjectName(QStringLiteral("TextureTab"));
@@ -934,6 +974,8 @@ public:
         tabWidget->setTabText(tabWidget->indexOf(ModelTab), QApplication::translate("MainViewer", "Model", 0));
         tabWidget->setTabText(tabWidget->indexOf(MeshTab), QApplication::translate("MainViewer", "Mesh", 0));
         tabWidget->setTabText(tabWidget->indexOf(SubmeshTab), QApplication::translate("MainViewer", "Submesh", 0));
+        label_00->setText(QApplication::translate("MainViewer", "All Materials Parameters (to override) :", 0));
+        label_01->setText(QApplication::translate("MainViewer", "Selected Material Parameters (to override) :", 0));
         tabWidget->setTabText(tabWidget->indexOf(MaterialTab), QApplication::translate("MainViewer", "Material", 0));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_2), QApplication::translate("MainViewer", "1", 0));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_10), QApplication::translate("MainViewer", "2", 0));

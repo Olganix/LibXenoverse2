@@ -281,10 +281,8 @@ public:
 
 	void	readEAN(EAN* ean);
 	void	readEsk(ESK* esk);
-	void	writeEsk(ESK* esk);										//need read esk before the rest, because of pointer
 	void	writeEAN(EAN* ean);
-	void	writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode);
-
+	
 
 
 	inline uint16_t GetNumAnimations() const { return animations.size(); }

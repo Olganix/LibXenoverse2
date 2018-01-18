@@ -274,11 +274,11 @@ bool EMO_BaseFile::CompileFromFile(const std::string &path, bool show_error, boo
 		{
 			if (doc.ErrorId() == TiXmlBase::TIXML_ERROR_OPENING_FILE)
 			{
-				LOG_DEBUG("Cannot open file \"%s\"\n", path.c_str());
+				printf("Cannot open file \"%s\"\n", path.c_str());
 			}
 			else
 			{
-				LOG_DEBUG("Error parsing file \"%s\". This is what tinyxml has to say: %s. Row=%d, col=%d.\n", path.c_str(), doc.ErrorDesc(), doc.ErrorRow(), doc.ErrorCol());
+				printf("Error parsing file \"%s\". This is what tinyxml has to say: %s. Row=%d, col=%d.\n", path.c_str(), doc.ErrorDesc(), doc.ErrorRow(), doc.ErrorCol());
 			}
 		}
 
@@ -289,7 +289,7 @@ bool EMO_BaseFile::CompileFromFile(const std::string &path, bool show_error, boo
 
 	if (!ret && show_error)
 	{
-		LOG_DEBUG("Compilation of file \"%s\" failed.\n", path.c_str());
+		printf("Compilation of file \"%s\" failed.\n", path.c_str());
 	}
 
 	return ret;

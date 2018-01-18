@@ -55,6 +55,15 @@
     <Filter Include="FMP">
       <UniqueIdentifier>{5356f101-3e48-4dd1-867a-8a51b1611a7e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ETR">
+      <UniqueIdentifier>{83e4b439-2022-4e13-b756-b8eecaaa77bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EMP">
+      <UniqueIdentifier>{916007ac-792f-48a9-a005-c471d7022c04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SPM">
+      <UniqueIdentifier>{f6c370e9-8c64-4a45-976c-8e6797d99709}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyxml\tinystr.h">
@@ -134,6 +143,15 @@
     </ClInclude>
     <ClInclude Include="Fmp.h">
       <Filter>FMP</Filter>
+    </ClInclude>
+    <ClInclude Include="Etr.h">
+      <Filter>ETR</Filter>
+    </ClInclude>
+    <ClInclude Include="EMP.h">
+      <Filter>EMP</Filter>
+    </ClInclude>
+    <ClInclude Include="spm.h">
+      <Filter>SPM</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -274,6 +292,15 @@
     </ClCompile>
     <ClCompile Include="Fmp.cpp">
       <Filter>FMP</Filter>
+    </ClCompile>
+    <ClCompile Include="Etr.cpp">
+      <Filter>ETR</Filter>
+    </ClCompile>
+    <ClCompile Include="EMP.cpp">
+      <Filter>EMP</Filter>
+    </ClCompile>
+    <ClCompile Include="spm.cpp">
+      <Filter>SPM</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

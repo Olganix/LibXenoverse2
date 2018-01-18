@@ -4,7 +4,7 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		printf("Usage: 'XenoWxHexEditorColorMaker.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support map files");
+		printf("Usage: 'XenoWxHexEditorColorMaker.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support map, etr and emp files. Please considere that result as some debug.\n");
 		getchar();
 		return 1;
 	}
@@ -36,6 +36,27 @@ int main(int argc, char** argv)
 		{
 			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
 			fmp->save_Coloration(filename);
+		}
+
+		/////////////////////////////////////////////////////////////
+		if (extension == "etr")							// traces/trails for effects.
+		{
+			LibXenoverse::Etr* etr = new LibXenoverse::Etr();
+			etr->save_Coloration(filename);
+		}
+
+		/////////////////////////////////////////////////////////////
+		if (extension == "emp")							// particules/mappedPlanes for effects.
+		{
+			LibXenoverse::EMP* emp = new LibXenoverse::EMP();
+			emp->save_Coloration(filename);
+		}
+
+		/////////////////////////////////////////////////////////////
+		if (extension == "spm")							// particules/mappedPlanes for effects.
+		{
+			LibXenoverse::Spm* spm = new LibXenoverse::Spm();
+			spm->save_Coloration(filename);
 		}
 
 

@@ -55,7 +55,7 @@ struct SkeletonNode
 	uint16_t parent_id;			// 0
 	uint16_t child_id;			// 2
 	uint16_t sibling_id;		// 4
-	uint16_t indexInChildren;	// 6
+	uint16_t emgIndex;			// 6		//only for Emo file (0xFFFF for other)
 	uint16_t index_4;			// 8
 	uint16_t unk_0A[3];			// 0xA
 	float matrix[16];			// 0x10
@@ -120,7 +120,7 @@ private:
 	EMO_Bone *parent = nullptr;
 	EMO_Bone *child = nullptr;
 	EMO_Bone *sibling = nullptr;
-	unsigned short indexInChildren = 0xffff;
+	unsigned short emgIndex = 0xffff;				//only for Emo file (0xFFFF for other)
 	unsigned short index_4 = 0;
 
 	float matrix1[16];								//apparently, it's the relative matrix, relative to parent.
@@ -195,13 +195,13 @@ public:
 	inline EMO_Bone *GetParent() { return parent; }
 	inline EMO_Bone *GetChild() { return child; }
 	inline EMO_Bone *GetSibling() { return sibling; }
-	inline unsigned short GetIndexInChildren() { return indexInChildren; }
+	inline unsigned short GetEmgIndex() { return emgIndex; }
 	inline unsigned short GetIndex_4() { return index_4; }
 
 	inline const EMO_Bone *GetParent() const { return parent; }
 	inline const EMO_Bone *GetChild() const { return child; }
 	inline const EMO_Bone *GetSibling() const { return sibling; }
-	inline const unsigned short GetIndexInChildren() const { return indexInChildren; }
+	inline const unsigned short GetEmgIndex() const { return emgIndex; }
 	inline const unsigned short  GetIndex_4() const { return index_4; }
 
 	inline void SetName(const std::string & str)
@@ -325,6 +325,7 @@ public:
 
 	virtual bool Load(const uint8_t *buf, unsigned int size) override;
 	virtual uint8_t *CreateFile(unsigned int *psize) override;
+	virtual uint8_t *CreateFile(unsigned int *psize, std::vector<string> listEMG);
 
 	void Decompile(TiXmlNode *root) const;
 	virtual TiXmlDocument *Decompile() const override;
@@ -350,6 +351,10 @@ public:
 	void TranslateIKData(uint8_t *dst, const uint8_t *src, size_t size, bool import);
 
 	unsigned int CalculateFileSize() const;
+
+
+	void writeEsk(ESK* esk);										//need read esk before emd, because of pointer
+	void writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode);
 
 
 #ifdef FBX_SUPPORT

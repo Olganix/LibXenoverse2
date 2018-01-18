@@ -5,6 +5,8 @@
 #include "EMBOgre.h"
 #include "FileTreeItemWidget.h"
 
+
+
 FileTreeItemWidget::FileTreeItemWidget(QTreeWidget *parent) : QTreeWidgetItem(parent) 
 {
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
@@ -112,6 +114,102 @@ BoneItemWidget::BoneItemWidget(ESKBone *data, QTreeWidget *parent) : FileTreeIte
 
 
 
+MaterialParameterItemWidget::MaterialParameterItemWidget(string name, EMMOgre::EmmMaterialParameter& param, EMMMaterial* emmMaterial, EMMOgre* emmOgre, QtOgre::OgreWidget* ogreWidget, QWidget* parent) : QWidget(parent),
+mParam(param)
+{
+	mName = name;
+	mEmmMaterial = emmMaterial;
+	mEmmOgre = emmOgre;
+	mOgreWidget = ogreWidget;
+	
+
+	//visual
+	QHBoxLayout *layout = new QHBoxLayout(this);
+	
+	QLabel* qlName = new QLabel((mName).c_str());
+	qlName->setAlignment(Qt::AlignTop);
+	layout->addWidget(qlName);
+
+	if (mParam.type == "bool")
+	{
+		checkbox = new QCheckBox(QString("enable"));
+		checkbox->setChecked( mParam.currentValue.x != 0.0f );
+		layout->addWidget(checkbox);
+
+		QObject::connect(checkbox, SIGNAL(stateChanged(int)), (QWidget*)this, SLOT(checkBoxStateChanged(int)));
+
+	}else if (mParam.type == "float4"){
+
+		QVBoxLayout *layout2 = new QVBoxLayout;
+		layout2->setSpacing(0);
+
+		MaterialParameterComponentItemWidget* comp;
+		if (mParam.name == "Character")
+		{
+			comp = new MaterialParameterComponentItemWidget("damage", mParam.currentValue.x);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+
+			comp = new MaterialParameterComponentItemWidget("blood", mParam.currentValue.y);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+		}else {
+
+			comp = new MaterialParameterComponentItemWidget("x", mParam.currentValue.x);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+
+			comp = new MaterialParameterComponentItemWidget("y", mParam.currentValue.y);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+
+			comp = new MaterialParameterComponentItemWidget("z", mParam.currentValue.z);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+
+			comp = new MaterialParameterComponentItemWidget("w", mParam.currentValue.w);
+			layout2->addWidget(comp);
+			QObject::connect(comp, SIGNAL(valueChanged(string, float)), (QWidget*)this, SLOT(componentValueChanged(string, float)));
+		}
+
+		layout->addLayout(layout2);
+	}
+
+	this->setLayout(layout);
+}
+
+
+MaterialParameterComponentItemWidget::MaterialParameterComponentItemWidget(string name, float value, QWidget* parent) : QWidget(parent)
+{
+	mName = name;
+	mValue = value;
+	mDontNotify = false;
+	
+	QHBoxLayout *layout = new QHBoxLayout(this);
+
+	QLabel* qlName = new QLabel((mName).c_str());
+	layout->addWidget(qlName);
+
+
+	label = new QLineEdit();
+	label->setMaximumWidth(50);
+	layout->addWidget(label);
+	
+	slider = new DoubleSlider();
+	slider->setOrientation(Qt::Horizontal);
+	slider->setRange(-200, 200);
+	layout->addWidget(slider);
+
+	QObject::connect(label, SIGNAL(editingFinished()), (QWidget*)this, SLOT(updateSliderValue()));
+	QObject::connect(slider, SIGNAL(doubleValueChanged(double)), (QWidget*)this, SLOT(updateLabelValue(double)));
+
+
+	updateLabelValue(slider->value());
+	updateSliderValue();
+
+	this->setLayout(layout);
+}
+
 
 MaterialPackItemWidget::MaterialPackItemWidget(EMMOgre *data, QTreeWidget *parent) : FileTreeItemWidget(parent) {
 	data_ptr = data;
@@ -143,6 +241,7 @@ void MaterialPackItemWidget::updateText()
 MaterialItemWidget::MaterialItemWidget(EMMMaterial *data, QTreeWidget *parent) : FileTreeItemWidget(parent) 
 {
 	data_ptr = data;
+	visible = true;
 	updateText();
 	setIcon(0, QIcon(":/resources/icons/emd.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);

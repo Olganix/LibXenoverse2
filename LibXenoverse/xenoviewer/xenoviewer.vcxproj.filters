@@ -81,9 +81,6 @@
     <ClInclude Include="EMDRenderObjectListener.h">
       <Filter>Header Files\OgreParts</Filter>
     </ClInclude>
-    <ClInclude Include="FileTreeItemWidget.h">
-      <Filter>Header Files\Interface\FileTree</Filter>
-    </ClInclude>
     <ClInclude Include="FileTreeWidget.h">
       <Filter>Header Files\Interface\FileTree</Filter>
     </ClInclude>
@@ -192,6 +189,9 @@
     </CustomBuild>
     <CustomBuild Include="DocumentWindow.h">
       <Filter>Header Files\Interface</Filter>
+    </CustomBuild>
+    <CustomBuild Include="FileTreeItemWidget.h">
+      <Filter>Header Files\Interface\FileTree</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

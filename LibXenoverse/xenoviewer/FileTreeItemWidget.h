@@ -9,10 +9,54 @@ class EMMOgre;
 class EMBOgre;
 class FBXOgre;
 
+#include <qobjectdefs.h>
+#include <QApplication>
+#include <QSlider>
+#include <QCheckBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QTextEdit>
+
 #include "OgreWidget.h"
+#include "EMDOgre.h"
+#include "EMMOgre.h"
+
 
 class LibXenoverse::EMMMaterial;
 class LibXenoverse::EMBFile;
+
+
+
+class DoubleSlider : public QSlider
+{
+	Q_OBJECT
+
+	bool mDontNotify;
+
+public:
+	DoubleSlider(QWidget *parent = 0) : QSlider(parent)
+	{
+		mDontNotify = false;
+		connect(this, SIGNAL(valueChanged(int)), this, SLOT(notifyValueChanged(int)));
+	}
+
+	double getDoubleValue(void) { return (this->value() / 100.0); }
+	void setDoubleValue(double value) { mDontNotify = true;  setValue(int(value * 100.0)); mDontNotify = false; }
+
+signals:
+	void doubleValueChanged(double value);
+
+public slots:
+	void notifyValueChanged(int value)
+	{
+		if (mDontNotify)
+			return;
+
+		double doubleValue = value / 100.0;
+		emit doubleValueChanged(doubleValue);
+	}
+};
+
 
 class FileTreeItemWidget : public QTreeWidgetItem 
 {
@@ -30,6 +74,8 @@ public:
 		ItemSubmesh,
 		ItemMaterialPack,
 		ItemMaterial,
+		ItemMaterialParameter,
+		ItemMaterialComponentParameter,
 		ItemTexturePack,
 		ItemTexture,
 		ItemBone
@@ -92,14 +138,138 @@ class MaterialItemWidget : public FileTreeItemWidget
 {
 protected:
 	EMMMaterial *data_ptr;
+	bool visible;
+
 public:
 	MaterialItemWidget(EMMMaterial *data, QTreeWidget *parent);
 	~MaterialItemWidget();
 
 	EMMMaterial *getData() { return data_ptr; }
+	bool	getVisible() { return visible; }
+	void	setVisible(bool visible) { this->visible = visible; }
 
 	void updateText();
 };
+
+class MaterialParameterItemWidget : public QWidget
+{
+	Q_OBJECT
+
+public:
+	string mName;
+	EMMMaterial* mEmmMaterial;
+	EMMOgre* mEmmOgre;
+	EMMOgre::EmmMaterialParameter mParam;
+	QtOgre::OgreWidget* mOgreWidget;
+	QCheckBox *checkbox;
+
+
+public:
+	MaterialParameterItemWidget(string name, EMMOgre::EmmMaterialParameter& param, EMMMaterial* emmMaterial, EMMOgre* emmOgre, QtOgre::OgreWidget* ogreWidget, QWidget* parent = 0);
+
+public slots:
+	void checkBoxStateChanged(int)
+	{
+		if(checkbox)
+			componentValueChanged("x", checkbox->isChecked() ? 1.0 : 0.0);
+	}
+
+	void componentValueChanged(string name, float value)
+	{
+		if (mParam.name == "Character")
+		{
+			if (name == "damage")
+				mParam.currentValue.x = value;
+			else if (name == "blood")
+				mParam.currentValue.y = value;
+
+			if (!mEmmOgre)
+			{
+				for (list<EMDOgre *>::iterator it = mOgreWidget->emd_list.begin(); it != mOgreWidget->emd_list.end(); it++)
+				{
+					(*it)->setMaterialParameter("g_MaterialCol3_PS", mParam.currentValue);
+					(*it)->setMaterialParameter("g_MaterialCol3_VS", mParam.currentValue);
+				}					
+			}else {
+				mEmmOgre->setShaderParameter(mEmmOgre->getCreatedMaterialName(mEmmMaterial->getName()), "g_MaterialCol3_PS", mParam.currentValue);
+				mEmmOgre->setShaderParameter(mEmmOgre->getCreatedMaterialName(mEmmMaterial->getName()), "g_MaterialCol3_VS", mParam.currentValue);
+			}
+			return;
+		}
+		
+		if(name=="x")
+			mParam.currentValue.x = value;
+		else if (name == "y")
+			mParam.currentValue.y = value;
+		else if (name == "z")
+			mParam.currentValue.z = value;
+		else if (name == "w")
+			mParam.currentValue.w = value;
+
+		if (!mEmmOgre)
+		{
+			for (list<EMDOgre *>::iterator it = mOgreWidget->emd_list.begin(); it != mOgreWidget->emd_list.end(); it++)
+				(*it)->setMaterialParameter(mName, mParam.currentValue);
+		}else{
+			mEmmOgre->setShaderParameter(mEmmOgre->getCreatedMaterialName(mEmmMaterial->getName()), mName, mParam.currentValue);
+		}
+	}
+};
+
+
+
+
+
+
+class MaterialParameterComponentItemWidget : public QWidget
+{
+	Q_OBJECT
+
+public:
+	string mName;
+	float mValue;
+
+	DoubleSlider* slider;
+	QLineEdit* label;
+
+	bool mDontNotify;
+
+public:
+	MaterialParameterComponentItemWidget(string name, float value, QWidget* parent = 0);
+
+signals:
+	void valueChanged(string name, float value);
+
+public slots:
+	void updateLabelValue(double value)
+	{
+		mDontNotify = true;
+		
+		mValue = value;
+		label->setText(QString::number(value, 'f', 4));
+		emit valueChanged(mName, mValue);
+
+		mDontNotify = false;
+	}
+
+	void updateSliderValue()
+	{
+		if (mDontNotify)
+			return;
+
+		QString text = label->text();
+		bool isOk = false;
+		float value = text.toFloat(&isOk);
+		if (isOk)
+			slider->setDoubleValue(value);
+
+		mValue = value;
+
+		emit valueChanged(mName, mValue);
+	}
+};
+
+
 
 
 class TexturePackItemWidget : public FileTreeItemWidget 

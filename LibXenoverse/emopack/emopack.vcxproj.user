@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>D:\Tests\DragonBall_Xenoverse\Tests\_Mods\Cero\sauzer_blade\fbx_01\Hpe_SwdB.emd D:\Tests\DragonBall_Xenoverse\Tests\_Mods\Cero\sauzer_blade\fbx_01\Hpe_SwdB.esk</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>D:\Tests\DragonBall_Xenoverse\Tests\_Mods\Cero\sauzer_blade\1390_GBR_HAI_orig\testEmoPack\Hai_Swd.emd D:\Tests\DragonBall_Xenoverse\Tests\_Mods\Cero\sauzer_blade\1390_GBR_HAI_orig\testEmoPack\Hai_Swd.esk</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

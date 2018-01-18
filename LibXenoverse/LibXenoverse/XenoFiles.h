@@ -163,6 +163,7 @@ namespace LibXenoverse {
 	bool writeTextTo(string filename, const char *data, size_t data_size);
 	std::vector<std::string> split(const std::string &text, char sep);
 	bool isNumber(const string& val);
+	bool isIntNumber(const string& val);
 	std::string toStringHexa(size_t val, unsigned short width = 0, char fill = ' ', std::ios::fmtflags flags = std::ios::fmtflags(0));
 	unsigned int parseHexaUnsignedInt(const std::string& val);
 };

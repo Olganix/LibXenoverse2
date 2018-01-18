@@ -154,14 +154,13 @@ void EMO_Bone::Decompile(TiXmlNode *root) const
         EMO_BaseFile::WriteParamString(entry_root, "SIBLING", "NULL");
     }
 
-    if (indexInChildren != 0xffff)
-    {
-        EMO_BaseFile::WriteParamUnsigned(entry_root, "indexInChildren", indexInChildren);
-    }
-    else
-    {
-        EMO_BaseFile::WriteParamString(entry_root, "indexInChildren", "NULL");
-    }
+
+	if (emgIndex != 0xFFFF)
+		EMO_BaseFile::WriteParamUnsigned(entry_root, "EmgIndex", emgIndex);
+	else
+		EMO_BaseFile::WriteParamString(entry_root, "EmgIndex", "NULL");
+
+
 
     if (index_4 != 0xffff)
     {
@@ -252,21 +251,7 @@ bool EMO_Bone::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
             }
         }
 
-        if (!EMO_BaseFile::GetParamString(root, "indexInChildren", bone_name))
-            return false;
-
-        if (bone_name == "NULL")
-        {
-			indexInChildren = 0xffff;
-        }
-        else
-        {
-			uint32_t tmp;
-			if (!EMO_BaseFile::GetParamUnsigned(root, "indexInChildren", &tmp))
-				return false;
-
-			index_4 = tmp;
-        }
+		emgIndex = 0xffff;
 
         if (!EMO_BaseFile::GetParamString(root, "index_4", bone_name))
             return false;
@@ -569,7 +554,7 @@ bool EMO_Bone::PartialCompare(const EMO_Bone *b1, const EMO_Bone *b2)
             return false;
     }
 
-	if (b1->indexInChildren != b2->indexInChildren)
+	if (b1->emgIndex != b2->emgIndex)
 		return false;
 
 	if (b1->index_4 != b2->index_4)
@@ -592,7 +577,7 @@ bool EMO_Bone::operator==(const EMO_Bone &rhs) const
     if (!PartialCompare(this->sibling, rhs.sibling))
         return false;
 
-	if (this->indexInChildren != rhs.indexInChildren)
+	if (this->emgIndex != rhs.emgIndex)
 		return false;
 
 	if (this->index_4 != rhs.index_4)
@@ -738,7 +723,7 @@ uint16_t EMO_Skeleton::AppendBone(const EMO_Bone &bone)
     new_bone.parent = nullptr;
     new_bone.child = nullptr;
     new_bone.sibling = nullptr;
-    new_bone.indexInChildren = 0xfff;
+    new_bone.emgIndex = 0xfff;
     new_bone.index_4 = 0;
 
     for (EMO_Bone &b : bones)
@@ -823,7 +808,7 @@ bool EMO_Skeleton::CloneEMO_BoneParentChild(const EMO_Skeleton &other, const std
         bone_temp.sibling = sibling;
     }
 
-	bone_temp.indexInChildren = bone_other->indexInChildren;
+	bone_temp.emgIndex = bone_other->emgIndex;
 	bone_temp.index_4 = bone_other->index_4;
 
     //bones[BoneToIndex(bone_me)] = bone_temp;
@@ -932,55 +917,85 @@ void EMO_Skeleton::TranslateIKData(uint8_t *dst, const uint8_t *src, size_t size
 
 bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 {
-    Reset();
+	Reset();
 
-    UNUSED(size);
+	UNUSED(size);
 
-    SkeletonHeader *hdr = (SkeletonHeader *)buf;
-    uint16_t node_count = val16(hdr->node_count);
+	SkeletonHeader *hdr = (SkeletonHeader *)buf;
+	uint16_t node_count = val16(hdr->node_count);
 
-    if (hdr->ik_data_offset)
-    {
-        ik_size = CalculateIKSize(GetOffsetPtr(buf, hdr->ik_data_offset), val16(hdr->ik_count));
-        if (ik_size != 0x108)
-        {
-            // Temporal message, it will be supressed in future
-            // Update: supressed now
-            //LOG_DEBUG("Warning: ik_size not 0x108. Ignore this if this is not a SSSS CHARACTER file.\n");
-        }
+	if (hdr->ik_data_offset)
+	{
+		ik_size = CalculateIKSize(GetOffsetPtr(buf, hdr->ik_data_offset), val16(hdr->ik_count));
+		if (ik_size != 0x108)
+		{
+			// Temporal message, it will be supressed in future
+			// Update: supressed now
+			//LOG_DEBUG("Warning: ik_size not 0x108. Ignore this if this is not a SSSS CHARACTER file.\n");
+		}
 
-        ik_data = new uint8_t[ik_size];
+		ik_data = new uint8_t[ik_size];
 
-        if (!ik_data)
-        {
-            LOG_DEBUG("%s: Memory allocation error.\n", FUNCNAME);
-            return false;
-        }
+		if (!ik_data)
+		{
+			LOG_DEBUG("%s: Memory allocation error.\n", FUNCNAME);
+			return false;
+		}
 
-        TranslateIKData(ik_data, GetOffsetPtr(buf, hdr->ik_data_offset), ik_size, true);
-    }
-    else
-    {
-        ik_data = nullptr;
-        ik_size = 0;
-    }
+		TranslateIKData(ik_data, GetOffsetPtr(buf, hdr->ik_data_offset), ik_size, true);
+	}
+	else
+	{
+		ik_data = nullptr;
+		ik_size = 0;
+	}
 
-    unk_02 = val16(hdr->unk_02);
-    unk_06 = val16(hdr->unk_06);
+	unk_02 = val16(hdr->unk_02);
+	unk_06 = val16(hdr->unk_06);
 
-    unk_10[0] = val32(hdr->unk_10[0]);
-    unk_10[1] = val32(hdr->unk_10[1]);
+	unk_10[0] = val32(hdr->unk_10[0]);
+	unk_10[1] = val32(hdr->unk_10[1]);
 
-    if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)
-    {
-        LOG_DEBUG("%s: unk_24 not zero as expected.\n", FUNCNAME);
-        return false;
-    }
+	if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)
+	{
+		LOG_DEBUG("%s: unk_24 not zero as expected.\n", FUNCNAME);
+		return false;
+	}
 
-    unk_34[0] = val16(hdr->unk_34[0]);
-    unk_34[1] = val16(hdr->unk_34[1]);
-    unk_38[0] = val_float(hdr->unk_38[0]);
-    unk_38[1] = val_float(hdr->unk_38[1]);
+	unk_34[0] = val16(hdr->unk_34[0]);
+	unk_34[1] = val16(hdr->unk_34[1]);
+
+	
+	unk_38[0] = val_float(hdr->unk_38[0]);
+	unk_38[1] = val_float(hdr->unk_38[1]);
+	
+	/*
+	//test essaye de trouver a quoi sert unk_38 qui a l'air d'etre important , et qui est le meme dans le xxxx.obj.ema.
+	{
+		uint32_t *p = (uint32_t *)&(hdr->unk_38[0]);
+		uint32_t *p_2 = (uint32_t *)&(hdr->unk_38[1]);
+
+		//inversion du val32() pour les avoir a nouveau dans l'ordre
+#ifdef __BIG_ENDIAN__
+		*p = (big_endian) ? LE32(*p) : *p;
+		*p_2 = (big_endian) ? LE32(*p_2) : *p_2;
+#else
+		*p = (big_endian) ? *p : BE32(*p);
+		*p_2 = (big_endian) ? *p_2 : BE32(*p_2);
+#endif
+
+		uint16_t *p16 = (uint16_t*)p;
+		uint16_t *p16_2 = (uint16_t*)p_2;
+
+		float a38_a = float16ToFloat(val16(p16[1]));
+		float a38_b = float16ToFloat(val16(p16[0]));
+		float a38_c = float16ToFloat(val16(p16_2[1]));
+		float a38_d = float16ToFloat(val16(p16_2[0]));
+		
+
+		int aa = 42;
+	}
+	*/
 
     uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, hdr->names_offset);
     SkeletonNode *nodes = (SkeletonNode *)GetOffsetPtr(buf, hdr->start_offset);
@@ -1047,12 +1062,12 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 
     for (uint16_t i = 0; i < node_count; i++)
     {
-        uint16_t parent, child, sibling, indexInChildren, index_4;
+        uint16_t parent, child, sibling, emgIndex, index_4;
 
         parent = val16(nodes[i].parent_id);
 		child = val16(nodes[i].child_id);
 		sibling = val16(nodes[i].sibling_id);
-		indexInChildren = val16(nodes[i].indexInChildren);
+		emgIndex = val16(nodes[i].emgIndex);
 		index_4 = val16(nodes[i].index_4);
 
         if (parent == 0xFFFF)
@@ -1094,7 +1109,7 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
             LOG_DEBUG("%s: child2 is out of range (on EMO_Bone %d %s)\n", FUNCNAME, i, bones[i].name.c_str());
         }
 
-		bones[i].indexInChildren = indexInChildren;
+		bones[i].emgIndex = emgIndex;
 		bones[i].index_4 = index_4;
     }
 
@@ -1142,6 +1157,12 @@ unsigned int EMO_Skeleton::CalculateFileSize() const
 
 uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize)
 {
+	std::vector<string> listEMG;
+	return CreateFile(psize, listEMG);
+}
+
+uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listEMG)
+{
     if (bones.size() == 0)
         return nullptr;
 
@@ -1175,13 +1196,26 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize)
     hdr->start_offset = val32(offset);
 
     SkeletonNode *nodes = (SkeletonNode *)GetOffsetPtr(buf, offset, true);
+	
+	size_t nbEMG = listEMG.size();
 
     for (size_t i = 0; i < bones.size(); i++)
     {
         nodes[i].parent_id = val16(BoneToIndex(bones[i].parent));
         nodes[i].child_id = val16(BoneToIndex(bones[i].child));
         nodes[i].sibling_id = val16(BoneToIndex(bones[i].sibling));
-        nodes[i].indexInChildren = val16(bones[i].indexInChildren);
+
+		nodes[i].emgIndex = val16(0xFFFF);
+		string boneName = bones[i].GetName();
+		for (size_t j = 0; j < nbEMG; j++)
+		{
+			if (listEMG.at(j) == boneName)
+			{
+				nodes[i].emgIndex = val16(j);
+				break;
+			}
+		}
+
         nodes[i].index_4 = val16(bones[i].index_4);
 
         nodes[i].unk_0A[0] = val16(bones[i].sn_u0A[0]);
@@ -1189,9 +1223,7 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize)
         nodes[i].unk_0A[2] = val16(bones[i].sn_u0A[2]);
 
         for (int j = 0; j < 16; j++)
-        {
             copy_float(&nodes[i].matrix[j], bones[i].matrix1[j]);
-        }
 
         offset += sizeof(SkeletonNode);
     }
@@ -1594,5 +1626,212 @@ bool EMO_Skeleton::operator==(const EMO_Skeleton &rhs) const
 
     return true;
 }
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             writeEsk				                             |
+\-------------------------------------------------------------------------------*/
+void EMO_Skeleton::writeEsk(ESK* esk)
+{
+	esk->name = name;
+
+
+	esk->bones.clear();
+	EskTreeNode* rootNode = esk->getTreeOrganisation();
+
+
+
+
+	//to secure, we begin to build bones, and after we will made the hierarchy.
+	std::vector<EskTreeNode*> listTreeNode;
+	ESKBone* bone;
+	EskTreeNode* node;
+	size_t nbElements = bones.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		bone = new ESKBone();
+		bones.at(i).writeESKBone(bone);
+		esk->bones.push_back(bone);
+
+		node = new EskTreeNode(esk->bones.at(i), i, rootNode);			//by default, rootnode is the parent of all.
+		listTreeNode.push_back(node);
+	}
+
+
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		EMO_Bone &emoBone = bones.at(i);
+
+		EMO_Bone* emoBone_ptr = &emoBone;
+		if (!emoBone_ptr->parent)									//we take care only bone witch have rootNode as parent.
+		{
+			rootNode->mChildren.push_back(listTreeNode.at(i));
+			listTreeNode.at(i)->mParent = rootNode;
+
+			writeEsk__recursive(emoBone_ptr, bones, listTreeNode.at(i), listTreeNode);		//after, we take care of children recursively.
+		}
+	}
+
+
+	//all the recursive try to take care of child and sibling informations. saddly, there could have wrong information about child information.
+	//saddly, by adding security on it, it could break the link witch could have with the parent information.
+	//SO, we have to look after missing bone. if the parent informaiton is good, we could add it in hierarchy, else, it will still on rootNode.
+	size_t nbNode = listTreeNode.size();
+	for (size_t i = 0; i < nbNode; i++)											//we look at all bones
+	{
+		if (rootNode->getBoneWithIndex(i))
+			continue;
+
+		//if we miss someone in hierarchy.
+		EMO_Bone &emoBone = bones.at(i);
+		if (emoBone.parent)										//try with parent information (instead of child and sibling)
+		{
+			bool isGood = true;
+			EMO_Bone* emoBone_tmp = emoBone.parent;
+			while (emoBone_tmp)
+			{
+				if (emoBone_tmp == &emoBone)						//try to avoid bone be the parent of the parent, or him self directly.
+				{
+					isGood = false;
+					break;
+				}
+				emoBone_tmp = emoBone_tmp->parent;
+			}
+
+			if (isGood)
+			{
+				size_t isFound = (size_t)-1;
+				size_t nbElements = bones.size();
+				for (size_t j = 0; j < nbElements; j++)
+				{
+					if (&bones.at(j) == emoBone.parent)
+					{
+						isFound = j;
+						break;
+					}
+				}
+
+				if (isFound != (size_t)-1)					//if we find it, we update the treeNode.
+				{
+					//another check, if there isn't a fail on sibling, to avoid infinite loop
+					size_t nbchildren_tmp = listTreeNode.at(isFound)->mChildren.size();
+					for (size_t m = 0; m < nbchildren_tmp; m++)
+					{
+						if (listTreeNode.at(isFound)->mChildren.at(m) == listTreeNode.at(i))
+						{
+							printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", listTreeNode.at(i)->mBone->getName().c_str());
+							isFound = (size_t)-1;
+							break;
+						}
+					}
+
+					if (isFound != (size_t)-1)
+					{
+						listTreeNode.at(i)->mParent = listTreeNode.at(isFound);
+						listTreeNode.at(isFound)->mChildren.push_back(listTreeNode.at(i));
+					}
+					else {
+						rootNode->mChildren.push_back(listTreeNode.at(i));
+						listTreeNode.at(i)->mParent = rootNode;
+					}
+
+				}
+				else {
+					rootNode->mChildren.push_back(listTreeNode.at(i));
+					listTreeNode.at(i)->mParent = rootNode;
+				}
+
+			}
+			else {
+				rootNode->mChildren.push_back(listTreeNode.at(i));
+				listTreeNode.at(i)->mParent = rootNode;
+			}
+
+		}
+		else {
+			rootNode->mChildren.push_back(listTreeNode.at(i));
+			listTreeNode.at(i)->mParent = rootNode;
+		}
+	}
+
+
+	esk->setTreeOrganisation(rootNode);
+}
+/*-------------------------------------------------------------------------------\
+|                             writeEsk__recursive				                 |
+\-------------------------------------------------------------------------------*/
+void EMO_Skeleton::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode)
+{
+
+
+	//we look after all children (child and sibling), to make the hierarchy.
+	EMO_Bone* emoBone_child = emoBone->child;
+	size_t inc = 0;
+
+	while (emoBone_child != nullptr)
+	{
+		//to secure on wrong informations about hierarchy (in some emo), we have to break possible infinite loops.
+		if (emoBone_child == emoBone)				//I see a case witch the bone was its parent himself, and the child ...
+		{
+			printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+			return;
+		}
+
+		EMO_Bone* emoBone_tmp = emoBone->parent;
+		while (emoBone_tmp)										//case of a bad link between parent/child. lets check if parents are not used as a child of a child.
+		{
+			if (emoBone_child == emoBone_tmp)
+			{
+				printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+				return;
+			}
+			emoBone_tmp = emoBone_tmp->parent;
+		}
+
+
+		//normal case:
+
+		size_t isFound = (size_t)-1;
+		size_t nbElements = bones.size();
+		for (size_t j = 0; j < nbElements; j++)
+		{
+			if (&bones.at(j) == emoBone_child)
+			{
+				isFound = j;
+				break;
+			}
+		}
+
+		if (isFound != (size_t)-1)					//if we find it, we update the treeNode.
+		{
+			listTreeNode.at(isFound)->mParent = treeNode;
+
+
+			//another check, if there isn't a fail on sibling, to avoid infinite loop
+			size_t nbchildren_tmp = treeNode->mChildren.size();
+			for (size_t j = 0; j < nbchildren_tmp; j++)
+			{
+				if (treeNode->mChildren.at(j) == listTreeNode.at(isFound))
+				{
+					printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+					return;
+				}
+			}
+
+			treeNode->mChildren.push_back(listTreeNode.at(isFound));
+
+			writeEsk__recursive(emoBone_child, bones, listTreeNode.at(isFound), listTreeNode);		//same for children
+		}
+
+		emoBone_child = emoBone_child->sibling;
+	}
+}
+
+
+
+
 
 }

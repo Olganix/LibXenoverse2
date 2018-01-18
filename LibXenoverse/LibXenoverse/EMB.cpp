@@ -74,24 +74,57 @@ namespace LibXenoverse {
 
 		TiXmlElement* rootNode = new TiXmlElement("EMB");
 
+		std::vector<string> listFilenameAllreadyCreated;
+		std::vector<size_t> listIndexToRenameDuplicate;
 
 		TiXmlElement* xmlNode;
 		for (size_t i = 0; i < files.size(); i++)
 		{
-			string filename = files[i]->getName();
+			string name = files[i]->getName();
 
 			char suffix[] = "000";
 			sprintf(suffix, "%03d", i);
 
-			if (!filename.size()) {
-				filename = "DATA" + ToString(suffix) + ".dds";
+			if (!name.size())							//if no name, it's dds texture.
+				name = "DATA" + ToString(suffix) + ".dds";
+
+			string filename = name;
+
+
+
+			bool isfound = false;
+			size_t nbfilenames = listFilenameAllreadyCreated.size();
+			for (size_t j = 0; j<nbfilenames; j++)					//solve duplicate name, in pbind.emb
+			{
+				if (listFilenameAllreadyCreated.at(j)== filename)
+				{
+					listIndexToRenameDuplicate.at(j) += 1;
+
+					string basename = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+					string extension = filename.substr(basename.length());
+
+					filename = basename + "_" + std::to_string(listIndexToRenameDuplicate.at(j)) + extension;
+
+					break;
+				}
+			}
+			if (!isfound)
+			{
+				listFilenameAllreadyCreated.push_back(filename);
+				listIndexToRenameDuplicate.push_back(0);
 			}
 
 			files[i]->save(folder + filename);
 
 
 			xmlNode = new TiXmlElement("File");
-			xmlNode->SetAttribute("name", filename);
+			xmlNode->SetAttribute("name", name);
+			xmlNode->SetAttribute("filename", filename);
+
+			//comments 
+			TiXmlComment* xmlComment = new TiXmlComment(("index:"+ std::to_string(i)).c_str());
+			rootNode->LinkEndChild(xmlComment);
+
 			rootNode->LinkEndChild(xmlNode);
 		}
 
@@ -153,14 +186,20 @@ namespace LibXenoverse {
 				if (rootNode)
 				{
 					std::vector<string> listFilenames;
+					std::vector<string> listnames;
 
 					string str = "";
+					string str2 = "";
 					for (TiXmlElement* xmlNode = rootNode->FirstChildElement("File"); xmlNode; xmlNode = xmlNode->NextSiblingElement("File"))
 					{
 						if (xmlNode->QueryStringAttribute("name", &str) != TIXML_SUCCESS)
 							continue;
 
-						listFilenames.push_back(str);
+						if (xmlNode->QueryStringAttribute("filename", &str2) != TIXML_SUCCESS)
+							str2 = str;
+
+						listnames.push_back(str);
+						listFilenames.push_back(str2);
 					}
 
 					if (listFilenames.size())
@@ -178,6 +217,9 @@ namespace LibXenoverse {
 							{
 								if (files.at(j)->getName() == currentName)
 								{
+									if (currentName != listnames.at(i))					//if name != filename
+										files.at(j)->setName(listnames.at(i));			//just rename correctly
+									
 									newListFiles.push_back( files.at(j) );				//to order in a new list
 
 									files.erase(files.begin() + j);

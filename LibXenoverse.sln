@@ -123,6 +123,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XenoWxHexEditorColorMaker",
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AnalyzerXml", "LibXenoverse\AnalyzerXml\AnalyzerXml.vcxproj", "{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "empEmd", "LibXenoverse\empEmd\empEmd.vcxproj", "{4182F05D-1B82-411D-9ECF-DF3F0CA69E40}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -242,6 +250,10 @@ Global
 		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Debug|Win32.Build.0 = Debug|Win32
 		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Release|Win32.ActiveCfg = Release|Win32
 		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F}.Release|Win32.Build.0 = Release|Win32
+		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40}.Debug|Win32.Build.0 = Debug|Win32
+		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40}.Release|Win32.ActiveCfg = Release|Win32
+		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -273,5 +285,6 @@ Global
 		{6972A176-ECF4-4E5E-9A5B-99A5E1EE05E1} = {7360E9CA-F8E8-44BD-9903-B9A018E05FD6}
 		{315B9C16-97BE-4CA1-82EE-8DB568E0C640} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
 		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F} = {149BFC27-4BEF-4C72-A2F3-89164172D2BD}
+		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
 	EndGlobalSection
 EndGlobal

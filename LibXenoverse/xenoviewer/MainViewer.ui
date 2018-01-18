@@ -448,6 +448,57 @@
            <attribute name="title">
             <string>Material</string>
            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_30">
+              <item>
+                <widget class="QLabel" name="label_00">
+                  <property name="text">
+                    <string>All Materials Parameters (to override) :</string>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QScrollArea" name="ParametersTree2Scroll">
+                  <property name="widgetResizable">
+                    <bool>true</bool>
+                  </property>
+                  <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                  </property>
+                  <widget class="QWidget" name="ParametersTree2">
+                    <column>
+                      <property name="title">
+                        <string>All Materials Parameters</string>
+                      </property>
+                    </column>
+                  </widget>
+                </widget>
+              </item>
+              <item>
+                <widget class="QLabel" name="label_01">
+                  <property name="text">
+                    <string>Selected Material Parameters (to override) :</string>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QScrollArea" name="ParametersTreeScroll">
+                  <property name="widgetResizable">
+                    <bool>true</bool>
+                  </property>
+                  <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                  </property>
+                  <widget class="QWidget" name="ParametersTree">
+                    <column>
+                      <property name="title">
+                        <string>Current Materials Parameters</string>
+                      </property>
+                    </column>
+                  </widget>
+                </widget>
+              </item>
+              
+            </layout>
           </widget>
           <widget class="QWidget" name="TextureTab">
            <attribute name="title">

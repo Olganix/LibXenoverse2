@@ -3,6 +3,7 @@
 #include "FileTreeItemWidget.h"
 #include "EANOgre.h"
 #include "EMBOgre.h"
+#include "EMMOgre.h"
 
 
 MainViewer::MainViewer(QWidget *parent, QtOgre::OgreWidget* ogre_widget)
@@ -20,7 +21,7 @@ MainViewer::MainViewer(QWidget *parent, QtOgre::OgreWidget* ogre_widget)
 
 	connect(BoneTree, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(contextMenuBoneTree(const QPoint&)));							//add (rigth click for) context menu event																																				//connect(BoneTree, SIGNAL(itemDoubleClicked(QTreeWidgetItem *, int)), this, SLOT(boneItemDoubleClicked(QTreeWidgetItem *, int)));				//add double click event on bone parts
 	connect(BoneTree, SIGNAL(itemClicked(QTreeWidgetItem *, int)), this, SLOT(boneItemDoubleClicked(QTreeWidgetItem *, int)));				//add double click event on bone parts
-	connect(BoneTree, SIGNAL(itemSelectionChanged(QTreeWidgetItem*, int)), this, SLOT(boneItemSelectionChanged(QTreeWidgetItem*, int)));				//add double click event on bone parts
+	//connect(BoneTree, SIGNAL(itemSelectionChanged(QTreeWidgetItem*, int)), this, SLOT(boneItemSelectionChanged(QTreeWidgetItem*, int)));				//add double click event on bone parts
 
 
 	AnimationTree->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -55,13 +56,14 @@ void  MainViewer::loopAnimation()
 }
 
 
-
+/*
 void MainViewer::keyPressEvent(QKeyEvent * event)
 {
 	QWidget::keyPressEvent(event);
 	FileTree->keyPressEvent(event);
 	//AnimationTree->keyPressEvent(event);
 }
+*/
 
 void MainViewer::fileItemDoubleClicked(QTreeWidgetItem *item, int column)
 {
@@ -105,7 +107,7 @@ void MainViewer::fileItemDoubleClicked(QTreeWidgetItem *item, int column)
 				size_t nbBones = listbones.size();
 				for (size_t i = 0; i < nbBones; i++)
 				{
-					BoneItemWidget *item_widget = new BoneItemWidget(listbones.at(i), ((i==0) ? BoneTree : NULL) );
+					BoneItemWidget *item_widget = new BoneItemWidget(listbones.at(i), ((i == 0) ? BoneTree : NULL));
 					item_widget->mOgreWidget = mOgre_widget;
 					listBoneWidget.push_back(item_widget);
 					mOgre_widget->add_boneList(listbones.at(i));
@@ -129,6 +131,105 @@ void MainViewer::fileItemDoubleClicked(QTreeWidgetItem *item, int column)
 
 				enableTab(0);
 			}
+
+		}
+
+
+	}else if (item_cast->getType() == FileTreeItemWidget::ItemMaterial){
+
+
+		MaterialItemWidget *material_item = static_cast<MaterialItemWidget*>(item);
+		MaterialPackItemWidget *material_pack_item = 0;
+		ModelPackItemWidget *model_pack_item = 0;
+
+		if (material_item)
+			material_pack_item = static_cast<MaterialPackItemWidget *>(material_item->parent());
+				
+		if (material_pack_item)
+			model_pack_item = static_cast<ModelPackItemWidget *>(material_pack_item->parent());
+
+		if (model_pack_item)
+		{
+			EMMMaterial *emmMat = material_item->getData();
+			string materialName = emmMat->getName();
+
+			EMMOgre* emmOgre = material_pack_item->getData();
+			EMDOgre* endOgre = model_pack_item->getData();
+			
+
+			//clear les layouts proprement.
+			recursiveDeleteQwidgetChildren(ParametersTree);
+			recursiveDeleteQwidgetChildren(ParametersTree2);
+
+
+			//reconstruction
+			QVBoxLayout* layout = new QVBoxLayout(ParametersTree);
+			std::vector<EMMOgre::EmmMaterialParameter>* listParam = emmOgre->getShaderParameters(materialName);
+			if (listParam)
+			{
+				size_t nbParams = listParam->size();
+				for (size_t i = 0; i < nbParams; i++)
+				{
+					EMMOgre::EmmMaterialParameter &param = listParam->at(i);
+					if ((param.type != "bool") && (param.type != "float4"))
+						continue;
+
+					MaterialParameterItemWidget* item_widget = new MaterialParameterItemWidget(param.name, param, emmMat, emmOgre, mOgre_widget);
+					layout->addWidget(item_widget);
+				}
+			}
+			ParametersTree->setLayout(layout);
+
+
+
+			//all Material
+			QVBoxLayout* layout2 = new QVBoxLayout(ParametersTree2);
+			EMMOgre::EmmMaterialParameter param_charac("Character", "float4", (size_t)-1, "vertex");
+			MaterialParameterItemWidget *charac_item_widget = new MaterialParameterItemWidget("special to Characters", param_charac, 0, 0, mOgre_widget);
+			layout2->addWidget(charac_item_widget);
+
+			std::vector<string> allreadyUsed;
+			for (list<EMDOgre *>::iterator it = mOgre_widget->emd_list.begin(); it != mOgre_widget->emd_list.end(); it++)
+			{
+				EMMOgre* emmOgre = (*it)->getMaterialPack();
+
+				std::vector<EMMOgre::EmmMaterialCreated> &created_materials = emmOgre->getCreatedMaterials();
+				size_t nbMat = created_materials.size();
+				for (size_t i = 0; i < nbMat; i++)
+				{
+					std::vector<EMMOgre::EmmMaterialParameter> &parameter = created_materials.at(i).parameter;
+
+					size_t nbParam = parameter.size();
+					for (size_t j = 0; j < nbParam; j++)
+					{
+						EMMOgre::EmmMaterialParameter &param = parameter.at(j);
+						string paramName = param.name;
+
+						bool isfound = false;
+						size_t nbParamAllReady = allreadyUsed.size();
+						for (size_t k = 0; k < nbParamAllReady; k++)
+						{
+							if (paramName  == allreadyUsed.at(k))
+							{
+								isfound = true;
+								break;
+							}
+						}
+
+						if (!isfound)
+						{
+							MaterialParameterItemWidget* item_widget = new MaterialParameterItemWidget(param.name, param, 0, 0, mOgre_widget);
+							layout2->addWidget(item_widget);
+							allreadyUsed.push_back(paramName);
+						}
+					}
+				}
+			}
+
+			ParametersTree2->setLayout(layout2);
+
+
+			enableTab(6);
 		}
 	}
 }
@@ -321,4 +422,18 @@ void MainViewer::paintCluster()
 	current_ogre_texture->loadImage(image);
 
 	delete [] image_data;
+}
+
+
+void MainViewer::recursiveDeleteQwidgetChildren(QWidget* widget)
+{
+	QWidget* child = ((widget->children().size()!=0) ? ((QWidget*)widget->children().at(0)) : 0);
+	
+	while (child)
+	{
+		recursiveDeleteQwidgetChildren(child);					//recursive.
+		delete child;
+
+		child = ((widget->children().size() != 0) ? ((QWidget*)widget->children().at(0)) : 0);
+	}
 }

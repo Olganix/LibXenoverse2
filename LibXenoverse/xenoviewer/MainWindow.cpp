@@ -190,14 +190,39 @@ bool MainWindow::openFiles(const QStringList& pathList)
 }
 
 
-bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)			//https://stackoverflow.com/questions/26368659/qwidget-how-to-receive-keypressevent-inside-child-widgets
 {
 	if (event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+	{	
+		string aa = obj->objectName().toStdString();
 
-		if (obj == main_viewer)
-			main_viewer->keyPressEvent(keyEvent);
+		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+		bool allreadyUsed = false;
+
+		if ((!allreadyUsed)&&(ogre_widget))
+		{
+			switch (keyEvent->key())
+			{
+			case Qt::Key_F12: ogre_widget->doScreenShot(); allreadyUsed = true; break;
+			case Qt::Key_F11: ogre_widget->toggleFullScreen(); allreadyUsed = true; break;
+			case Qt::Key_Escape: ogre_widget->cancelFullScreen(); allreadyUsed = true; break;
+			}
+		}
+
+		QWidget* fw = qApp->focusWidget();
+		if (!allreadyUsed)
+		{
+			if((fw == ogre_widget) || (fw == ogre_widget->parentWidget()))
+			{	
+				ogre_widget->keyPressEvent(keyEvent);
+			}
+		}
+		
+			
+			
+
+		if(allreadyUsed)
+			return true;
 	}
 	return QObject::eventFilter(obj, event);
 }

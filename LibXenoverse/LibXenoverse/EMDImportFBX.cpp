@@ -1117,13 +1117,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sNormalMap);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			//texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 			
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex+1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()) );
 			}
 		}
@@ -1131,13 +1139,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sEmissive);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex + 1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}
+				catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
@@ -1145,13 +1161,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sReflection);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex + 1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}
+				catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
@@ -1159,13 +1183,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sBump);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex + 1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}
+				catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
@@ -1174,13 +1206,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sDisplacementColor);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex + 1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}
+				catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
@@ -1188,13 +1228,21 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 		texture = getTexture(mat, FbxSurfaceMaterial::sVectorDisplacementColor);
 		if (texture)
 		{
-			texName = LibXenoverse::nameFromFilenameNoExtension(texture->GetName(), true);
+			texName = texture->GetName();					//LibXenoverse::nameFromFilenameNoExtension not needed because the fbx loader allready remove the extension.
 
 			posIndex = texName.find_last_of('_');
 			if (posIndex != std::string::npos)
 			{
 				texName = texName.substr(posIndex + 1);
-				size_t textIndex = std::stoi(texName);
+
+				size_t textIndex = (size_t)-1;
+				try
+				{
+					textIndex = std::stoi(texName);
+				}
+				catch (...) {
+					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}

@@ -21,208 +21,6 @@ bool EMG_VertexData::operator==(const EMG_VertexData &rhs) const
 }
 
 
-void EMG_VertexData::Decompile(TiXmlNode *root) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMG_Vertex");
-
-	const EMG_VertexCommon *vc = &VertexUnion;
-
-	//to getBack to know what to use. Notice : for read, to not break files from previous Decompilation (before flags, with only Vertex64 and ertex52 of Saint Seya)
-	// we will read flags, but if there isn't, we will make it from presents tags
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "FLAGS", vc->flags, true);
-
-	if ((vc->flags & EMG_VTX_FLAG_POS) != 0)
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "POS", { vc->pos_x, vc->pos_y, vc->pos_z });
-	
-	if ((vc->flags & EMG_VTX_FLAG_NORM) != 0)
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "NORM", { vc->norm_x, vc->norm_y, vc->norm_z });
-	
-	if ((vc->flags & EMG_VTX_FLAG_TANGENT) != 0)
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TANG", { vc->tang_x, vc->tang_y, vc->tang_z });
-	
-	if ((vc->flags & EMG_VTX_FLAG_TEX) != 0)
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TEX", { vc->text_u, vc->text_v });
-	
-	if ((vc->flags & EMG_VTX_FLAG_TEX2) != 0)
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TEX2", { vc->text2_u, vc->text2_v });
-	
-	if ((vc->flags & EMG_VTX_FLAG_COLOR) != 0)
-		EMO_BaseFile::WriteParamUnsigned(entry_root, "COLOR", vc->color, true);
-
-	if ((vc->flags & EMG_VTX_FLAG_BLEND_WEIGHT) != 0)
-	{
-		EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "BLEND", std::vector<uint8_t>(vc->blend, vc->blend + 4), true);
-		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "BLEND_WEIGHT", std::vector<float>(vc->blend_weight, vc->blend_weight + 4));
-	}
-	
-	root->LinkEndChild(entry_root);
-}
-
-
-bool EMG_VertexData::Compile(const TiXmlElement *root, unsigned int vertex_size)
-{
-	
-	EMG_VertexCommon *vc = &VertexUnion;
-
-	std::vector<float> f_vector;
-	size_t nbFloats = 0;
-	uint32_t u_tmp = 0;
-	std::vector<uint8_t> blend;
-	std::vector<float> blend_weight;
-
-
-	uint32_t flags = 0;
-	if (!EMO_BaseFile::GetParamUnsigned(root, "FLAGS", &flags))
-	{
-		//we didn't have the original Flags (could be a previous file from Vertex64 or Vertex52)
-		//so we will rebuild it from tags presence.
-
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "POS", f_vector))
-			flags += EMG_VTX_FLAG_POS;
-
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "NORM", f_vector))
-			flags += EMG_VTX_FLAG_NORM;
-
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector))
-			flags += EMG_VTX_FLAG_TANGENT;
-
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX", f_vector))
-			flags += EMG_VTX_FLAG_TEX;
-
-		/*
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector))
-			flags += EMG_VTX_FLAG_TEX2;
-		*/
-		//hack from previous confusion between TEX2 and TANG. so old file could have TEX2 with 3 floats, but it's for TANG
-		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector))
-		{
-			if (f_vector.size()==3)
-				flags += EMG_VTX_FLAG_TANGENT;
-			else
-				flags += EMG_VTX_FLAG_TEX2;
-		}
-
-
-		if (EMO_BaseFile::GetParamUnsigned(root, "COLOR", &u_tmp))
-			flags += EMG_VTX_FLAG_COLOR;
-
-		if ((EMO_BaseFile::GetParamMultipleUnsigned(root, "BLEND", blend)) && (EMO_BaseFile::GetParamMultipleFloats(root, "BLEND_WEIGHT", blend_weight)) )
-			flags += EMG_VTX_FLAG_BLEND_WEIGHT;
-
-		f_vector.clear();
-	}
-	vc->flags = flags;
-	
-	if ((vertex_size == 0)||(vertex_size != vc->getSizeFromFlags()))
-		return false;
-
-	this->size = vertex_size;
-
-	
-	if ( ((vc->flags & EMG_VTX_FLAG_POS) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "POS", f_vector)) )
-	{
-		nbFloats = f_vector.size();
-		if (nbFloats>1)											//Notice there is default value, so we just need to overide what we have.
-			vc->pos_x = f_vector[0];
-		if (nbFloats>2)
-			vc->pos_y = f_vector[1];
-		if (nbFloats>3)
-			vc->pos_z = f_vector[2];
-	}
-	f_vector.clear();
-
-	
-	if (((vc->flags & EMG_VTX_FLAG_NORM) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "NORM", f_vector)))
-	{
-		nbFloats = f_vector.size();
-		if (nbFloats>1)
-			vc->norm_x = f_vector[0];
-		if (nbFloats>2)
-			vc->norm_y = f_vector[1];
-		if (nbFloats>3)
-			vc->norm_z = f_vector[2];
-	}
-	f_vector.clear();
-
-
-
-	/*
-	if (((vc->flags & EMG_VTX_FLAG_TANGENT) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector)))
-	{
-		nbFloats = f_vector.size();
-		if (nbFloats>1)
-			vc->tang_x = f_vector[0];
-		if (nbFloats>2)
-			vc->tang_y = f_vector[1];
-		if (nbFloats>3)
-			vc->tang_z = f_vector[2];
-	}
-	f_vector.clear();
-	*/
-	//hack from previous confusion between TEX2 and TANG. so old file could have TEX2 with 3 floats, but it's for TANG
-	if ((vc->flags & EMG_VTX_FLAG_TANGENT) != 0)
-	{
-		if (!EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector))		//if we have the flags for TANG, but don't have it,
-			EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector);		//it's on old files, with TEX2 instead.
-		
-		nbFloats = f_vector.size();
-		if (nbFloats>1)
-			vc->tang_x = f_vector[0];
-		if (nbFloats>2)
-			vc->tang_y = f_vector[1];
-		if (nbFloats>3)
-			vc->tang_z = f_vector[2];
-	}
-	f_vector.clear();
-
-
-	if (((vc->flags & EMG_VTX_FLAG_TEX) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TEX", f_vector)))
-	{
-		nbFloats = f_vector.size();
-		if (nbFloats>1)
-			vc->text_u = f_vector[0];
-		if (nbFloats>2)
-			vc->text_v = f_vector[1];
-	}
-	f_vector.clear();
-
-
-
-	if (((vc->flags & EMG_VTX_FLAG_TEX2) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector)))
-	{
-		nbFloats = f_vector.size();
-		if (nbFloats>1)
-			vc->text2_u = f_vector[0];
-		if (nbFloats>2)
-			vc->text2_v = f_vector[1];
-	}
-	f_vector.clear();
-
-	if (((vc->flags & EMG_VTX_FLAG_COLOR) != 0) && (EMO_BaseFile::GetParamUnsigned(root, "COLOR", &(vc->color))))
-	{
-
-	}
-
-	if( ((vc->flags & EMG_VTX_FLAG_BLEND_WEIGHT) != 0) && (EMO_BaseFile::GetParamMultipleUnsigned(root, "BLEND", blend)) && (EMO_BaseFile::GetParamMultipleFloats(root, "BLEND_WEIGHT", blend_weight)) )
-	{
-		size_t nbBlend = blend.size();
-		nbFloats = blend_weight.size();
-
-		for (size_t i = 0; i < 4; i++)
-		{
-			if (i<nbBlend)
-				vc->blend[i] = blend[i];
-			if (i<nbFloats)
-				vc->blend_weight[i] = blend_weight[i];
-		}
-	}
-	
-
-	return true;
-}
-
-
-
 
 
 
@@ -790,235 +588,10 @@ bool EMG_SubPart::InjectObj(const std::string &obj, bool do_uv, bool do_normal, 
 	return InjectVertex(vertex, true, (uv_count != 0), (n_count != 0));
 }
 
-void EMG_SubPart::Decompile(TiXmlNode *root, uint16_t id) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMG_SubPart");
-	entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
 
-	if (meta_name != "")
-	{
-		EMO_BaseFile::WriteComment(entry_root, meta_name.c_str());
-	}
 
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "STRIPS", strips);
-	EMO_BaseFile::WriteParamMultipleFloats(entry_root, "VECTORS", std::vector<float>(vectors, vectors + 12));
 
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "FLAGS", flags, true);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_02", unk_02, true);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_06", unk_06, true);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_08", unk_08, true);
 
-	for (size_t i = 0; i < textures_lists.size(); i++)
-	{
-		textures_lists[i].Decompile(entry_root, i);
-	}
-
-	for (size_t i = 0; i < submeshes.size(); i++)
-	{
-		submeshes[i].Decompile(entry_root, i, GetNumberOfPolygons(i));
-	}
-
-	for (const EMG_VertexData &v : vertex)
-	{
-		v.Decompile(entry_root);
-	}
-
-	root->LinkEndChild(entry_root);
-}
-
-bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
-{
-	unsigned int strips;
-	size_t count;
-	std::vector<bool> initialized;
-
-	submeshes.clear();
-	textures_lists.clear();
-	vertex.clear();
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "STRIPS", &strips))
-		return false;
-
-	if (strips > 0xFFFF)
-	{
-		LOG_DEBUG("%s: strips must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	this->strips = strips;
-
-	std::vector<float> vectors;
-
-	if (!EMO_BaseFile::GetParamMultipleFloats(root, "VECTORS", vectors))
-		return false;
-
-	if (vectors.size() != 12)
-	{
-		LOG_DEBUG("%s: Invalid number of elements for \"vectors\"\n", FUNCNAME);
-		return false;
-	}
-
-	for (int i = 0; i < 12; i++)
-	{
-		this->vectors[i] = vectors[i];
-	}
-
-	unsigned int flags, unk_02, unk_06;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "FLAGS", &flags))
-		return false;
-
-	if (flags > 0xFFFF)
-	{
-		LOG_DEBUG("%s: FLAGS must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	this->flags = flags;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_02", &unk_02))
-		return false;
-
-	if (unk_02 > 0xFFFF)
-	{
-		LOG_DEBUG("%s: U_02 must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	this->unk_02 = unk_02;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_06", &unk_06))
-		return false;
-
-	if (unk_06 > 0xFFFF)
-	{
-		LOG_DEBUG("%s: U_06 must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	this->unk_06 = unk_06;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_08", &this->unk_08))
-		return false;
-
-	count = EMO_BaseFile::GetElemCount(root, "EMG_SubMesh");
-	if (count > 0)
-	{
-		submeshes.resize(count);
-		initialized.resize(count);
-
-		for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-		{
-			if (elem->ValueStr() == "EMG_SubMesh")
-			{
-				uint32_t id;
-
-				if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-				{
-					LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-					return false;
-				}
-
-				if (id >= submeshes.size())
-				{
-					LOG_DEBUG("%s: EMG_SubMesh id 0x%x out of range.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (initialized[id])
-				{
-					LOG_DEBUG("%s: EMG_SubMesh id 0x%x was already specified.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (!submeshes[id].Compile(elem, skl))
-				{
-					LOG_DEBUG("%s: Compilation of EMG_SubMesh failed.\n", FUNCNAME);
-					return false;
-				}
-
-				char sm_meta_name[2048];
-				snprintf(sm_meta_name, sizeof(sm_meta_name), "%s_%04x", meta_name.c_str(), id);
-
-				submeshes[id].meta_name = sm_meta_name;
-				initialized[id] = true;
-			}
-		}
-	}
-
-	count = EMO_BaseFile::GetElemCount(root, "EMG_TexturesList");
-	if (count > 0)
-	{
-		textures_lists.resize(count);
-		initialized.clear();
-		initialized.resize(count);
-
-		for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-		{
-			if (elem->ValueStr() == "EMG_TexturesList")
-			{
-				uint32_t id;
-
-				if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-				{
-					LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-					return false;
-				}
-
-				if (id >= textures_lists.size())
-				{
-					LOG_DEBUG("%s: EMG_TexturesList id 0x%x out of range.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (initialized[id])
-				{
-					LOG_DEBUG("%s: EMG_TexturesList id 0x%x was already specified.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (!textures_lists[id].Compile(elem))
-				{
-					LOG_DEBUG("%s: Compilation of EMG_TexturesList failed.\n", FUNCNAME);
-					return false;
-				}
-
-				initialized[id] = true;
-			}
-		}
-	}
-
-	int vertex_size = -1;
-
-	for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-	{
-		const std::string &str = elem->ValueStr();
-
-		if (str == "EMG_Vertex")
-		{
-			if (vertex_size == -1)
-			{
-				vertex_size = getSizeFromFlags(this->flags);
-
-			} else if (vertex_size != getSizeFromFlags(this->flags)) {
-				LOG_DEBUG("%s: All vertex of the subpart must be of the same kind!\n", FUNCNAME);
-				return false;
-			}
-
-			EMG_VertexData vd;
-
-			if (!vd.Compile(elem, vertex_size))
-			{
-				LOG_DEBUG("%s: Compilation of Vertex failed.\n", FUNCNAME);
-				return false;
-			}
-
-			this->vertex.push_back(vd);
-		}
-	}
-
-	return true;
-}
 
 
 
@@ -2319,41 +1892,8 @@ size_t EMG_TexturesList::ReplaceEmbIndex(uint8_t old_index, uint8_t new_index)
 	return count;
 }
 
-void EMG_TexturesList::Decompile(TiXmlNode *root, uint16_t id) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMG_TexturesList");
-	entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
 
-	for (const EMG_Texture &t : textures)
-	{
-		t.Decompile(entry_root);
-	}
 
-	root->LinkEndChild(entry_root);
-}
-
-bool EMG_TexturesList::Compile(const TiXmlElement *root)
-{
-	for (const TiXmlElement *elem = root->FirstChildElement(); elem != NULL; elem = elem->NextSiblingElement())
-	{
-		const std::string &str = elem->ValueStr();
-
-		if (str == "EMG_Texture")
-		{
-			EMG_Texture t;
-
-			if (!t.Compile(elem))
-			{
-				LOG_DEBUG("%s: Compilation of texture failed.\n", FUNCNAME);
-				return false;
-			}
-
-			textures.push_back(t);
-		}
-	}
-
-	return true;
-}
 
 
 
@@ -2401,38 +1941,6 @@ size_t EMG_SubMesh::GetLinkedBones(std::vector<EMO_Bone *> &list, bool clear_vec
 	return count;
 }
 
-void EMG_SubMesh::Decompile(TiXmlNode *root, uint32_t id, size_t polygon_count) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMG_SubMesh");
-	entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
-
-	if (meta_name != "")
-	{
-		EMO_BaseFile::WriteComment(entry_root, meta_name.c_str());
-	}
-
-	EMO_BaseFile::WriteParamString(entry_root, "EMMMaterial", emm_material);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "TEXTURES_LISTS_INDEX", tl_index, true);
-	EMO_BaseFile::WriteParamMultipleFloats(entry_root, "VECTOR", std::vector<float>(vector, vector + 4));
-
-	EMO_BaseFile::WriteComment(entry_root, EMO_BaseFile::ToString(faces.size()) + " faces. " + EMO_BaseFile::ToString(polygon_count) + " polygons.");
-	EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "FACES", faces, true);
-
-	std::string bones_names;
-
-	for (EMO_Bone *b : linked_bones)
-	{
-		if (bones_names.length() != 0)
-			bones_names += ", ";
-
-		bones_names += b->GetName();
-	}
-
-	EMO_BaseFile::WriteParamString(entry_root, "LINKED_BONES", bones_names);
-
-	root->LinkEndChild(entry_root);
-}
-
 
 bool EMG_SubMesh::SetEmmMaterial(const std::string &emm_material)
 {
@@ -2448,65 +1956,7 @@ bool EMG_SubMesh::IsEdge() const
 	return EMO_BaseFile::BeginsWith(emm_material, "edge", false);
 }
 
-bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
-{
-	if (!EMO_BaseFile::GetParamString(root, "EMMMaterial", emm_material))
-		return false;
 
-	if (emm_material.length() > 31)
-	{
-		LOG_DEBUG("%s: EMMMaterial can't have more than 31 characters. (faulting value = %s)\n", FUNCNAME, emm_material.c_str());
-		return false;
-	}
-
-	unsigned int tl_index;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "TEXTURES_LISTS_INDEX", &tl_index))
-		return false;
-
-	if (tl_index > 0xFFFF)
-	{
-		LOG_DEBUG("%s: TEXTURES_LISTS_INDEX must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	this->tl_index = tl_index;
-
-	std::vector<float> vector;
-
-	if (!EMO_BaseFile::GetParamMultipleFloats(root, "VECTOR", vector))
-		return false;
-
-	if (vector.size() != 4)
-	{
-		LOG_DEBUG("%s: Invalid size for \"VECTOR\"\n", FUNCNAME);
-		return false;
-	}
-
-	memcpy(this->vector, vector.data(), sizeof(this->vector));
-
-	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "FACES", faces))
-		return false;
-
-	std::vector<std::string> bone_names;
-
-	if (!EMO_BaseFile::GetParamMultipleStrings(root, "LINKED_BONES", bone_names))
-		return false;
-
-	for (const std::string &s : bone_names)
-	{
-		EMO_Bone *bone = skl->GetBone(s);
-		if (!bone)
-		{
-			LOG_DEBUG("%s: bone \"%s\" doesn't exist in skeleton.\n", FUNCNAME, s.c_str());
-			return false;
-		}
-
-		linked_bones.push_back(bone);
-	}
-
-	return true;
-}
 
 
 
@@ -2521,6 +1971,8 @@ void EMG_SubMesh::readEmdSubMesh(EMDSubmesh* emd, size_t textlist_index, size_t 
 	EMDTriangles &triangle = emd->triangles.at(indexTriangle);
 
 
+	
+
 	size_t nbFacesIndex = triangle.faces.size();
 	for (size_t i = 0; i < nbFacesIndex; i++)
 		faces.push_back(triangle.faces.at(i));
@@ -2532,7 +1984,30 @@ void EMG_SubMesh::readEmdSubMesh(EMDSubmesh* emd, size_t textlist_index, size_t 
 		linked_bones.push_back(bone);
 	}
 
-	//todo search what float vector[4]; is for, may be a position offset to use before binding  (skinning attachement) ? 
+	//calculate barycenter
+	vector<EMDVertex> &listVertex = emd->getVertices();
+	size_t nbvertex = listVertex.size();
+	for (size_t i = 0; i < nbFacesIndex; i++)
+	{
+		if (triangle.faces.at(i) >= nbvertex)
+			continue;
+
+		EMDVertex &vertex = listVertex.at(triangle.faces.at(i));
+
+		if (i == 0)
+		{
+			barycenter[0] = vertex.pos_x;
+			barycenter[1] = vertex.pos_y;
+			barycenter[2] = vertex.pos_z;
+		}else{
+
+			barycenter[0] = barycenter[0] * (((float)i) / ((float)(i + 1))) + (vertex.pos_x / ((float)(i + 1)));
+			barycenter[1] = barycenter[1] * (((float)i) / ((float)(i + 1))) + (vertex.pos_y / ((float)(i + 1)));
+			barycenter[2] = barycenter[2] * (((float)i) / ((float)(i + 1))) + (vertex.pos_z / ((float)(i + 1)));			
+		}
+		
+	}
+	barycenter[3] = 1.0;
 }
 /*-------------------------------------------------------------------------------\
 |                             writeEmdSubMesh		                             |
@@ -2572,7 +2047,7 @@ bool EMG_SubMesh::operator==(const EMG_SubMesh &rhs) const
 	if (this->faces != rhs.faces)
 		return false;
 
-	if (memcmp(this->vector, rhs.vector, sizeof(this->vector)) != 0)
+	if (memcmp(this->barycenter, rhs.barycenter, sizeof(this->barycenter)) != 0)
 		return false;
 
 	if (this->linked_bones.size() != rhs.linked_bones.size())
@@ -2604,68 +2079,6 @@ bool EMG_SubMesh::operator==(const EMG_SubMesh &rhs) const
 
 
 
-
-
-
-void EMG_Texture::Decompile(TiXmlNode *root) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("EMG_Texture");
-
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "EMB_INDEX", emb_TextureIndex);
-	EMO_BaseFile::WriteParamFloat(entry_root, "textScale_u", textScale_u);
-	EMO_BaseFile::WriteParamFloat(entry_root, "textScale_v", textScale_v);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_00", unk_00, true);
-	EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "U_02", std::vector<uint8_t>(unk_02, unk_02 + 2), true);
-
-	root->LinkEndChild(entry_root);
-}
-
-bool EMG_Texture::Compile(const TiXmlElement *root)
-{
-	unsigned int emb_index;
-	unsigned int unk_00;
-	std::vector<uint8_t> unk_02;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "EMB_INDEX", &emb_index))
-		return false;
-
-	if (!EMO_BaseFile::GetParamFloat(root, "textScale_u", &this->textScale_u))
-		return false;
-
-	if (!EMO_BaseFile::GetParamFloat(root, "textScale_v", &this->textScale_v))
-		return false;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_00", &unk_00))
-		return false;
-
-	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "U_02", unk_02))
-		return false;
-
-	if (emb_index > 0xFF)
-	{
-		LOG_DEBUG("%s: emb_index must be a 8 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	if (unk_00 > 0xFF)
-	{
-		LOG_DEBUG("%s: U_00 must be a 8 bits value.\n", FUNCNAME);
-		return false;
-	}
-
-	if (unk_02.size() != 2)
-	{
-		LOG_DEBUG("%s: invalid number of elements for \"U_02\"\n", FUNCNAME);
-		return false;
-	}
-
-	this->emb_TextureIndex = emb_index;
-	this->unk_00 = unk_00;
-	this->unk_02[0] = unk_02[0];
-	this->unk_02[1] = unk_02[1];
-
-	return true;
-}
 
 bool EMG_Texture::operator==(const EMG_Texture &rhs) const
 {
@@ -3047,10 +2460,10 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t *vertex_s
 			assert(submesh.faces.size() < 65536);
 			assert(submesh.linked_bones.size() < 65536);
 
-			copy_float(&shdr->vector[0], submesh.vector[0]);
-			copy_float(&shdr->vector[1], submesh.vector[1]);
-			copy_float(&shdr->vector[2], submesh.vector[2]);
-			copy_float(&shdr->vector[3], submesh.vector[3]);
+			copy_float(&shdr->barycenter[0], submesh.barycenter[0]);
+			copy_float(&shdr->barycenter[1], submesh.barycenter[1]);
+			copy_float(&shdr->barycenter[2], submesh.barycenter[2]);
+			copy_float(&shdr->barycenter[3], submesh.barycenter[3]);
 
 			shdr->tl_index = val16(submesh.tl_index);
 			shdr->face_count = val16(submesh.faces.size());
@@ -3191,10 +2604,10 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 
 			submesh.emm_material = shdr->emm_material;
 			submesh.tl_index = val16(shdr->tl_index);
-			submesh.vector[0] = val_float(shdr->vector[0]);
-			submesh.vector[1] = val_float(shdr->vector[1]);
-			submesh.vector[2] = val_float(shdr->vector[2]);
-			submesh.vector[3] = val_float(shdr->vector[3]);
+			submesh.barycenter[0] = val_float(shdr->barycenter[0]);
+			submesh.barycenter[1] = val_float(shdr->barycenter[1]);
+			submesh.barycenter[2] = val_float(shdr->barycenter[2]);
+			submesh.barycenter[3] = val_float(shdr->barycenter[3]);
 
 			uint16_t *faces = (uint16_t *)GetOffsetPtr(shdr, sizeof(EMG_EMG_SubMeshHeader), true);
 			for (uint16_t k = 0; k < val16(shdr->face_count); k++)
@@ -3941,104 +3354,6 @@ size_t EMG::ExportObj(std::string *vertex_out, std::string *uvmap_out, std::stri
 
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////// readable File
-
-
-
-
-void EMG::Decompile(TiXmlNode *root, uint16_t id) const
-{
-    TiXmlElement *entry_root = new TiXmlElement("EMG");
-    entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
-
-    EMO_BaseFile::WriteComment(entry_root, meta_name);
-
-    if (!IsEmpty())
-    {
-        EMO_BaseFile::WriteParamUnsigned(entry_root, "U_04", unk_04, true);
-
-        for (size_t i = 0; i < subparts.size(); i++)
-            subparts[i].Decompile(entry_root, i);
-    }else{
-        EMO_BaseFile::WriteComment(entry_root, "Empty part. This is normal.");
-    }
-
-    root->LinkEndChild(entry_root);
-}
-
-bool EMG::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
-{
-    unsigned int unk_04;
-
-    subparts.clear();
-
-    if (!EMO_BaseFile::ReadParamUnsigned(root, "U_04", &unk_04))
-    {
-        // empty Part, return true
-        return true;
-    }
-
-    if (unk_04 > 0xFFFF)
-    {
-        LOG_DEBUG("%s: U_04 must be a 16 bits value.\n", FUNCNAME);
-        return false;
-    }
-
-    this->unk_04 = unk_04;
-
-    size_t count = EMO_BaseFile::GetElemCount(root, "EMG_SubPart");
-    if (count > 0)
-    {
-        std::vector<bool> initialized;
-
-        subparts.resize(count);
-        initialized.resize(count);
-
-        for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-        {
-            if (elem->ValueStr() == "EMG_SubPart")
-            {
-                uint32_t id;
-
-                if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-                {
-                    LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-                    return false;
-                }
-
-                if (id >= subparts.size())
-                {
-                    LOG_DEBUG("%s: EMG_SubPart id 0x%x out of range.\n", FUNCNAME, id);
-                    return false;
-                }
-
-                if (initialized[id])
-                {
-                    LOG_DEBUG("%s: EMG_SubPart id 0x%x was already specified.\n", FUNCNAME, id);
-                    return false;
-                }
-
-                if (!subparts[id].Compile(elem, skl))
-                {
-                    LOG_DEBUG("%s: compilation of EMG_SubPart failed.\n", FUNCNAME);
-                    return false;
-                }
-
-                char sp_meta_name[2048];
-                snprintf(sp_meta_name, sizeof(sp_meta_name), "%s_%04x", meta_name.c_str(), id);
-
-                subparts[id].meta_name = sp_meta_name;
-                initialized[id] = true;
-            }
-        }
-    }
-
-    return true;
-}
-
-
-
-
 
 
 
@@ -4075,7 +3390,8 @@ void EMG::readEmdMesh(EMDMesh* emd, EMO* emo)
 
 			subpart.submeshes.push_back(submesh);
 
-			emo->material_count++;
+			if(emo)
+				emo->material_count++;
 		}
 
 
@@ -4176,5 +3492,642 @@ bool EMG::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tangent)
 }
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// load/save the Xml version	/////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG::Decompile(TiXmlNode *root, uint16_t id) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("EMG");
+
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_04", unk_04, true);
+
+	size_t nbSubpart = subparts.size();
+	for (size_t i = 0; i < nbSubpart; i++)
+		subparts.at(i).Decompile(entry_root);
+	
+	root->LinkEndChild(entry_root);
+}
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG_SubPart::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("SubPart");
+
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "STRIPS", strips);
+	EMO_BaseFile::WriteParamMultipleFloats(entry_root, "AABB", std::vector<float>(vectors, vectors + 12));
+
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "FLAGS", flags, true);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_02", unk_02, true);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_06", unk_06, true);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_08", unk_08, true);
+
+	size_t nbElement = textures_lists.size();
+	for (size_t i = 0; i < nbElement; i++)
+		textures_lists.at(i).Decompile(entry_root);
+
+	nbElement = submeshes.size();
+	for (size_t i = 0; i < nbElement; i++)
+		submeshes.at(i).Decompile(entry_root, GetNumberOfPolygons(i));
+
+	for (const EMG_VertexData &v : vertex)
+		v.Decompile(entry_root);
+
+	root->LinkEndChild(entry_root);
+}
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG_TexturesList::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("TexturesList");
+
+	for (const EMG_Texture &t : textures)
+		t.Decompile(entry_root);
+
+	root->LinkEndChild(entry_root);
+}
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG_Texture::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("Texture");
+
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "EMB_INDEX", emb_TextureIndex);
+	EMO_BaseFile::WriteParamFloat(entry_root, "textScale_u", textScale_u);
+	EMO_BaseFile::WriteParamFloat(entry_root, "textScale_v", textScale_v);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_00", unk_00, true);
+	EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "U_02", std::vector<uint8_t>(unk_02, unk_02 + 2), true);
+
+	root->LinkEndChild(entry_root);
+}
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG_SubMesh::Decompile(TiXmlNode *root, size_t polygon_count) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("SubMesh");
+
+	EMO_BaseFile::WriteParamString(entry_root, "Material", emm_material);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "TEXTURES_LISTS_INDEX", tl_index, true);
+	EMO_BaseFile::WriteParamMultipleFloats(entry_root, "Barycenter", std::vector<float>(barycenter, barycenter + 4));
+
+	EMO_BaseFile::WriteComment(entry_root, EMO_BaseFile::ToString(faces.size()) + " faces. " + EMO_BaseFile::ToString(polygon_count) + " polygons.");
+	EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "FACES", faces, true);
+
+
+	std::string bones_names;
+	for (EMO_Bone *b : linked_bones)
+		bones_names += ((bones_names.length() != 0) ? ", " : "") + b->GetName();
+	EMO_BaseFile::WriteParamString(entry_root, "LINKED_BONES", bones_names);
+
+	root->LinkEndChild(entry_root);
+}
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMG_VertexData::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("Vertex");
+
+	const EMG_VertexCommon *vc = &VertexUnion;
+
+	//to getBack to know what to use. Notice : for read, to not break files from previous Decompilation (before flags, with only Vertex64 and ertex52 of Saint Seya)
+	// we will read flags, but if there isn't, we will make it from presents tags
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "FLAGS", vc->flags, true);
+
+	if ((vc->flags & EMG_VTX_FLAG_POS) != 0)
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "POS", { vc->pos_x, vc->pos_y, vc->pos_z });
+
+	if ((vc->flags & EMG_VTX_FLAG_NORM) != 0)
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "NORM", { vc->norm_x, vc->norm_y, vc->norm_z });
+
+	if ((vc->flags & EMG_VTX_FLAG_TANGENT) != 0)
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TANG", { vc->tang_x, vc->tang_y, vc->tang_z });
+
+	if ((vc->flags & EMG_VTX_FLAG_TEX) != 0)
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TEX", { vc->text_u, vc->text_v });
+
+	if ((vc->flags & EMG_VTX_FLAG_TEX2) != 0)
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "TEX2", { vc->text2_u, vc->text2_v });
+
+	if ((vc->flags & EMG_VTX_FLAG_COLOR) != 0)
+		EMO_BaseFile::WriteParamUnsigned(entry_root, "COLOR", vc->color, true);
+
+	if ((vc->flags & EMG_VTX_FLAG_BLEND_WEIGHT) != 0)
+	{
+		EMO_BaseFile::WriteParamMultipleUnsigned(entry_root, "BLEND", std::vector<uint8_t>(vc->blend, vc->blend + 4), true);
+		EMO_BaseFile::WriteParamMultipleFloats(entry_root, "BLEND_WEIGHT", std::vector<float>(vc->blend_weight, vc->blend_weight + 4));
+	}
+
+	root->LinkEndChild(entry_root);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
+{
+	subparts.clear();
+
+	unsigned int unk_04 = 0;
+	EMO_BaseFile::ReadParamUnsigned(root, "U_04", &unk_04);
+	if (unk_04 > 0xFFFF)
+	{
+		LOG_DEBUG("%s: U_04 must be a 16 bits value.\n", FUNCNAME);
+		unk_04 = unk_04 & 0xFFFF;
+	}
+	this->unk_04 = unk_04;
+
+	
+	for (const TiXmlElement *elem = root->FirstChildElement("SubPart"); elem; elem = elem->NextSiblingElement("SubPart"))
+	{
+		EMG_SubPart subpart;
+		
+		if (!subpart.Compile(elem, skl))
+		{
+			LOG_DEBUG("%s: compilation of SubPart failed.\n", FUNCNAME);
+			continue;
+		}
+
+		char sp_meta_name[2048];
+		snprintf(sp_meta_name, sizeof(sp_meta_name), "%s_%04x", meta_name.c_str(), subparts.size());
+		subpart.meta_name = sp_meta_name;
+
+		subparts.push_back(subpart);
+	}
+
+	return true;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
+{
+	submeshes.clear();
+	textures_lists.clear();
+	vertex.clear();
+
+	unsigned int strips = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "STRIPS", &strips);
+	if (strips > 0xFFFF)
+	{
+		LOG_DEBUG("%s: strips must be a 16 bits value.\n", FUNCNAME);
+		strips = strips & 0xFFFF;
+	}
+	this->strips = strips;
+
+
+	std::vector<float> vectorsAABB;
+	EMO_BaseFile::GetParamMultipleFloats(root, "AABB", vectorsAABB);
+
+	if (vectorsAABB.size() != 12)
+	{
+		LOG_DEBUG("%s: Invalid number of elements for \"AABB\". must be aabbCenter, aabbMin, aabbMax with vector4 each.\n", FUNCNAME);
+		for (int i = vectorsAABB.size(); i < 12; i++)
+			vectorsAABB.push_back(0.0f);
+	}
+	for (int i = 0; i < 12; i++)
+		this->vectors[i] = vectorsAABB.at(i);
+
+
+
+	unsigned int flags = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "FLAGS", &flags);
+	if (flags > 0xFFFF)
+	{
+		LOG_DEBUG("%s: FLAGS must be a 16 bits value.\n", FUNCNAME);
+		flags = flags & 0xFFFF;
+	}
+	this->flags = flags;
+
+	unsigned int unk_02 = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "U_02", &unk_02);
+	if (unk_02 > 0xFFFF)
+	{
+		LOG_DEBUG("%s: U_02 must be a 16 bits value.\n", FUNCNAME);
+		unk_02 = unk_02 & 0xFFFF;
+	}
+	this->unk_02 = unk_02;
+
+
+	unsigned int unk_06 = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "U_06", &unk_06);
+	if (unk_06 > 0xFFFF)
+	{
+		LOG_DEBUG("%s: U_06 must be a 16 bits value.\n", FUNCNAME);
+		unk_06 = unk_06 & 0xFFFF;
+	}
+	this->unk_06 = unk_06;
+
+
+	this->unk_08 = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "U_08", &this->unk_08);
+
+
+	
+	for (const TiXmlElement *elem = root->FirstChildElement("SubMesh"); elem; elem = elem->NextSiblingElement("SubMesh"))
+	{
+		EMG_SubMesh submesh;
+
+		if (!submesh.Compile(elem, skl))
+		{
+			LOG_DEBUG("%s: Compilation of SubMesh failed.\n", FUNCNAME);
+			continue;
+		}
+
+		char sm_meta_name[2048];
+		snprintf(sm_meta_name, sizeof(sm_meta_name), "%s_%04x", meta_name.c_str(), submeshes.size());
+		submesh.meta_name = sm_meta_name;
+
+		submeshes.push_back(submesh);
+	}
+
+
+
+
+	for (const TiXmlElement *elem = root->FirstChildElement("TexturesList"); elem; elem = elem->NextSiblingElement("TexturesList"))
+	{
+		EMG_TexturesList textList;
+
+		if (!textList.Compile(elem))
+		{
+			LOG_DEBUG("%s: Compilation of EMG_TexturesList failed.\n", FUNCNAME);
+			continue;
+		}
+		textures_lists.push_back(textList);
+	}
+
+
+
+
+	int vertex_size = -1;
+
+	for (const TiXmlElement *elem = root->FirstChildElement("Vertex"); elem; elem = elem->NextSiblingElement("Vertex"))
+	{
+		
+		//check all vertex have the same flags for vertex definition.
+		if (vertex_size == -1)
+		{
+			vertex_size = getSizeFromFlags(this->flags);
+		}else if (vertex_size != getSizeFromFlags(this->flags)) {
+			LOG_DEBUG("%s: All vertex of the subpart must be of the same kind!\n", FUNCNAME);
+			return false;
+		}
+
+
+		EMG_VertexData vd;
+
+		if (!vd.Compile(elem, vertex_size))
+		{
+			LOG_DEBUG("%s: Compilation of Vertex failed.\n", FUNCNAME);
+			continue;
+		}
+		vertex.push_back(vd);
+	}
+
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG_TexturesList::Compile(const TiXmlElement *root)
+{
+	
+	for (const TiXmlElement *elem = root->FirstChildElement("Texture"); elem != NULL; elem = elem->NextSiblingElement("Texture"))
+	{
+		EMG_Texture t;
+
+		if (!t.Compile(elem))
+		{
+			LOG_DEBUG("%s: Compilation of texture failed.\n", FUNCNAME);
+			continue;
+		}
+		textures.push_back(t);
+	}
+
+	return true;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG_Texture::Compile(const TiXmlElement *root)
+{
+
+	unsigned int emb_index = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "EMB_INDEX", &emb_index);
+	if (emb_index > 0xFF)
+	{
+		LOG_DEBUG("%s: emb_index must be a 8 bits value.\n", FUNCNAME);
+		emb_index = emb_index & 0xFF;
+	}
+	this->emb_TextureIndex = emb_index;
+
+
+	this->textScale_u = 1.0f;
+	EMO_BaseFile::GetParamFloat(root, "textScale_u", &this->textScale_u);
+	this->textScale_v = 1.0f;
+	EMO_BaseFile::GetParamFloat(root, "textScale_v", &this->textScale_v);
+
+
+	unsigned int unk_00 = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "U_00", &unk_00);
+	if (unk_00 > 0xFF)
+	{
+		LOG_DEBUG("%s: U_00 must be a 8 bits value.\n", FUNCNAME);
+		unk_00 = unk_00 & 0xFF;
+	}
+	this->unk_00 = unk_00;
+
+	std::vector<uint8_t> unk_02;
+	EMO_BaseFile::GetParamMultipleUnsigned(root, "U_02", unk_02);
+
+	if (unk_02.size() != 2)
+	{
+		LOG_DEBUG("%s: invalid number of elements for \"U_02\".must be 2.\n", FUNCNAME);
+		for (size_t i = unk_02.size(); i<2; i++)
+			unk_02.push_back(0);
+	}
+	this->unk_02[0] = unk_02.at(0);
+	this->unk_02[1] = unk_02.at(1);
+
+
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
+{
+	emm_material = "";
+	EMO_BaseFile::GetParamString(root, "Material", emm_material);
+
+	if (emm_material.length() > 31)
+	{
+		LOG_DEBUG("%s: EMMMaterial can't have more than 31 characters. (faulting value = %s)\n", FUNCNAME, emm_material.c_str());
+		emm_material = emm_material.substr(0, 31);
+	}
+
+	unsigned int tl_index = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "TEXTURES_LISTS_INDEX", &tl_index);
+	if (tl_index > 0xFFFF)
+	{
+		LOG_DEBUG("%s: TEXTURES_LISTS_INDEX must be a 16 bits value.\n", FUNCNAME);
+		tl_index = tl_index & 0xFFFF;
+	}
+	this->tl_index = tl_index;
+
+
+	std::vector<float> vector;
+	EMO_BaseFile::GetParamMultipleFloats(root, "VECTOR", vector);
+	if (vector.size() != 4)
+	{
+		LOG_DEBUG("%s: Invalid size for \"VECTOR\"\n", FUNCNAME);
+		for (size_t i = vector.size(); i < 4; i++)
+			vector.push_back(0.0f);
+	}
+	memcpy(this->barycenter, vector.data(), sizeof(this->barycenter));
+
+
+
+	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "FACES", faces))
+	{
+		LOG_DEBUG("%s: No faces indices detected. is it normal ? \"FACES\"\n", FUNCNAME);
+	}
+
+
+
+	std::vector<std::string> bone_names;
+	EMO_BaseFile::GetParamMultipleStrings(root, "LINKED_BONES", bone_names);
+	for (const std::string &s : bone_names)
+	{
+		EMO_Bone *bone = skl->GetBone(s);
+		if (!bone)
+		{
+			LOG_DEBUG("%s: bone \"%s\" doesn't exist in skeleton.\n", FUNCNAME, s.c_str());
+			continue;
+		}
+		linked_bones.push_back(bone);
+	}
+
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMG_VertexData::Compile(const TiXmlElement *root, unsigned int vertex_size)
+{
+
+	EMG_VertexCommon *vc = &VertexUnion;
+
+	std::vector<float> f_vector;
+	size_t nbFloats = 0;
+	uint32_t u_tmp = 0;
+	std::vector<uint8_t> blend;
+	std::vector<float> blend_weight;
+
+
+	uint32_t flags = 0;
+	if (!EMO_BaseFile::GetParamUnsigned(root, "FLAGS", &flags))
+	{
+		//we didn't have the original Flags (could be a previous file from Vertex64 or Vertex52)
+		//so we will rebuild it from tags presence.
+
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "POS", f_vector))
+			flags += EMG_VTX_FLAG_POS;
+
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "NORM", f_vector))
+			flags += EMG_VTX_FLAG_NORM;
+
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector))
+			flags += EMG_VTX_FLAG_TANGENT;
+
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX", f_vector))
+			flags += EMG_VTX_FLAG_TEX;
+
+		/*
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector))
+		flags += EMG_VTX_FLAG_TEX2;
+		*/
+		//hack from previous confusion between TEX2 and TANG. so old file could have TEX2 with 3 floats, but it's for TANG
+		if (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector))
+		{
+			if (f_vector.size() == 3)
+				flags += EMG_VTX_FLAG_TANGENT;
+			else
+				flags += EMG_VTX_FLAG_TEX2;
+		}
+
+
+		if (EMO_BaseFile::GetParamUnsigned(root, "COLOR", &u_tmp))
+			flags += EMG_VTX_FLAG_COLOR;
+
+		if ((EMO_BaseFile::GetParamMultipleUnsigned(root, "BLEND", blend)) && (EMO_BaseFile::GetParamMultipleFloats(root, "BLEND_WEIGHT", blend_weight)))
+			flags += EMG_VTX_FLAG_BLEND_WEIGHT;
+
+		f_vector.clear();
+	}
+	vc->flags = flags;
+
+	if ((vertex_size == 0) || (vertex_size != vc->getSizeFromFlags()))
+		return false;
+
+	this->size = vc->getSizeFromFlags(true);
+
+
+	if (((vc->flags & EMG_VTX_FLAG_POS) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "POS", f_vector)))
+	{
+		nbFloats = f_vector.size();
+		if (nbFloats>=1)											//Notice there is default value, so we just need to overide what we have.
+			vc->pos_x = f_vector[0];
+		if (nbFloats>=2)
+			vc->pos_y = f_vector[1];
+		if (nbFloats>=3)
+			vc->pos_z = f_vector[2];
+	}
+	f_vector.clear();
+
+
+	if (((vc->flags & EMG_VTX_FLAG_NORM) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "NORM", f_vector)))
+	{
+		nbFloats = f_vector.size();
+		if (nbFloats>=1)
+			vc->norm_x = f_vector[0];
+		if (nbFloats>=2)
+			vc->norm_y = f_vector[1];
+		if (nbFloats>=3)
+			vc->norm_z = f_vector[2];
+	}
+	f_vector.clear();
+
+
+
+	/*
+	if (((vc->flags & EMG_VTX_FLAG_TANGENT) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector)))
+	{
+	nbFloats = f_vector.size();
+	if (nbFloats>=1)
+	vc->tang_x = f_vector[0];
+	if (nbFloats>=2)
+	vc->tang_y = f_vector[1];
+	if (nbFloats>=3)
+	vc->tang_z = f_vector[2];
+	}
+	f_vector.clear();
+	*/
+	//hack from previous confusion between TEX2 and TANG. so old file could have TEX2 with 3 floats, but it's for TANG
+	if ((vc->flags & EMG_VTX_FLAG_TANGENT) != 0)
+	{
+		if (!EMO_BaseFile::GetParamMultipleFloats(root, "TANG", f_vector))		//if we have the flags for TANG, but don't have it,
+			EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector);		//it's on old files, with TEX2 instead.
+
+		nbFloats = f_vector.size();
+		if (nbFloats>=1)
+			vc->tang_x = f_vector[0];
+		if (nbFloats>=2)
+			vc->tang_y = f_vector[1];
+		if (nbFloats>=3)
+			vc->tang_z = f_vector[2];
+	}
+	f_vector.clear();
+
+
+	if (((vc->flags & EMG_VTX_FLAG_TEX) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TEX", f_vector)))
+	{
+		nbFloats = f_vector.size();
+		if (nbFloats>=1)
+			vc->text_u = f_vector[0];
+		if (nbFloats>=2)
+			vc->text_v = f_vector[1];
+	}
+	f_vector.clear();
+
+
+
+	if (((vc->flags & EMG_VTX_FLAG_TEX2) != 0) && (EMO_BaseFile::GetParamMultipleFloats(root, "TEX2", f_vector)))
+	{
+		nbFloats = f_vector.size();
+		if (nbFloats>=1)
+			vc->text2_u = f_vector[0];
+		if (nbFloats>=2)
+			vc->text2_v = f_vector[1];
+	}
+	f_vector.clear();
+
+	if (((vc->flags & EMG_VTX_FLAG_COLOR) != 0) && (EMO_BaseFile::GetParamUnsigned(root, "COLOR", &(vc->color))))
+	{
+		
+	}
+
+	if (((vc->flags & EMG_VTX_FLAG_BLEND_WEIGHT) != 0) && (EMO_BaseFile::GetParamMultipleUnsigned(root, "BLEND", blend)) && (EMO_BaseFile::GetParamMultipleFloats(root, "BLEND_WEIGHT", blend_weight)))
+	{
+		size_t nbBlend = blend.size();
+		nbFloats = blend_weight.size();
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			if (i<nbBlend)
+				vc->blend[i] = blend[i];
+			if (i<nbFloats)
+				vc->blend_weight[i] = blend_weight[i];
+		}
+	}
+
+
+	return true;
+}
+
+
+
+
+
+
+
+
+
 
 }

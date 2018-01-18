@@ -2,6 +2,7 @@
 #include "FileTreeItemWidget.h"
 
 #include "EMDOgre.h"
+#include "EMMOgre.h"
 #include "ESKOgre.h"
 #include "EANOgre.h"
 
@@ -224,7 +225,7 @@ void FileTreeWidget::dropItemOnItem(FileTreeItemWidget *source_item, FileTreeIte
 		}
 	}
 }
-
+/*
 void FileTreeWidget::keyPressEvent(QKeyEvent * event) 
 {
 	QTreeWidget::keyPressEvent(event);
@@ -232,6 +233,7 @@ void FileTreeWidget::keyPressEvent(QKeyEvent * event)
 	if (event->key() == Qt::Key_Delete)
 		SHOW_ERROR("Key Detected!");
 }
+*/
 
 void FileTreeWidget::processContextMenuModelPack(ModelPackItemWidget *item, const QPoint& point) 
 {
@@ -253,6 +255,40 @@ void FileTreeWidget::processContextMenuModelPack(ModelPackItemWidget *item, cons
 		}
 	}
 }
+
+void FileTreeWidget::processContextMenuMaterial(MaterialItemWidget *item, const QPoint& point)
+{
+	QMenu myMenu;
+	
+	MaterialPackItemWidget *material_pack_item = static_cast<MaterialPackItemWidget *>(item->parent());
+	if (!material_pack_item)
+		return;
+
+	ModelPackItemWidget *model_pack_item = static_cast<ModelPackItemWidget *>(material_pack_item->parent());
+	if (!model_pack_item)
+		return;
+
+	EMMMaterial *emmMat = item->getData();
+	string materialName = emmMat->getName();
+
+	EMMOgre* emmOgre = material_pack_item->getData();
+	EMDOgre* endOgre = model_pack_item->getData();	
+	if (endOgre->getTag() != "EMD")
+		return;
+
+	
+	QAction* visibleAct = myMenu.addAction(((item->getVisible()) ? "Hide" : "Show"));
+
+	QAction* selectedItem = myMenu.exec(point);
+	if (selectedItem == visibleAct)
+	{
+		item->setVisible(!item->getVisible());
+
+		endOgre->setVisible(materialName, item->getVisible());
+	}
+}
+
+
 
 void FileTreeWidget::processContextMenuSkeleton(SkeletonItemWidget *item, const QPoint& point) 
 {
@@ -294,11 +330,14 @@ void FileTreeWidget::processContextMenu(const QPoint& point)
 	if (item)
 	{
 		ModelPackItemWidget *model_pack_item = static_cast<ModelPackItemWidget *>(item->getMatchType(FileTreeItemWidget::ItemModelPack));
+		MaterialItemWidget  *material_item = static_cast<MaterialItemWidget *>(item->getMatchType(FileTreeItemWidget::ItemMaterial));
 		SkeletonItemWidget *skeleton_item = static_cast<SkeletonItemWidget *>(item->getMatchType(FileTreeItemWidget::ItemSkeleton));
 		BoneItemWidget *bone_item = static_cast<BoneItemWidget *>(item->getMatchType(FileTreeItemWidget::ItemBone));
 		
 		if (model_pack_item)
 			processContextMenuModelPack(model_pack_item, globalPos);
+		else if(material_item)
+			processContextMenuMaterial(material_item, globalPos);
 		else if (skeleton_item)
 			processContextMenuSkeleton(skeleton_item, globalPos);
 		else if (bone_item)

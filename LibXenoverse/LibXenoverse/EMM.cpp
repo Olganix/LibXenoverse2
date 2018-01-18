@@ -188,7 +188,11 @@ void EMM::saveXML(string filename)
 
 	size_t nbMaterial = materials.size();
 	for (size_t i = 0; i < nbMaterial; i++)
+	{
+		rootNode->LinkEndChild(new TiXmlComment(("index:"+ std::to_string(i)).c_str() ));
+
 		materials.at(i)->writeXML(rootNode);
+	}
 
 
 
