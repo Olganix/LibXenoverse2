@@ -2138,35 +2138,42 @@ size_t FmpFile::calculeFilesize()
 	listOfDuplicate_Hierarchy.resize(nbObject, (size_t)-1);
 
 	//for (size_t i = 1; i < nbObject * 0; i++)					//here the check on duplicate. //todo remove * 0
-	for (size_t i = 1; i < nbObject; i++)					//here the check on duplicate.
+	for (size_t i = 1; i < nbObject; i++)					//here the check on duplicate. // I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
 	{
 		FMP_Object* obj = mListObject.at(i);
 		size_t nbEnt = obj->listEntity.size();
 		size_t nbVsp = obj->listVirtualSubParts.size();
 
-		//Entity
 		for (size_t j = 0; j < i; j++)
 		{
 			FMP_Object* obj_b = mListObject.at(j);
 			size_t nbEnt_b = obj_b->listEntity.size();
+			size_t nbVsp_b = obj_b->listVirtualSubParts.size();
 
 			bool transformEquals = true;
 			/*
 			for (size_t k = 0; k < 12; k++)
 			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
+			if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
+			{
+			transformEquals = false;
+			break;
+			}
 			}
 			*/
 
-			if ( (!transformEquals) || (nbEnt != nbEnt_b) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex))
+			if ((!transformEquals) ||
+				(nbVsp != nbVsp_b) ||
+				(nbEnt != nbEnt_b) ||
+				(obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) ||
+				((obj->action == 0) && (obj_b->action != 0)) ||
+				((obj->action != 0) && (obj_b->action == 0)) ||
+				((obj->hierarchy == 0) && (obj_b->hierarchy != 0)) ||
+				((obj->hierarchy != 0) && (obj_b->hierarchy == 0)))
 				continue;
 
 			bool allEquals = true;
-			for (size_t k = 0; k < nbEnt; k++)
+			for (size_t k = 0; k < nbEnt; k++)						//Entity
 			{
 				if (obj->listEntity.at(k) != obj_b->listEntity.at(k))
 				{
@@ -2174,37 +2181,10 @@ size_t FmpFile::calculeFilesize()
 					break;
 				}
 			}
-			if (allEquals)
-			{
-				listOfDuplicate_Entity.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-
-		//VirtualSubPart
-		for (size_t j = 0; j < i; j++)
-		{
-			FMP_Object* obj_b = mListObject.at(j);
-			size_t nbVsp_b = obj_b->listVirtualSubParts.size();
-
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ((!transformEquals) || (nbVsp != nbVsp_b) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex))
+			if (!allEquals)
 				continue;
 
-			bool allEquals = true;
-			for (size_t k = 0; k < nbVsp; k++)
+			for (size_t k = 0; k < nbVsp; k++)						//VirtualSubPart
 			{
 				if (*obj->listVirtualSubParts.at(k) != *obj_b->listVirtualSubParts.at(k))
 				{
@@ -2212,79 +2192,23 @@ size_t FmpFile::calculeFilesize()
 					break;
 				}
 			}
-			if (allEquals)
-			{
-				listOfDuplicate_Vsp.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-
-		//Action
-		for (size_t j = 0; j < i; j++)
-		{
-			FMP_Object* obj_b = mListObject.at(j);
-
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ((!transformEquals) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) ||((obj->action == 0) && (obj_b->action != 0)) || ((obj->action != 0) && (obj_b->action == 0)))
+			if (!allEquals)
 				continue;
 
-			if ((obj->action == 0) || (*obj->action == *obj_b->action) )
-			{
-				listOfDuplicate_Action.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-		//Hierarchy
-		for (size_t j = 0; j < i; j++)
-		{
-			FMP_Object* obj_b = mListObject.at(j);
-
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ((!transformEquals) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) || ((obj->hierarchy == 0) && (obj_b->hierarchy != 0)) || ((obj->hierarchy != 0) && (obj_b->hierarchy == 0)) )
+			allEquals = ((obj->action == 0) || (*obj->action == *obj_b->action));			//Action
+			if (!allEquals)
 				continue;
 
-			if((obj->hierarchy == 0) || (*obj->hierarchy == *obj_b->hierarchy))
-			{
-				listOfDuplicate_Hierarchy.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-	}
+			allEquals = ((obj->hierarchy == 0) || (*obj->hierarchy == *obj_b->hierarchy));
+			if (!allEquals)
+				continue;
 
-
-	// I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
-	for (size_t i = 1; i < nbObject; i++)
-	{
-		if ((listOfDuplicate_Entity.at(i) == -1) || (listOfDuplicate_Vsp.at(i) == -1) || (listOfDuplicate_Action.at(i) == -1) || (listOfDuplicate_Hierarchy.at(i) == -1))
-		{
-			listOfDuplicate_Entity.at(i) = -1;
-			listOfDuplicate_Vsp.at(i) = -1;
-			listOfDuplicate_Action.at(i) = -1;
-			listOfDuplicate_Hierarchy.at(i) = -1;
+			//we notify that is equal as a previous subpart.
+			listOfDuplicate_Entity.at(i) = j;
+			listOfDuplicate_Vsp.at(i) = j;
+			listOfDuplicate_Action.at(i) = j;
+			listOfDuplicate_Hierarchy.at(i) = j;
+			break;
 		}
 	}
 
@@ -2943,17 +2867,16 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 	std::vector<size_t> listOfDuplicate_Hierarchy;
 	listOfDuplicate_Hierarchy.resize(hdr->numberSection4, (size_t)-1);
 
+
+
+
 	//for (size_t i = 1; i < hdr->numberSection4 * 0; i++)					//here the check on duplicate. //todo remove * 0
-	for (size_t i = 1; i < hdr->numberSection4; i++)					//here the check on duplicate.
+	for (size_t i = 1; i < hdr->numberSection4; i++)					//here the check on duplicate. // I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
 	{
 		FMP_Object* obj = mListObject.at(i);
 		size_t nbEnt = obj->listEntity.size();
 		size_t nbVsp = obj->listVirtualSubParts.size();
-		
-		if (i == 108)
-			int aa = 42;
-
-		//Entity
+			
 		for (size_t j = 0; j < i; j++)
 		{
 			if (j == 107)
@@ -2961,6 +2884,7 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 			
 			FMP_Object* obj_b = mListObject.at(j);
 			size_t nbEnt_b = obj_b->listEntity.size();
+			size_t nbVsp_b = obj_b->listVirtualSubParts.size();
 			
 			bool transformEquals = true;
 			/*
@@ -2973,12 +2897,19 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 				}
 			}
 			*/
-				
-			if ( (!transformEquals) || (nbEnt != nbEnt_b) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex))
+
+			if ( (!transformEquals) || 
+				(nbVsp != nbVsp_b) || 
+				(nbEnt != nbEnt_b) || 
+				(obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) || 
+				((obj->action == 0) && (obj_b->action != 0)) || 
+				((obj->action != 0) && (obj_b->action == 0)) ||
+				((obj->hierarchy == 0) && (obj_b->hierarchy != 0)) || 
+				((obj->hierarchy != 0) && (obj_b->hierarchy == 0))       )
 				continue;
 
 			bool allEquals = true;
-			for (size_t k = 0; k < nbEnt; k++)
+			for (size_t k = 0; k < nbEnt; k++)						//Entity
 			{
 				if (obj->listEntity.at(k) != obj_b->listEntity.at(k))
 				{
@@ -2986,40 +2917,10 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 					break;
 				}
 			}
-			if (allEquals)
-			{
-				listOfDuplicate_Entity.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-
-		//VirtualSubPart
-		for (size_t j = 0; j < i; j++)
-		{
-			if (j == 107)
-				int aa = 42;
-
-			FMP_Object* obj_b = mListObject.at(j);
-			size_t nbVsp_b = obj_b->listVirtualSubParts.size();
-
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ( (!transformEquals) || (nbVsp != nbVsp_b) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex))
+			if (!allEquals)
 				continue;
 
-			bool allEquals = true;
-			for (size_t k = 0; k < nbVsp; k++)
+			for (size_t k = 0; k < nbVsp; k++)						//VirtualSubPart
 			{
 				if (*obj->listVirtualSubParts.at(k) != *obj_b->listVirtualSubParts.at(k))
 				{
@@ -3027,89 +2928,27 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 					break;
 				}
 			}
-			if (allEquals)
-			{
-				listOfDuplicate_Vsp.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-		
-		//Action
-		for (size_t j = 0; j < i; j++)
-		{
-			if (j == 107)
-				int aa = 42;
-
-			FMP_Object* obj_b = mListObject.at(j);
-			
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ( (!transformEquals) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) || ((obj->action == 0) && (obj_b->action != 0)) || ((obj->action != 0) && (obj_b->action == 0)))
+			if (!allEquals)
 				continue;
 
-			if ((obj->action == 0) || (*obj->action == *obj_b->action))
-			{
-				listOfDuplicate_Action.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
-		}
-
-		//Hierarchy
-		for (size_t j = 0; j < i; j++)
-		{
-			if (j == 107)
-				int aa = 42;
-
-			FMP_Object* obj_b = mListObject.at(j);
-
-			bool transformEquals = true;
-			/*
-			for (size_t k = 0; k < 12; k++)
-			{
-				if (obj->transformMatrix4x3[k] != obj_b->transformMatrix4x3[k])
-				{
-					transformEquals = false;
-					break;
-				}
-			}
-			*/
-
-			if ( (!transformEquals) || (obj->hitboxGroupIndex != obj_b->hitboxGroupIndex) || ((obj->hierarchy == 0) && (obj_b->hierarchy != 0)) || ((obj->hierarchy != 0) && (obj_b->hierarchy == 0)))
+			allEquals = ((obj->action == 0) || (*obj->action == *obj_b->action));			//Action
+			if (!allEquals)
 				continue;
 
-			if ((obj->hierarchy == 0) || (*obj->hierarchy == *obj_b->hierarchy))
-			{
-				listOfDuplicate_Hierarchy.at(i) = j;					//we notify that is equal as a previous subpart.
-				break;
-			}
+			allEquals = ((obj->hierarchy == 0) || (*obj->hierarchy == *obj_b->hierarchy));
+			if (!allEquals)
+				continue;
+
+			//we notify that is equal as a previous subpart.
+			listOfDuplicate_Entity.at(i) = j;					
+			listOfDuplicate_Vsp.at(i) = j;
+			listOfDuplicate_Action.at(i) = j;
+			listOfDuplicate_Hierarchy.at(i) = j;
+			break;
 		}
 	}
 
 
-
-	
-	// I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
-	for (size_t i = 1; i < hdr->numberSection4; i++)
-	{
-		if ( (listOfDuplicate_Entity.at(i)==-1)|| (listOfDuplicate_Vsp.at(i) == -1) || (listOfDuplicate_Action.at(i) == -1) || (listOfDuplicate_Hierarchy.at(i) == -1) )
-		{
-			listOfDuplicate_Entity.at(i) = -1;
-			listOfDuplicate_Vsp.at(i) = -1;
-			listOfDuplicate_Action.at(i) = -1;
-			listOfDuplicate_Hierarchy.at(i) = -1;
-		}
-	}
 
 	
 
