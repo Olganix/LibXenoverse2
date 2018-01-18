@@ -1,7 +1,25 @@
 #include "Fmp.h"
 
+#include <sstream>
+#include <iomanip>
+
 namespace LibXenoverse
 {
+
+
+std::string FloatToString(float value)
+{
+	char temp[32];
+	std::string str;
+
+	sprintf(temp, "%.9g", value);
+	str = temp;
+
+	if (str.find('.') == std::string::npos && str.find('e') == std::string::npos)
+		str = str + ".0";
+
+	return str;
+}
 
 /*-------------------------------------------------------------------------------\
 |                             FmpFile				                             |
@@ -2119,7 +2137,8 @@ size_t FmpFile::calculeFilesize()
 	std::vector<size_t> listOfDuplicate_Hierarchy;
 	listOfDuplicate_Hierarchy.resize(nbObject, (size_t)-1);
 
-	for (size_t i = 1; i < nbObject; i++)					//here the check on duplicate. //todo remove * 0
+	//for (size_t i = 1; i < nbObject * 0; i++)					//here the check on duplicate. //todo remove * 0
+	for (size_t i = 1; i < nbObject; i++)					//here the check on duplicate.
 	{
 		FMP_Object* obj = mListObject.at(i);
 		size_t nbEnt = obj->listEntity.size();
@@ -2255,6 +2274,20 @@ size_t FmpFile::calculeFilesize()
 			}
 		}
 	}
+
+
+	// I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
+	for (size_t i = 1; i < nbObject; i++)
+	{
+		if ((listOfDuplicate_Entity.at(i) == -1) || (listOfDuplicate_Vsp.at(i) == -1) || (listOfDuplicate_Action.at(i) == -1) || (listOfDuplicate_Hierarchy.at(i) == -1))
+		{
+			listOfDuplicate_Entity.at(i) = -1;
+			listOfDuplicate_Vsp.at(i) = -1;
+			listOfDuplicate_Action.at(i) = -1;
+			listOfDuplicate_Hierarchy.at(i) = -1;
+		}
+	}
+
 
 
 	listDebug.push_back(DebugTest("Start after Section4", filesize));
@@ -2910,6 +2943,7 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 	std::vector<size_t> listOfDuplicate_Hierarchy;
 	listOfDuplicate_Hierarchy.resize(hdr->numberSection4, (size_t)-1);
 
+	//for (size_t i = 1; i < hdr->numberSection4 * 0; i++)					//here the check on duplicate. //todo remove * 0
 	for (size_t i = 1; i < hdr->numberSection4; i++)					//here the check on duplicate.
 	{
 		FMP_Object* obj = mListObject.at(i);
@@ -3062,6 +3096,23 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 		}
 	}
 
+
+
+	
+	// I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
+	for (size_t i = 1; i < hdr->numberSection4; i++)
+	{
+		if ( (listOfDuplicate_Entity.at(i)==-1)|| (listOfDuplicate_Vsp.at(i) == -1) || (listOfDuplicate_Action.at(i) == -1) || (listOfDuplicate_Hierarchy.at(i) == -1) )
+		{
+			listOfDuplicate_Entity.at(i) = -1;
+			listOfDuplicate_Vsp.at(i) = -1;
+			listOfDuplicate_Action.at(i) = -1;
+			listOfDuplicate_Hierarchy.at(i) = -1;
+		}
+	}
+
+	
+
 	std::vector<size_t> listOffsetForBeginSubPart_Entity;
 	std::vector<size_t> listOffsetForBeginSubPart_Vsp;
 	std::vector<size_t> listOffsetForBeginSubPart_Action;
@@ -3078,9 +3129,6 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 	for (size_t i = 0; i < hdr->numberSection4; i++)
 	{
 		listDebug.push_back(DebugTest("*************** Section4[" + std::to_string(i) + "]", offset));
-
-		if (i == 108)
-			int aa = 42;
 
 		FMP_Object* obj = mListObject.at(i);
 
@@ -3125,8 +3173,6 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 			}
 			offset += nb_Section4_Next * sizeof(FMP_Section4_Next);
 		}
-
-
 
 
 
@@ -3775,7 +3821,7 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 						section5_Hitbox_d->unk_1 = des.sub0.unk_1;
 						section5_Hitbox_d->unk_2 = des.sub0.unk_2;
 						section5_Hitbox_d->unk_3 = des.sub0.unk_3;
-						section5_Hitbox_d->yaw = des.sub0.yaw * 3.1415926535897f / 180.0f;						//conver in radian
+						section5_Hitbox_d->yaw = des.sub0.yaw * 3.1415926535897f / 180.0f;						//convert in radian
 						section5_Hitbox_d->pitch = des.sub0.pitch * 3.1415926535897f / 180.0f;
 						section5_Hitbox_d->roll = des.sub0.roll * 3.1415926535897f / 180.0f ;
 						section5_Hitbox_d->unk_7 = des.sub0.unk_7;
@@ -3797,7 +3843,7 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 						section5_Hitbox_d->unk_1 = des.sub1.unk_1;
 						section5_Hitbox_d->unk_2 = des.sub1.unk_2;
 						section5_Hitbox_d->unk_3 = des.sub1.unk_3;
-						section5_Hitbox_d->yaw = des.sub1.yaw * 3.1415926535897f / 180.0f;						//conver in radian
+						section5_Hitbox_d->yaw = des.sub1.yaw * 3.1415926535897f / 180.0f;						//convert in radian
 						section5_Hitbox_d->pitch = des.sub1.pitch * 3.1415926535897f / 180.0f;
 						section5_Hitbox_d->roll = des.sub1.roll * 3.1415926535897f / 180.0f;
 						section5_Hitbox_d->unk_7 = des.sub1.unk_7;
@@ -3997,49 +4043,49 @@ TiXmlElement* FmpFile::export_Xml(string filename)
 	TiXmlElement* node_Settings = new TiXmlElement("Settings");
 	
 	node = new TiXmlElement("width");
-	node->SetAttribute("X", std::to_string(width_X));
-	node->SetAttribute("Y", std::to_string(width_Y));
-	node->SetAttribute("Z", std::to_string(width_Z));
+	node->SetAttribute("X", FloatToString(width_X));
+	node->SetAttribute("Y", FloatToString(width_Y));
+	node->SetAttribute("Z", FloatToString(width_Z));
 	node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("nearDistance"); node->SetAttribute("float", std::to_string(nearDistance));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("farDistance"); node->SetAttribute("float", std::to_string(farDistance));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("nearDistance"); node->SetAttribute("float", FloatToString(nearDistance));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("farDistance"); node->SetAttribute("float" , FloatToString(farDistance));		node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("s0a_unk_3"); node->SetAttribute("float", std::to_string(s0a_unk_3));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_4"); node->SetAttribute("float", std::to_string(s0a_unk_4));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_5"); node->SetAttribute("float", std::to_string(s0a_unk_5));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_6"); node->SetAttribute("float", std::to_string(s0a_unk_6));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_7"); node->SetAttribute("u32", s0a_unk_7);						node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_3"); node->SetAttribute("float", FloatToString(s0a_unk_3));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_4"); node->SetAttribute("float", FloatToString(s0a_unk_4));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_5"); node->SetAttribute("float", FloatToString(s0a_unk_5));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_6"); node->SetAttribute("float", FloatToString(s0a_unk_6));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_7"); node->SetAttribute("u32", s0a_unk_7);									node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("s0a_unk_8"); node->SetAttribute("float", std::to_string(s0a_unk_8));	comment = new TiXmlComment("0.577350 (most)  or 0.324488 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_9"); node->SetAttribute("float", std::to_string(s0a_unk_9));	comment = new TiXmlComment("-0.577350 (most)  or -0.920775 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_10"); node->SetAttribute("float", std::to_string(s0a_unk_10)); comment = new TiXmlComment("0.577350 (most)  or -0.216519 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_8"); node->SetAttribute("float", FloatToString(s0a_unk_8));	comment = new TiXmlComment("0.577350 (most)  or 0.324488 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_9"); node->SetAttribute("float", FloatToString(s0a_unk_9));	comment = new TiXmlComment("-0.577350 (most)  or -0.920775 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_10"); node->SetAttribute("float", FloatToString(s0a_unk_10)); comment = new TiXmlComment("0.577350 (most)  or -0.216519 (only for BFgen.map.xml)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
 	
-	node = new TiXmlElement("s0a_unk_11"); node->SetAttribute("float", std::to_string(s0a_unk_11));	comment = new TiXmlComment("s0a_unk_11 to 18  look like  s0a_unk_19 to 26"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_12"); node->SetAttribute("float", std::to_string(s0a_unk_12));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_13"); node->SetAttribute("float", std::to_string(s0a_unk_13));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_14"); node->SetAttribute("float", std::to_string(s0a_unk_14));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_15"); node->SetAttribute("float", std::to_string(s0a_unk_15));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_16"); node->SetAttribute("float", std::to_string(s0a_unk_16));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_17"); node->SetAttribute("float", std::to_string(s0a_unk_17));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_18"); node->SetAttribute("float", std::to_string(s0a_unk_18));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_11"); node->SetAttribute("float", FloatToString(s0a_unk_11));	comment = new TiXmlComment("s0a_unk_11 to 18  look like  s0a_unk_19 to 26"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_12"); node->SetAttribute("float", FloatToString(s0a_unk_12));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_13"); node->SetAttribute("float", FloatToString(s0a_unk_13));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_14"); node->SetAttribute("float", FloatToString(s0a_unk_14));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_15"); node->SetAttribute("float", FloatToString(s0a_unk_15));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_16"); node->SetAttribute("float", FloatToString(s0a_unk_16));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_17"); node->SetAttribute("float", FloatToString(s0a_unk_17));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_18"); node->SetAttribute("float", FloatToString(s0a_unk_18));	node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("s0a_unk_19"); node->SetAttribute("float", std::to_string(s0a_unk_19));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_20"); node->SetAttribute("float", std::to_string(s0a_unk_20));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_21"); node->SetAttribute("float", std::to_string(s0a_unk_21));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_22"); node->SetAttribute("float", std::to_string(s0a_unk_22));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_23"); node->SetAttribute("float", std::to_string(s0a_unk_23));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_24"); node->SetAttribute("float", std::to_string(s0a_unk_24));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_25"); node->SetAttribute("float", std::to_string(s0a_unk_25));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_26"); node->SetAttribute("float", std::to_string(s0a_unk_26));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_19"); node->SetAttribute("float", FloatToString(s0a_unk_19));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_20"); node->SetAttribute("float", FloatToString(s0a_unk_20));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_21"); node->SetAttribute("float", FloatToString(s0a_unk_21));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_22"); node->SetAttribute("float", FloatToString(s0a_unk_22));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_23"); node->SetAttribute("float", FloatToString(s0a_unk_23));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_24"); node->SetAttribute("float", FloatToString(s0a_unk_24));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_25"); node->SetAttribute("float", FloatToString(s0a_unk_25));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_26"); node->SetAttribute("float", FloatToString(s0a_unk_26));	node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("s0a_unk_27"); node->SetAttribute("float", std::to_string(s0a_unk_27));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_28"); node->SetAttribute("float", std::to_string(s0a_unk_28));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_27"); node->SetAttribute("float", FloatToString(s0a_unk_27));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_28"); node->SetAttribute("float", FloatToString(s0a_unk_28));	node_Settings->LinkEndChild(node);
 
-	node = new TiXmlElement("s0a_unk_29"); node->SetAttribute("float", std::to_string(s0a_unk_29));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_30"); node->SetAttribute("float", std::to_string(s0a_unk_30));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_31"); node->SetAttribute("float", std::to_string(s0a_unk_31));	node_Settings->LinkEndChild(node);
-	node = new TiXmlElement("s0a_unk_34"); node->SetAttribute("float", std::to_string(s0a_unk_34));	comment = new TiXmlComment("0.785398 (most) or 0.698132 (only on 3 files)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_29"); node->SetAttribute("float", FloatToString(s0a_unk_29));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_30"); node->SetAttribute("float", FloatToString(s0a_unk_30));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_31"); node->SetAttribute("float", FloatToString(s0a_unk_31));	node_Settings->LinkEndChild(node);
+	node = new TiXmlElement("s0a_unk_34"); node->SetAttribute("float", FloatToString(s0a_unk_34));	comment = new TiXmlComment("0.785398 (most) or 0.698132 (only on 3 files)"); node_Settings->LinkEndChild(comment); node_Settings->LinkEndChild(node);
 
 
 
@@ -4183,7 +4229,7 @@ TiXmlElement* FmpFile::export_Xml(string filename)
 	for (size_t i = 0; i < nbHbg; i++)
 	{
 		comment = new TiXmlComment(("index : "+ std::to_string(i)).c_str()); node->LinkEndChild(comment);
-		node->LinkEndChild(mListHitboxGroup.at(i).export_Xml(filename, mListHavokFile));
+		node->LinkEndChild(mListHitboxGroup.at(i).export_Xml(filename, mListHavokFile, i));
 	}
 	mainNode->LinkEndChild(node);
 
@@ -4255,10 +4301,10 @@ TiXmlElement* FMP_S1::export_Xml(bool withComments)
 	node = new TiXmlElement("name"); node->SetAttribute("value", name);  mainNode->LinkEndChild(node);
 
 	node = new TiXmlElement("unk_04"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_04, false));  if (withComments) { comment = new TiXmlComment("0 (most), 1, 2, 3. we have 0 for Default and '__X'"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_08"); node->SetAttribute("float", std::to_string(unk_08));  if (withComments) { comment = new TiXmlComment("values are in [0, 1.0], 0.5 is the most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_0C"); node->SetAttribute("float", std::to_string(unk_0C));  if (withComments) { comment = new TiXmlComment("same as unk_08"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_10"); node->SetAttribute("float", std::to_string(unk_10));  if (withComments) { comment = new TiXmlComment("values are in [0, 1.0], 0.0 is the most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_14"); node->SetAttribute("float", std::to_string(unk_14));  if (withComments) { comment = new TiXmlComment("values are 999936.0 (most), 0.0 or 0.104279."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_08"); node->SetAttribute("float", FloatToString(unk_08));  if (withComments) { comment = new TiXmlComment("values are in [0, 1.0], 0.5 is the most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0C"); node->SetAttribute("float", FloatToString(unk_0C));  if (withComments) { comment = new TiXmlComment("same as unk_08"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_10"); node->SetAttribute("float", FloatToString(unk_10));  if (withComments) { comment = new TiXmlComment("values are in [0, 1.0], 0.0 is the most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_14"); node->SetAttribute("float", FloatToString(unk_14));  if (withComments) { comment = new TiXmlComment("values are 999936.0 (most), 0.0 or 0.104279."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 
 	return mainNode;
 }
@@ -4273,12 +4319,12 @@ TiXmlElement* FMP_S2::export_Xml(bool withComments)
 
 	node = new TiXmlElement("name"); node->SetAttribute("value", name);  mainNode->LinkEndChild(node);
 
-	node = new TiXmlElement("unk_04"); node->SetAttribute("float", std::to_string(unk_04));  if (withComments) { comment = new TiXmlComment("0.0, 1.0 (most), 2.0 or 3.0. we feel 0 and 1, 2 and 3, 4 and 5, are together."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_08"); node->SetAttribute("float", std::to_string(unk_08));  if (withComments) { comment = new TiXmlComment("is always 1.0"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_0C"); node->SetAttribute("float", std::to_string(unk_0C));  if (withComments) { comment = new TiXmlComment("200.0 (most) or 300.0"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_10"); node->SetAttribute("float", std::to_string(unk_10));  if (withComments) { comment = new TiXmlComment("100.0 (most), or 300.0."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_14"); node->SetAttribute("float", std::to_string(unk_14));  if (withComments) { comment = new TiXmlComment("is in [0,2.0], 0.0 at most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_18"); node->SetAttribute("float", std::to_string(unk_18));  if (withComments) { comment = new TiXmlComment("is in [0, 10.0], 0.0 at most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_04"); node->SetAttribute("float", FloatToString(unk_04));  if (withComments) { comment = new TiXmlComment("0.0, 1.0 (most), 2.0 or 3.0. we feel 0 and 1, 2 and 3, 4 and 5, are together."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_08"); node->SetAttribute("float", FloatToString(unk_08));  if (withComments) { comment = new TiXmlComment("is always 1.0"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0C"); node->SetAttribute("float", FloatToString(unk_0C));  if (withComments) { comment = new TiXmlComment("200.0 (most) or 300.0"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_10"); node->SetAttribute("float", FloatToString(unk_10));  if (withComments) { comment = new TiXmlComment("100.0 (most), or 300.0."); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_14"); node->SetAttribute("float", FloatToString(unk_14));  if (withComments) { comment = new TiXmlComment("is in [0,2.0], 0.0 at most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_18"); node->SetAttribute("float", FloatToString(unk_18));  if (withComments) { comment = new TiXmlComment("is in [0, 10.0], 0.0 at most"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 
 	return mainNode;
 }
@@ -4297,9 +4343,9 @@ TiXmlElement* FMP_Object::export_Xml(bool withComments)
 
 	node = new TiXmlElement("unk_04"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_04, true));  if (withComments) { comment = new TiXmlComment("0(most), 1"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_04b"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_04b, true));  if (withComments) { comment = new TiXmlComment("0, 1 (most)"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_0A"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(unk_04, true));  if (withComments) { comment = new TiXmlComment("0, 1 (most), 2, 3, 5, 7, 0x11, 0x13, 0x15, 0x2a, 0x49, 0x4b. may be 2 x uint4"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_0B"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(unk_04, true));  if (withComments) { comment = new TiXmlComment("always 0"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_20"); node->SetAttribute("float", std::to_string(unk_20));  if (withComments) { comment = new TiXmlComment("0.0, 0.000002, 2.0 (most)"); mainNode->LinkEndChild(comment);  }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0A"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(unk_0A, true));  if (withComments) { comment = new TiXmlComment("0, 1 (most), 2, 3, 5, 7, 0x11, 0x13, 0x15, 0x2a, 0x49, 0x4b. may be 2 x uint4"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0B"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(unk_0B, true));  if (withComments) { comment = new TiXmlComment("always 0"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_20"); node->SetAttribute("float", FloatToString(unk_20));  if (withComments) { comment = new TiXmlComment("0.0, 0.000002, 2.0 (most)"); mainNode->LinkEndChild(comment);  }  mainNode->LinkEndChild(node);
 
 
 	node = new TiXmlElement("ListEntity");
@@ -4331,10 +4377,10 @@ TiXmlElement* FMP_Object::export_Xml(bool withComments)
 
 	TiXmlElement* node_matrix = new TiXmlElement("TransformMatrix4x3");
 	if (withComments) { comment = new TiXmlComment("Future version will have position, rotation (degree), and scale. Here the easy part (without knowing matrix) is last line is positionXYZ."); node_matrix->LinkEndChild(comment); }
-	node = new TiXmlElement("L0"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[0]) + ", " + std::to_string(transformMatrix4x3[1]) + ", " + std::to_string(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L1"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[3]) + ", " + std::to_string(transformMatrix4x3[4]) + ", " + std::to_string(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L2"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[6]) + ", " + std::to_string(transformMatrix4x3[7]) + ", " + std::to_string(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L3"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[9]) + ", " + std::to_string(transformMatrix4x3[10]) + ", " + std::to_string(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L0"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[0]) + ", " + FloatToString(transformMatrix4x3[1]) + ", " + FloatToString(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L1"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[3]) + ", " + FloatToString(transformMatrix4x3[4]) + ", " + FloatToString(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L2"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[6]) + ", " + FloatToString(transformMatrix4x3[7]) + ", " + FloatToString(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L3"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[9]) + ", " + FloatToString(transformMatrix4x3[10]) + ", " + FloatToString(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
 	mainNode->LinkEndChild(node_matrix);
 
 	return mainNode;
@@ -4419,25 +4465,25 @@ TiXmlElement* FMP_Parameter::export_Xml()
 	case 2:
 	{
 		mainNode->SetAttribute("type", "Float");
-		mainNode->SetAttribute("value", std::to_string(floatValue));
+		mainNode->SetAttribute("value", FloatToString(floatValue));
 	}break;
 
 	case 3:
 	{
 		mainNode->SetAttribute("type", "Direction");
-		mainNode->SetAttribute("X", std::to_string(directionValue[0]));
-		mainNode->SetAttribute("Y", std::to_string(directionValue[1]));
-		mainNode->SetAttribute("Z", std::to_string(directionValue[2]));
-		mainNode->SetAttribute("W", std::to_string(directionValue[3]));
+		mainNode->SetAttribute("X", FloatToString(directionValue[0]));
+		mainNode->SetAttribute("Y", FloatToString(directionValue[1]));
+		mainNode->SetAttribute("Z", FloatToString(directionValue[2]));
+		mainNode->SetAttribute("W", FloatToString(directionValue[3]));
 	}break;
 
 	case 4:
 	{
 		mainNode->SetAttribute("type", "Position");
-		mainNode->SetAttribute("X", std::to_string(positionValue[0]));
-		mainNode->SetAttribute("Y", std::to_string(positionValue[1]));
-		mainNode->SetAttribute("Z", std::to_string(positionValue[2]));
-		mainNode->SetAttribute("W", std::to_string(positionValue[3]));
+		mainNode->SetAttribute("X", FloatToString(positionValue[0]));
+		mainNode->SetAttribute("Y", FloatToString(positionValue[1]));
+		mainNode->SetAttribute("Z", FloatToString(positionValue[2]));
+		mainNode->SetAttribute("W", FloatToString(positionValue[3]));
 	}break;
 
 	
@@ -4505,16 +4551,16 @@ TiXmlElement* FMP_Node::export_Xml(bool withComments)
 
 	node = new TiXmlElement("transformIndex"); node->SetAttribute("value", transformIndex);  mainNode->LinkEndChild(node);
 
-	node = new TiXmlElement("unk_0"); node->SetAttribute("float", std::to_string(unk_0));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_1"); node->SetAttribute("float", std::to_string(unk_1));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_2"); node->SetAttribute("float", std::to_string(unk_2));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_3"); node->SetAttribute("float", std::to_string(unk_3));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_4"); node->SetAttribute("float", std::to_string(unk_4));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_5"); node->SetAttribute("float", std::to_string(unk_5));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_6"); node->SetAttribute("float", std::to_string(unk_6));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_7"); node->SetAttribute("float", std::to_string(unk_7));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_8"); node->SetAttribute("float", std::to_string(unk_8));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_9"); node->SetAttribute("float", std::to_string(unk_9));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0"); node->SetAttribute("float", FloatToString(unk_0));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_1"); node->SetAttribute("float", FloatToString(unk_1));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_2"); node->SetAttribute("float", FloatToString(unk_2));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_3"); node->SetAttribute("float", FloatToString(unk_3));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_4"); node->SetAttribute("float", FloatToString(unk_4));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_5"); node->SetAttribute("float", FloatToString(unk_5));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_6"); node->SetAttribute("float", FloatToString(unk_6));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_7"); node->SetAttribute("float", FloatToString(unk_7));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_8"); node->SetAttribute("float", FloatToString(unk_8));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_9"); node->SetAttribute("float", FloatToString(unk_9));  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_10"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_10, true));  if (withComments) { comment = new TiXmlComment("few hole in [1(most), 0x2f] go up to 0xef"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 
 	return mainNode;
@@ -4528,21 +4574,21 @@ TiXmlElement* FMP_NodeTransform::export_Xml()
 	TiXmlElement* node;
 	
 	node = new TiXmlElement("Position"); 
-	node->SetAttribute("X", std::to_string(position[0]));
-	node->SetAttribute("Y", std::to_string(position[1]));
-	node->SetAttribute("Z", std::to_string(position[2]));
+	node->SetAttribute("X", FloatToString(position[0]));
+	node->SetAttribute("Y", FloatToString(position[1]));
+	node->SetAttribute("Z", FloatToString(position[2]));
 	mainNode->LinkEndChild(node);
 
 	node = new TiXmlElement("Rotation");
-	node->SetAttribute("X", std::to_string(rotation[0]));
-	node->SetAttribute("Y", std::to_string(rotation[1]));
-	node->SetAttribute("Z", std::to_string(rotation[2]));
+	node->SetAttribute("X", FloatToString(rotation[0]));
+	node->SetAttribute("Y", FloatToString(rotation[1]));
+	node->SetAttribute("Z", FloatToString(rotation[2]));
 	mainNode->LinkEndChild(node);
 
 	node = new TiXmlElement("Scale");
-	node->SetAttribute("X", std::to_string(scale[0]));
-	node->SetAttribute("Y", std::to_string(scale[1]));
-	node->SetAttribute("Z", std::to_string(scale[2]));
+	node->SetAttribute("X", FloatToString(scale[0]));
+	node->SetAttribute("Y", FloatToString(scale[1]));
+	node->SetAttribute("Z", FloatToString(scale[2]));
 	mainNode->LinkEndChild(node);
 	
 	return mainNode;
@@ -4558,9 +4604,9 @@ TiXmlElement* FMP_HierarchyNode::export_Xml(bool withComments)
 
 
 	node = new TiXmlElement("typeb"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(typeb, true)); if (withComments) { comment = new TiXmlComment("only 0 (most), 0x20, 0x30 or 0x60 "); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_0"); node->SetAttribute("float", std::to_string(unk_0));  if(withComments) { comment = new TiXmlComment("unk_0 to 2 is only used when there is some Child, may be a position"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_1"); node->SetAttribute("float", std::to_string(unk_1));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_2"); node->SetAttribute("float", std::to_string(unk_2));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_0"); node->SetAttribute("float", FloatToString(unk_0));  if(withComments) { comment = new TiXmlComment("unk_0 to 2 is only used when there is some Child, may be a position"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_1"); node->SetAttribute("float", FloatToString(unk_1));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_2"); node->SetAttribute("float", FloatToString(unk_2));  mainNode->LinkEndChild(node);
 	
 
 	if (listIndex.size())
@@ -4639,8 +4685,8 @@ TiXmlElement* FMP_Entity::export_Xml(bool withComments)
 		node = new TiXmlElement("s4n2b_unk_5"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(s4n2b_unk_5, true));  node_Visual->LinkEndChild(node);
 		node = new TiXmlElement("s4n2b_unk_6"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(s4n2b_unk_6, true));  node_Visual->LinkEndChild(node);
 		node = new TiXmlElement("s4n2b_unk_8"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(s4n2b_unk_8, true));  if (withComments) { comment = new TiXmlComment("only 2, 3 or 0xffffffff (none and most). sound like another index to something, may be twice animation."); node_Visual->LinkEndChild(comment); }  node_Visual->LinkEndChild(node);
-		node = new TiXmlElement("s4n2b_unk_9"); node->SetAttribute("float", std::to_string(s4n2b_unk_9));  node_Visual->LinkEndChild(node);
-		node = new TiXmlElement("s4n2b_unk_10"); node->SetAttribute("float", std::to_string(s4n2b_unk_10));  node_Visual->LinkEndChild(node);
+		node = new TiXmlElement("s4n2b_unk_9"); node->SetAttribute("float", FloatToString(s4n2b_unk_9));  node_Visual->LinkEndChild(node);
+		node = new TiXmlElement("s4n2b_unk_10"); node->SetAttribute("float", FloatToString(s4n2b_unk_10));  node_Visual->LinkEndChild(node);
 
 		mainNode->LinkEndChild(node_Visual);
 	}
@@ -4648,10 +4694,10 @@ TiXmlElement* FMP_Entity::export_Xml(bool withComments)
 
 	TiXmlElement* node_matrix = new TiXmlElement("TransformMatrix4x3");
 	if (withComments) { comment = new TiXmlComment("Future version will have position, rotation (degree), and scale. Here the easy part (without knowing matrix) is last line is positionXYZ."); node_matrix->LinkEndChild(comment); }
-	node = new TiXmlElement("L0"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[0]) + ", " + std::to_string(transformMatrix4x3[1]) + ", " + std::to_string(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L1"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[3]) + ", " + std::to_string(transformMatrix4x3[4]) + ", " + std::to_string(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L2"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[6]) + ", " + std::to_string(transformMatrix4x3[7]) + ", " + std::to_string(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L3"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[9]) + ", " + std::to_string(transformMatrix4x3[10]) + ", " + std::to_string(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L0"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[0]) + ", " + FloatToString(transformMatrix4x3[1]) + ", " + FloatToString(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L1"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[3]) + ", " + FloatToString(transformMatrix4x3[4]) + ", " + FloatToString(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L2"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[6]) + ", " + FloatToString(transformMatrix4x3[7]) + ", " + FloatToString(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L3"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[9]) + ", " + FloatToString(transformMatrix4x3[10]) + ", " + FloatToString(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
 	mainNode->LinkEndChild(node_matrix);
 
 	return mainNode;
@@ -4677,8 +4723,8 @@ TiXmlElement* FMP_VirtualSubPart::export_Xml(bool withComments)
 
 	node = new TiXmlElement("unk_2"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_2, true));  if (withComments) { comment = new TiXmlComment("only 0x0 (most), 0x1"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_2b"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_2b, true));  if (withComments) { comment = new TiXmlComment("only 0, 0xffff (most)"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_4"); node->SetAttribute("float", std::to_string(unk_4));  if (withComments) { comment = new TiXmlComment("[0.0 (most), 1000000.0]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_5"); node->SetAttribute("float", std::to_string(unk_5));  if (withComments) { comment = new TiXmlComment("[0.0 (most), 3.0]"); mainNode->LinkEndChild(comment);  } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_4"); node->SetAttribute("float", FloatToString(unk_4));  if (withComments) { comment = new TiXmlComment("[0.0 (most), 1000000.0]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_5"); node->SetAttribute("float", FloatToString(unk_5));  if (withComments) { comment = new TiXmlComment("[0.0 (most), 3.0]"); mainNode->LinkEndChild(comment);  } mainNode->LinkEndChild(node);
 
 
 	if (listIndex.size())
@@ -4711,10 +4757,10 @@ TiXmlElement* FMP_VirtualSubPart::export_Xml(bool withComments)
 
 	TiXmlElement* node_matrix = new TiXmlElement("TransformMatrix4x3");
 	if (withComments) { comment = new TiXmlComment("Future version will have position, rotation (degree), and scale. Here the easy part (without knowing matrix) is last line is positionXYZ."); node_matrix->LinkEndChild(comment); }
-	node = new TiXmlElement("L0"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[0]) + ", " + std::to_string(transformMatrix4x3[1]) + ", " + std::to_string(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L1"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[3]) + ", " + std::to_string(transformMatrix4x3[4]) + ", " + std::to_string(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L2"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[6]) + ", " + std::to_string(transformMatrix4x3[7]) + ", " + std::to_string(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
-	node = new TiXmlElement("L3"); node->SetAttribute("f32s", std::to_string(transformMatrix4x3[9]) + ", " + std::to_string(transformMatrix4x3[10]) + ", " + std::to_string(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L0"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[0]) + ", " + FloatToString(transformMatrix4x3[1]) + ", " + FloatToString(transformMatrix4x3[2])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L1"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[3]) + ", " + FloatToString(transformMatrix4x3[4]) + ", " + FloatToString(transformMatrix4x3[5])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L2"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[6]) + ", " + FloatToString(transformMatrix4x3[7]) + ", " + FloatToString(transformMatrix4x3[8])); node_matrix->LinkEndChild(node);
+	node = new TiXmlElement("L3"); node->SetAttribute("f32s", FloatToString(transformMatrix4x3[9]) + ", " + FloatToString(transformMatrix4x3[10]) + ", " + FloatToString(transformMatrix4x3[11])); node_matrix->LinkEndChild(node);
 	mainNode->LinkEndChild(node_matrix);
 
 	return mainNode;
@@ -4730,17 +4776,17 @@ TiXmlElement* FMP_VirtualSubPart_sub::export_Xml(bool withComments)
 
 
 	node = new TiXmlElement("Width");
-	node->SetAttribute("X", std::to_string(widthX));
-	node->SetAttribute("Y", std::to_string(widthY));
-	node->SetAttribute("Z", std::to_string(widthZ));
+	node->SetAttribute("X", FloatToString(widthX));
+	node->SetAttribute("Y", FloatToString(widthY));
+	node->SetAttribute("Z", FloatToString(widthZ));
 	mainNode->LinkEndChild(node);
 
 	if (withComments) { comment = new TiXmlComment("Future version will use Rotation degrees"); mainNode->LinkEndChild(comment); }
 	node = new TiXmlElement("Quaternion");
-	node->SetAttribute("X", std::to_string(quaternionX));
-	node->SetAttribute("Y", std::to_string(quaternionY));
-	node->SetAttribute("Z", std::to_string(quaternionZ));
-	node->SetAttribute("W", std::to_string(quaternionW));
+	node->SetAttribute("X", FloatToString(quaternionX));
+	node->SetAttribute("Y", FloatToString(quaternionY));
+	node->SetAttribute("Z", FloatToString(quaternionZ));
+	node->SetAttribute("W", FloatToString(quaternionW));
 	mainNode->LinkEndChild(node);
 
 	node = new TiXmlElement("unk_0"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_0, true));  if (withComments) { comment = new TiXmlComment("few holes in [0, 0xe] , 4 at most"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
@@ -4749,17 +4795,17 @@ TiXmlElement* FMP_VirtualSubPart_sub::export_Xml(bool withComments)
 	node = new TiXmlElement("unk_1b"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_1b, true));  if (withComments) { comment = new TiXmlComment("0, 2 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_2"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_2, true));  if (withComments) { comment = new TiXmlComment("0, 2, 4, 5, 9, 0x19, 0xffffffff (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 
-	node = new TiXmlElement("unk_3"); node->SetAttribute("float", std::to_string(unk_3));  if (withComments) { comment = new TiXmlComment("[0.031900, 24098666.0], 1.0 at most. lots of uniques values, and progress, like a animation"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_4"); node->SetAttribute("float", std::to_string(unk_4));  if (withComments) { comment = new TiXmlComment("[-184.657913, 186.816162], 0.0 at most. could be some degrees ?"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_5"); node->SetAttribute("float", std::to_string(unk_5));  if (withComments) { comment = new TiXmlComment("[-175.524277, 188.422974], 0.000000 (most) "); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_6"); node->SetAttribute("float", std::to_string(unk_6));  if (withComments) { comment = new TiXmlComment("[-186.247391, 176.994080], 0.0 (most)"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_7"); node->SetAttribute("float", std::to_string(unk_7));  if (withComments) { comment = new TiXmlComment("[-192.804337, 140.889252], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_8"); node->SetAttribute("float", std::to_string(unk_8));  if (withComments) { comment = new TiXmlComment("[-106.711281, 114.855453], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_9"); node->SetAttribute("float", std::to_string(unk_9));  if (withComments) { comment = new TiXmlComment("[-185.846497, 198.041656] 0.0 at most"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_10"); node->SetAttribute("float", std::to_string(unk_10));  if (withComments) { comment = new TiXmlComment("[-279.467529, 259.390625], 0.0 (most). lots of values, look like for animation");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_11"); node->SetAttribute("float", std::to_string(unk_11));  if (withComments) { comment = new TiXmlComment("[-260.461700, 122.487022], 0.0 (most). lots of values"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_12"); node->SetAttribute("float", std::to_string(unk_12));  if (withComments) { comment = new TiXmlComment("[-463.797577, 387.593781], 0.0 (most). lots of values"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_13"); node->SetAttribute("float", std::to_string(unk_13));  if (withComments) { comment = new TiXmlComment("[0.0, 841637952.0], 1.0 (most). lots of values near 0. there also have strange too high values");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_3"); node->SetAttribute("float", FloatToString(unk_3));  if (withComments) { comment = new TiXmlComment("[0.031900, 24098666.0], 1.0 at most. lots of uniques values, and progress, like a animation"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_4"); node->SetAttribute("float", FloatToString(unk_4));  if (withComments) { comment = new TiXmlComment("[-184.657913, 186.816162], 0.0 at most. could be some degrees ?"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_5"); node->SetAttribute("float", FloatToString(unk_5));  if (withComments) { comment = new TiXmlComment("[-175.524277, 188.422974], 0.000000 (most) "); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_6"); node->SetAttribute("float", FloatToString(unk_6));  if (withComments) { comment = new TiXmlComment("[-186.247391, 176.994080], 0.0 (most)"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_7"); node->SetAttribute("float", FloatToString(unk_7));  if (withComments) { comment = new TiXmlComment("[-192.804337, 140.889252], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_8"); node->SetAttribute("float", FloatToString(unk_8));  if (withComments) { comment = new TiXmlComment("[-106.711281, 114.855453], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_9"); node->SetAttribute("float", FloatToString(unk_9));  if (withComments) { comment = new TiXmlComment("[-185.846497, 198.041656] 0.0 at most"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_10"); node->SetAttribute("float", FloatToString(unk_10));  if (withComments) { comment = new TiXmlComment("[-279.467529, 259.390625], 0.0 (most). lots of values, look like for animation");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_11"); node->SetAttribute("float", FloatToString(unk_11));  if (withComments) { comment = new TiXmlComment("[-260.461700, 122.487022], 0.0 (most). lots of values"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_12"); node->SetAttribute("float", FloatToString(unk_12));  if (withComments) { comment = new TiXmlComment("[-463.797577, 387.593781], 0.0 (most). lots of values"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_13"); node->SetAttribute("float", FloatToString(unk_13));  if (withComments) { comment = new TiXmlComment("[0.0, 841637952.0], 1.0 (most). lots of values near 0. there also have strange too high values");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 	
 	return mainNode;
 }
@@ -4784,7 +4830,7 @@ TiXmlElement* FMP_VirtualSubPart_sub::export_Xml(bool withComments)
 /*-------------------------------------------------------------------------------\
 |                             export_Xml					                     |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* FMP_HitboxGroup::export_Xml(string filename, std::vector<Havok_File*> &listHavokFile)
+TiXmlElement* FMP_HitboxGroup::export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup)
 {
 	
 	TiXmlElement* mainNode = new TiXmlElement("HitboxGroup");
@@ -4798,7 +4844,7 @@ TiXmlElement* FMP_HitboxGroup::export_Xml(string filename, std::vector<Havok_Fil
 	for (size_t i = 0; i < nbChild; i++)
 	{
 		comment = new TiXmlComment(("index : "+ std::to_string(i)).c_str()); node->LinkEndChild(comment);
-		node->LinkEndChild(listHitbox.at(i).export_Xml(filename, listHavokFile, i, i==0));
+		node->LinkEndChild(listHitbox.at(i).export_Xml(filename, listHavokFile, indexGroup, i, i==0));
 	}
 	mainNode->LinkEndChild(node);
 
@@ -4808,7 +4854,7 @@ TiXmlElement* FMP_HitboxGroup::export_Xml(string filename, std::vector<Havok_Fil
 /*-------------------------------------------------------------------------------\
 |                             export_Xml					                     |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup, bool withComments)
+TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup, size_t indexHitbox, bool withComments)
 {
 
 	TiXmlElement* mainNode = new TiXmlElement("Hitbox");
@@ -4834,7 +4880,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 		for (size_t j = 0; j < nbDes; j++)
 		{
 			comment = new TiXmlComment(("index : " + std::to_string(j)).c_str()); node_DesGroup->LinkEndChild(comment);
-			node_DesGroup->LinkEndChild(listOnDestruction.at(i).at(j).export_Xml(filename, indexGroup, i, j, listHavokFile, ((i == 0) && (j == 0))));
+			node_DesGroup->LinkEndChild(listOnDestruction.at(i).at(j).export_Xml(filename, indexGroup, indexHitbox, i, j, listHavokFile, ((i == 0) && (j == 0))));
 		}
 		node_ListOnDes->LinkEndChild(node_DesGroup);
 	}
@@ -4849,7 +4895,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 	for (size_t i = 0; i < nbHk; i++)
 	{
 		Havok_File* havokFile = listHavokFile.at(listHavokFilesIndex.at(i));
-		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) +"\\"+ LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(i) + ".hkx";	//extract the file into a folder with the basename of the file.
+		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) +"\\"+ LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox)  + "_" + std::to_string(i) + ".hkx";	//extract the file into a folder with the basename of the file.
 
 		node_ListHavok->LinkEndChild(havokFile->export_Xml(filename_tmp));
 	}
@@ -4893,7 +4939,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 
 		//because of the memory of tiXml with tag, NLBY.map crahs the tool. So We have to deal with large number of Vertex to reduce the memory print.
 		TiXmlElement* node_Vertex = new TiXmlElement("Vertex");
-		node_Vertex->SetAttribute("IdPosNor", std::to_string(i) +","+ std::to_string(vertex.position[0]) +","+ std::to_string(vertex.position[1]) + "," + std::to_string(vertex.position[2]) +","+ std::to_string(vertex.normal[0]) + "," + std::to_string(vertex.normal[1]) + "," + std::to_string(vertex.normal[2]));
+		node_Vertex->SetAttribute("IdPosNor", std::to_string(i) +","+ FloatToString(vertex.position[0]) +","+ FloatToString(vertex.position[1]) + "," + FloatToString(vertex.position[2]) +","+ FloatToString(vertex.normal[0]) + "," + FloatToString(vertex.normal[1]) + "," + FloatToString(vertex.normal[2]));
 		node_ListVertex->LinkEndChild(node_Vertex);
 	}
 	node_Mesh->LinkEndChild(node_ListVertex);
@@ -4910,7 +4956,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 
 	if (nbFI!=0)
 	{
-		//because of the memory of tiXml with tag, NLBY.map crahs the tool. So We have to deal with large number of index
+		//because of the memory of tinyXml with tag, NLBY.map crahs the tool. So We have to deal with large number of index
 		size_t nbElement = 1000;
 		size_t nbFI_package = nbFI / nbElement;
 		size_t nbFI_package_rest = nbFI - nbFI_package * nbElement;
@@ -4963,18 +5009,19 @@ TiXmlElement* Havok_File::export_Xml(string filename)
 /*-------------------------------------------------------------------------------\
 |                             export_Xml					                     |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* FMP_Destruction::export_Xml(string filename, size_t indexGroup, size_t indexDestructionGroup, size_t indexDestruction, std::vector<Havok_File*> &listHavokFile, bool withComments)
+TiXmlElement* FMP_Destruction::export_Xml(string filename, size_t indexGroup, size_t indexHitbox, size_t indexDestructionGroup, size_t indexDestruction, std::vector<Havok_File*> &listHavokFile, bool withComments)
 {
 
 	TiXmlElement* mainNode = new TiXmlElement("Destruction");
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
+	node = new TiXmlElement("unk_0"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_0, true));  if (withComments) { comment = new TiXmlComment("few hole in [0 (most), 0x11]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_1"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_1, true));  if(withComments) { comment = new TiXmlComment("from 0x0 (most) to 0x1240b"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_2"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_2, true));  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_5"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_5, true));  if (withComments) { comment = new TiXmlComment("look pretty the same as unk_1, but until 0x112aa"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_6"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_6, true));  if (withComments) { comment = new TiXmlComment("from 0 (most) to 0x6159"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_7"); node->SetAttribute("float", std::to_string(unk_7));  if (withComments) { comment = new TiXmlComment("only 0.0, 0.01 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_7"); node->SetAttribute("float", FloatToString(unk_7));  if (withComments) { comment = new TiXmlComment("only 0.0, 0.01 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 
 
 	if(haveSub0)
@@ -4988,7 +5035,7 @@ TiXmlElement* FMP_Destruction::export_Xml(string filename, size_t indexGroup, si
 	if ((havokFileIndex != (size_t)-1)&&(havokFileIndex<listHavokFile.size()))
 	{
 		Havok_File* havokFile = listHavokFile.at(havokFileIndex);
-		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\" + LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(indexDestructionGroup) + "_" + std::to_string(indexDestruction) + ".hkx";	//extract the file into a folder with the basename of the file.
+		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\" + LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox) + "_" + std::to_string(indexDestructionGroup) + "_" + std::to_string(indexDestruction) + ".hkx";	//extract the file into a folder with the basename of the file.
 
 		mainNode->LinkEndChild(havokFile->export_Xml(filename_tmp));
 	}
@@ -5006,21 +5053,21 @@ TiXmlElement* FMP_Destruction_sub::export_Xml(bool withComments)
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
-	node = new TiXmlElement("yaw"); node->SetAttribute("float", std::to_string(yaw));   mainNode->LinkEndChild(node);
-	node = new TiXmlElement("pitch"); node->SetAttribute("float", std::to_string(pitch));   mainNode->LinkEndChild(node);
-	node = new TiXmlElement("roll"); node->SetAttribute("float", std::to_string(roll));   mainNode->LinkEndChild(node);
+	node = new TiXmlElement("yaw"); node->SetAttribute("float", FloatToString(yaw));   mainNode->LinkEndChild(node);
+	node = new TiXmlElement("pitch"); node->SetAttribute("float", FloatToString(pitch));   mainNode->LinkEndChild(node);
+	node = new TiXmlElement("roll"); node->SetAttribute("float", FloatToString(roll));   mainNode->LinkEndChild(node);
 
 	node = new TiXmlElement("unk_0"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(unk_0, false));  if (withComments) { comment = new TiXmlComment("1 (most), 2, 3"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_1"); node->SetAttribute("float", std::to_string(unk_1));  if (withComments) { comment = new TiXmlComment("[-30.776886 , 1.893005] + 55.799999, 0.0 at most"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_2"); node->SetAttribute("float", std::to_string(unk_2));  if (withComments) { comment = new TiXmlComment("[-58.922211, 35.0], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_3"); node->SetAttribute("float", std::to_string(unk_3));  if (withComments) { comment = new TiXmlComment("[-0.359985, 1.434509] plus -463.797607, -5.0, 20.0. 0.0 at most");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_7"); node->SetAttribute("float", std::to_string(unk_7));  if (withComments) { comment = new TiXmlComment("[0.05, 707.106812], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_8"); node->SetAttribute("float", std::to_string(unk_8));  if (withComments) { comment = new TiXmlComment("[0.0, 210.0], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_9"); node->SetAttribute("float", std::to_string(unk_9));  if (withComments) { comment = new TiXmlComment("[0.0, 700.0], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_10"); node->SetAttribute("float", std::to_string(unk_10));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_11"); node->SetAttribute("float", std::to_string(unk_11));  mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_12"); node->SetAttribute("float", std::to_string(unk_12));  if (withComments) { comment = new TiXmlComment("-210.0, 0.0 (most)]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
-	node = new TiXmlElement("unk_13"); node->SetAttribute("float", std::to_string(unk_13));  if(withComments) { comment = new TiXmlComment("only 0 (most), or 7.721795e-10"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_1"); node->SetAttribute("float", FloatToString(unk_1));  if (withComments) { comment = new TiXmlComment("[-30.776886 , 1.893005] + 55.799999, 0.0 at most"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_2"); node->SetAttribute("float", FloatToString(unk_2));  if (withComments) { comment = new TiXmlComment("[-58.922211, 35.0], 0.0 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_3"); node->SetAttribute("float", FloatToString(unk_3));  if (withComments) { comment = new TiXmlComment("[-0.359985, 1.434509] plus -463.797607, -5.0, 20.0. 0.0 at most");  mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_7"); node->SetAttribute("float", FloatToString(unk_7));  if (withComments) { comment = new TiXmlComment("[0.05, 707.106812], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_8"); node->SetAttribute("float", FloatToString(unk_8));  if (withComments) { comment = new TiXmlComment("[0.0, 210.0], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_9"); node->SetAttribute("float", FloatToString(unk_9));  if (withComments) { comment = new TiXmlComment("[0.0, 700.0], 0.5 (most)"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_10"); node->SetAttribute("float", FloatToString(unk_10));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_11"); node->SetAttribute("float", FloatToString(unk_11));  mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_12"); node->SetAttribute("float", FloatToString(unk_12));  if (withComments) { comment = new TiXmlComment("-210.0, 0.0 (most)]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
+	node = new TiXmlElement("unk_13"); node->SetAttribute("float", FloatToString(unk_13));  if(withComments) { comment = new TiXmlComment("only 0 (most), or 7.721795e-10"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
 	
 	return mainNode;
 }
@@ -6157,6 +6204,7 @@ bool FMP_Destruction::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &l
 	TiXmlElement* node_tmp;
 	string str = "";
 
+	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_0 = EMO_BaseFile::GetUnsigned(str, unk_0);
 	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_1 = EMO_BaseFile::GetUnsigned(str, unk_1);
 	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_2 = EMO_BaseFile::GetUnsigned(str, unk_2);
 	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_5 = EMO_BaseFile::GetUnsigned(str, unk_5);

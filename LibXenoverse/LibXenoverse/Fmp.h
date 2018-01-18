@@ -927,7 +927,7 @@ public:
 	bool Load(const uint8_t *buf, size_t size, size_t offset_Section5_Hitbox_c, std::vector<Havok_File*> &mListHavokFile);
 	void Reset();
 
-	TiXmlElement* export_Xml(string filename, size_t indexGroup, size_t indexDestructionGroup, size_t indexDestruction, std::vector<Havok_File*> &listHavokFile, bool withComments = false);
+	TiXmlElement* export_Xml(string filename, size_t indexGroup, size_t indexHitbox, size_t indexDestructionGroup, size_t indexDestruction, std::vector<Havok_File*> &listHavokFile, bool withComments = false);
 	bool import_Xml(TiXmlElement* parent, std::vector<Havok_File*> &listHavokFile, string filename);
 };
 
@@ -972,7 +972,7 @@ public:
 	bool Load(const uint8_t *buf, size_t size, FMP_Section5_Hitbox* section5_hitbox, std::vector<Havok_File*> &mListHavokFile);
 	void Reset();
 
-	TiXmlElement* export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup, bool withComments = false);
+	TiXmlElement* export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup, size_t indexHitbox, bool withComments = false);
 	bool import_Xml(TiXmlElement* parent, std::vector<Havok_File*> &listHavokFile, string filename);
 };
 
@@ -993,7 +993,7 @@ public:
 	bool Load(const uint8_t *buf, size_t size, size_t offset_section5, size_t version, std::vector<Havok_File*> &mListHavokFile);
 	void Reset();
 
-	TiXmlElement* export_Xml(string filename, std::vector<Havok_File*> &listHavokFile);
+	TiXmlElement* export_Xml(string filename, std::vector<Havok_File*> &listHavokFile, size_t indexGroup);
 	bool import_Xml(TiXmlElement* parent, std::vector<Havok_File*> &listHavokFile, string filename);
 };
 
