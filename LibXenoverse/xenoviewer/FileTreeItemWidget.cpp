@@ -39,16 +39,26 @@ ModelPackItemWidget::ModelPackItemWidget(EMDOgre *data, QTreeWidget *parent) : F
 		type = ItemModelPack;
 
 		EMMOgre *material_pack = data->getMaterialPack();
-		MaterialPackItemWidget *material_pack_item = new MaterialPackItemWidget(material_pack, NULL);
-		addChild(material_pack_item);
+		if (material_pack)
+		{
+			MaterialPackItemWidget *material_pack_item = new MaterialPackItemWidget(material_pack, NULL);
+			addChild(material_pack_item);
 
-		EMBOgre *texture_pack = material_pack->getTexturePack();
-		TexturePackItemWidget *texture_pack_item = new TexturePackItemWidget(texture_pack, NULL);
-		addChild(texture_pack_item);
+			EMBOgre *texture_pack = material_pack->getTexturePack();
+			if (texture_pack)
+			{
+				TexturePackItemWidget *texture_pack_item = new TexturePackItemWidget(texture_pack, NULL);
+				addChild(texture_pack_item);
+			}
 
-		EMBOgre *texture_dyt_pack = material_pack->getDYTTexturePack();
-		TexturePackItemWidget *texture_dyt_pack_item = new TexturePackItemWidget(texture_dyt_pack, NULL);
-		addChild(texture_dyt_pack_item);
+			EMBOgre *texture_dyt_pack = material_pack->getDYTTexturePack();
+			if (texture_dyt_pack)
+			{
+				TexturePackItemWidget *texture_dyt_pack_item = new TexturePackItemWidget(texture_dyt_pack, NULL);
+				addChild(texture_dyt_pack_item);
+			}
+		}
+
 	}
 }
 

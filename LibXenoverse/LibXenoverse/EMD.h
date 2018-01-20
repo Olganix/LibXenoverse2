@@ -150,6 +150,7 @@ class EMDSubmesh
 	friend class EMG;
 	friend class EMG_SubPart;
 	friend class EMG_SubMesh;
+	friend class FMP_Hitbox;
 
 protected:
 	string name;									//it's also the materialName
@@ -219,6 +220,7 @@ class EMDMesh
 	friend class EMD;
 	friend class EMG;
 	friend class EMP;
+	friend class FMP_Hitbox;
 
 protected:
 	string name;
@@ -275,6 +277,7 @@ class EMDModel
 	friend class EMD;
 	friend class EMO_PartsGroup;
 	friend class EMP;
+	friend class FMP_Hitbox;
 
 protected:
 	string name;
@@ -313,6 +316,7 @@ class EMD
 {
 	friend class EMO;
 	friend class EMP;
+	friend class FMP_Hitbox;
 
 protected:
 	string name;

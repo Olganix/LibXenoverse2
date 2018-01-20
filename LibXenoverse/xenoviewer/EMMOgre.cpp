@@ -476,8 +476,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				float4x4ListName.push_back(sv2.at(1));
 			else if (sv2.at(0) == "float4x3")
 				float4x3ListName.push_back(sv2.at(1));
-			else
-				assert(false);	//if pass here, complete by reading shaders
+			//else
+				//assert(false);	//if pass here, complete by reading shaders
 		}
 
 		if ((isRegisters) && (sv2.size() == 3))
@@ -1635,6 +1635,7 @@ string EMMOgre::getCreatedMaterialName(string materialName)
 		if ((testedName.length() >= nbCharac)&&(testedName.substr(testedName.length()- nbCharac)== toTest))
 			return testedName;
 	}
+	return toTest;
 }
 
 void EMMOgre::destroyResources()

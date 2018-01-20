@@ -4809,13 +4809,14 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 
 
 
-
+	
 
 
 	TiXmlElement* node_Mesh = new TiXmlElement("CollisionGeometry");
 	comment = new TiXmlComment( ("debug_startOffset_vertex = " + EMO_BaseFile::UnsignedToString(debug_startOffset_vertex, true)).c_str() ); node_Mesh->LinkEndChild(comment);
 	comment = new TiXmlComment( ("debug_startOffset_faces = " + EMO_BaseFile::UnsignedToString(debug_startOffset_faces, true)).c_str() ); node_Mesh->LinkEndChild(comment);	
 
+	/*
 	TiXmlElement* node_ListVertex = new TiXmlElement("ListVertex");
 	size_t nbVertex = listVertex.size();
 	for (size_t i = 0; i < nbVertex; i++)
@@ -4839,7 +4840,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 		node_Vertex->LinkEndChild(node);
 
 		node_ListVertex->LinkEndChild(node_Vertex);
-		*/
+		*//*
 
 		//because of the memory of tiXml with tag, NLBY.map crahs the tool. So We have to deal with large number of Vertex to reduce the memory print.
 		TiXmlElement* node_Vertex = new TiXmlElement("Vertex");
@@ -4856,7 +4857,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 	{
 		node = new TiXmlElement("Index"); node->SetAttribute("u16", listFaceIndex.at(i));  node_ListFacesIndex->LinkEndChild(node);
 	}
-	*/
+	*//*/
 
 	if (nbFI!=0)
 	{
@@ -4881,6 +4882,95 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 	}
 
 	node_Mesh->LinkEndChild(node_ListFacesIndex);
+	*/
+
+
+
+	//with a test, all Vertex + faceIndex could be converted into emd without trouble. So here we will just extract (and repack after) a emd, that will make the map file lighter.
+	size_t nbVertex = listVertex.size();
+	size_t nbFI = listFaceIndex.size();
+
+	if((nbVertex!=0)&&(nbFI!=0))
+	{
+		string meshFilename = "CollisionMesh_" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox) + ".emd";
+		node_Mesh->SetAttribute("filename", LibXenoverse::nameFromFilename(meshFilename));
+		
+		EMD emd;
+		emd.name = meshFilename;
+		EMDModel* model = new EMDModel();
+		emd.models.push_back(model);
+
+		model->name = "unknowModel";
+		EMDMesh* mesh = new EMDMesh();
+		model->meshes.push_back(mesh);
+
+		mesh->name = "unknowMesh";
+		EMDSubmesh* submesh = new EMDSubmesh();
+		mesh->submeshes.push_back(submesh);
+
+		submesh->name = "White";
+		submesh->vertex_type_flag = EMD_VTX_FLAG_POS | EMD_VTX_FLAG_NORM;
+		submesh->vertex_size = EMDVertex::getSizeFromFlags(submesh->vertex_type_flag, false);
+
+
+		mesh->aabb_min_w = mesh->aabb_max_w = mesh->aabb_center_w =  1;
+
+		for (size_t i = 0; i < nbVertex; i++)
+		{
+			Vertex &vertex = listVertex.at(i);
+
+			EMDVertex vert;
+			
+			vert.flags = submesh->vertex_type_flag;
+			vert.pos_x = vertex.position[0];
+			vert.pos_y = vertex.position[1];
+			vert.pos_z = vertex.position[2];
+
+			vert.norm_x = vertex.normal[0];
+			vert.norm_y = vertex.normal[1];
+			vert.norm_z = vertex.normal[2];
+
+			submesh->vertices.push_back(vert);
+
+			if (vertex.position[0] < mesh->aabb_min_x)
+				mesh->aabb_min_x = vertex.position[0];
+			if (vertex.position[0] > mesh->aabb_max_x)
+				mesh->aabb_max_x = vertex.position[0];
+
+			if (vertex.position[1] < mesh->aabb_min_y)
+				mesh->aabb_min_y = vertex.position[1];
+			if (vertex.position[1] > mesh->aabb_max_y)
+				mesh->aabb_max_y = vertex.position[1];
+
+			if (vertex.position[2] < mesh->aabb_min_z)
+				mesh->aabb_min_z = vertex.position[2];
+			if (vertex.position[2] > mesh->aabb_max_z)
+				mesh->aabb_max_z = vertex.position[2];
+		}
+
+		submesh->aabb_center_x = mesh->aabb_center_x;
+		submesh->aabb_center_y = mesh->aabb_center_y;
+		submesh->aabb_center_z = mesh->aabb_center_z;
+		submesh->aabb_center_w = mesh->aabb_center_w;
+		submesh->aabb_min_x = mesh->aabb_min_x;
+		submesh->aabb_min_y = mesh->aabb_min_y;
+		submesh->aabb_min_z = mesh->aabb_min_z;
+		submesh->aabb_min_w = mesh->aabb_min_w;
+		submesh->aabb_max_x = mesh->aabb_max_x;
+		submesh->aabb_max_y = mesh->aabb_max_y;
+		submesh->aabb_max_z = mesh->aabb_max_z;
+		submesh->aabb_max_w = mesh->aabb_max_w;
+
+		EMDTriangles triangle;
+		for (size_t i = 0; i < nbFI; i++)
+		{
+			triangle.faces.push_back(listFaceIndex.at(i));
+		}
+		submesh->triangles.push_back(triangle);
+
+		emd.save( LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\" + emd.name );
+	}
+
 
 	mainNode->LinkEndChild(node_Mesh);
 
@@ -6012,6 +6102,39 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 	TiXmlElement* node_Mesh = node->FirstChildElement("CollisionGeometry");
 	if(node_Mesh)
 	{
+		string meshFilename = "";
+		node_Mesh->QueryStringAttribute("filename", &meshFilename);
+		
+		if ((meshFilename.length()>4)&&(meshFilename.substr(meshFilename.length() - 4)==".emd"))
+		{
+			meshFilename = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\" + meshFilename;
+
+			EMD emd;
+			if ((emd.load(meshFilename))&&(emd.models.size()!=0) && (emd.models.at(0)->meshes.size() != 0) && (emd.models.at(0)->meshes.at(0)->submeshes.size() != 0))
+			{
+				EMDSubmesh* submesh = emd.models.at(0)->meshes.at(0)->submeshes.at(0);
+				if (((submesh->vertex_type_flag & (EMD_VTX_FLAG_POS | EMD_VTX_FLAG_NORM)) != 0) && (submesh->vertices.size() != 0) && (submesh->triangles.size() != 0) && (submesh->triangles.at(0).faces.size() != 0))
+				{
+					vector<EMDVertex> &vertices = submesh->vertices;
+					vector<unsigned short> &faces = submesh->triangles.at(0).faces;
+
+					size_t nbVertex = vertices.size();
+					for (size_t i = 0; i < nbVertex; i++)
+					{
+						EMDVertex &vert = vertices.at(i);
+						Vertex vertex(vert.pos_x, vert.pos_y, vert.pos_z, vert.norm_x, vert.norm_y, vert.norm_z);
+						listVertex.push_back(vertex);
+					}
+
+					size_t nbFaceIndex = faces.size();;
+					for (size_t i = 0; i < nbFaceIndex; i++)
+						listFaceIndex.push_back(faces.at(i));
+				}
+			}
+		}
+		
+		
+		/*
 		TiXmlElement* node_ListVertex = node_Mesh->FirstChildElement("ListVertex");
 		for (TiXmlElement* node_Vertex = (node_ListVertex) ? node_ListVertex->FirstChildElement("Vertex") : 0; node_Vertex; node_Vertex = node_Vertex->NextSiblingElement("Vertex"))
 		{
@@ -6032,7 +6155,7 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 				node_tmp->QueryFloatAttribute_floatPrecision("Y", &vertex.normal[1]);
 				node_tmp->QueryFloatAttribute_floatPrecision("Z", &vertex.normal[2]);
 			}
-			*/
+			*//*
 
 			//v2 because of memory of tinyXml
 			node_Vertex->QueryStringAttribute("IdPosNor", &str);
@@ -6059,7 +6182,7 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 			/*
 			node_tmp->QueryUnsignedAttribute("u16", &index);
 			listFaceIndex.push_back(index);
-			*/
+			*//*
 
 			//v2 because of memory of tinyXml
 			node_tmp->QueryStringAttribute("u16", &str);
@@ -6072,6 +6195,7 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 			for(size_t j=0;j<nbIndex;j++)
 				listFaceIndex.push_back( stoul(sp.at(j)) );
 		}
+		*/
 	}
 
 	return true;

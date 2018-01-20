@@ -1159,52 +1159,74 @@ namespace QtOgre
 
 		if (!LibXenoverse::fileCheck(emb_filename))
 		{
-			SHOW_ERROR("No EMB Pack with the name " + QString(emb_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
-			return;
+			emb_filename = "";
+			//SHOW_ERROR("No EMB Pack with the name " + QString(emb_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
 		}
+
 
 		if (!LibXenoverse::fileCheck(emb_dyt_filename))
 		{
+			emb_dyt_filename = emb_filename;		//certain charac have only emb file , no dyt, or no need.
 			//SHOW_ERROR("No EMB DYT Pack with the name " + QString(emb_dyt_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
 			//return;
-			emb_dyt_filename = emb_filename;		//certain charac have only emb file , no dyt, or no need.
 		}
 
 		if (!LibXenoverse::fileCheck(emm_filename))
 		{
-			SHOW_ERROR("No EMM Pack with the name " + QString(emm_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
-			return;
+			emm_filename = "";
+			//SHOW_ERROR("No EMM Pack with the name " + QString(emm_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
 		}
 
-		texture_pack = new EMBOgre();
-		if (texture_pack->load(emb_filename))
+		texture_pack = 0;
+
+		if (emb_filename.length()!=0)
 		{
-			texture_pack->createOgreTextures();
-		}else {
-			SHOW_ERROR("Invalid EMB Texture Pack. Is " + QString(emb_filename.c_str()) + " valid?");
-			goto abort_clean;
+			texture_pack = new EMBOgre();
+			if (texture_pack->load(emb_filename))
+			{
+				texture_pack->createOgreTextures();
+			}else{
+				SHOW_ERROR("Invalid EMB Texture Pack. Is " + QString(emb_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_pack;
+				texture_pack = 0;
+			}
 		}
 
-		texture_dyt_pack = new EMBOgre();
-		if (texture_dyt_pack->load(emb_dyt_filename))
+		texture_dyt_pack = 0;
+		if (emb_dyt_filename.length() != 0)
 		{
-			texture_dyt_pack->createOgreTextures();
-		}else {
-			SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(emb_dyt_filename.c_str()) + " valid?");
-			goto abort_clean;
+			texture_dyt_pack = new EMBOgre();
+			if (texture_dyt_pack->load(emb_dyt_filename))
+			{
+				texture_dyt_pack->createOgreTextures();
+			}else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(emb_dyt_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_dyt_pack;
+				texture_dyt_pack = 0;
+			}
 		}
 
 		
+		material = 0;
 
-		material = new EMMOgre();
-		if (material->load(emm_filename))
+		if (emm_filename.length() != 0)
 		{
-			material->setTexturePack(texture_pack);
-			material->setDYTTexturePack(texture_dyt_pack);
-			material->createOgreMaterials(sds_list);
-		}else {
-			SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
-			goto abort_clean;
+			material = new EMMOgre();
+			if (material->load(emm_filename))
+			{
+				material->setTexturePack(texture_pack);
+				material->setDYTTexturePack(texture_dyt_pack);
+				material->createOgreMaterials(sds_list);
+			}else {
+				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete material;
+				material = 0;
+			}
 		}
 
 		

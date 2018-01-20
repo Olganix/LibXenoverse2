@@ -534,8 +534,8 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 		Ogre::Pass* pass = mat->getTechnique(0)->getPass(0);
 
 		// Create Render Object Listeners depending on submesh definitions
-		EMBOgre* texture_pack = material_pack->getTexturePack();
-		EMBOgre* texture_dyt_pack = material_pack->getDYTTexturePack();
+		EMBOgre* texture_pack = (material_pack) ?  material_pack->getTexturePack() : 0;
+		EMBOgre* texture_dyt_pack = (material_pack) ? material_pack->getDYTTexturePack() : 0;
 
 		if (texture_pack && texture_dyt_pack)
 		{
