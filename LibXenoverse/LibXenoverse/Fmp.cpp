@@ -3,6 +3,11 @@
 #include <sstream>
 #include <iomanip>
 
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
+
 namespace LibXenoverse
 {
 
@@ -20,6 +25,38 @@ std::string FloatToString(float value)
 
 	return str;
 }
+
+
+
+// trim from start
+std::string &ltrim(std::string &s)
+{
+	s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+	return s;
+}
+
+// trim from end
+std::string &rtrim(std::string &s)
+{
+	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+	return s;
+}
+
+// trim from both ends
+std::string &trim(std::string &s) { return ltrim(rtrim(s)); }
+
+float StringToFloat(string value)
+{
+	string tmp = trim(value);
+	
+	float fval = 0;
+	sscanf(tmp.c_str(), "%f", &fval);
+
+	return fval;
+}
+
+
+
 
 /*-------------------------------------------------------------------------------\
 |                             FmpFile				                             |
@@ -478,6 +515,8 @@ void FMP_Object::Reset()
 	if (hierarchy)
 		delete hierarchy;
 	hierarchy = 0;
+
+	debug_startOffset = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             Reset					                             |
@@ -489,6 +528,8 @@ void FMP_Hierarchy::Reset()
 	if (mRoot)
 		delete mRoot;
 	mRoot = 0;
+
+	debug_startOffset = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             operator==			                             |
@@ -610,6 +651,8 @@ void FMP_Entity::Reset()
 	s4n2b_unk_8 = 0xffffffff;
 	s4n2b_unk_9 = 60.0f;
 	s4n2b_unk_10 = 60.0f;
+
+	debug_startOffset = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             operator==			                             |
@@ -668,6 +711,8 @@ void FMP_VirtualSubPart::Reset()
 	transformMatrix4x3[3] = 0; transformMatrix4x3[4] = 1; transformMatrix4x3[5] = 0;
 	transformMatrix4x3[6] = 0; transformMatrix4x3[7] = 0; transformMatrix4x3[8] = 1;
 	transformMatrix4x3[9] = 0; transformMatrix4x3[10] = 0; transformMatrix4x3[11] = 0;
+
+	debug_startOffset = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             operator==			                             |
@@ -696,7 +741,7 @@ bool FMP_VirtualSubPart::operator==(const FMP_VirtualSubPart& other)
 		((action != 0) && (*action != *other.action)))
 		return false;
 
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 12; i++)
 		if (transformMatrix4x3[i] != other.transformMatrix4x3[i])
 			return false;
 
@@ -851,6 +896,8 @@ void FMP_Action::Reset()
 	unk_1d = 0;
 
 	listCommands.clear();
+
+	debug_startOffset = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             operator==			                             |
@@ -1219,6 +1266,8 @@ bool FMP_Object::Load(const uint8_t *buf, size_t size, size_t offset_Section4, s
 {
 	Reset();
 
+	debug_startOffset = offset_Section4;
+
 	FMP_Section4* section4 = (FMP_Section4*)(buf + offset_Section4);
 	name = std::string((char *)(buf + section4->name_offset));
 
@@ -1296,6 +1345,8 @@ bool FMP_Object::Load(const uint8_t *buf, size_t size, size_t offset_Section4, s
 bool FMP_Hierarchy::Load(const uint8_t *buf, size_t size, size_t offset_Section4_Next4)
 {
 	Reset();
+
+	debug_startOffset = offset_Section4_Next4;
 
 	FMP_Section4_Next4* section4_Next4 = (FMP_Section4_Next4*)(buf + offset_Section4_Next4);
 
@@ -1535,6 +1586,8 @@ bool FMP_Action::Load(const uint8_t *buf, size_t size, size_t offset_Section4_Ne
 {
 	Reset();
 
+	debug_startOffset = offset_Section4_Next3;
+
 	FMP_Section4_Next3* section4_Next3 = (FMP_Section4_Next3*)(buf + offset_Section4_Next3);
 
 
@@ -1624,6 +1677,8 @@ bool FMP_Action::Load(const uint8_t *buf, size_t size, size_t offset_Section4_Ne
 bool FMP_VirtualSubPart::Load(const uint8_t *buf, size_t size, size_t offset_Section4_Next)
 {
 	Reset();
+
+	debug_startOffset = offset_Section4_Next;
 
 	FMP_Section4_Next* section4_Next = (FMP_Section4_Next*)(buf + offset_Section4_Next);
 
@@ -1722,6 +1777,8 @@ bool FMP_VirtualSubPart_sub::Load(const uint8_t *buf, size_t size, size_t offset
 bool FMP_Entity::Load(const uint8_t *buf, size_t size, size_t offset_Section4_Next2, std::vector<string> &listNskFile, std::vector<string> &listTextureEmbFile, std::vector<string> &listEmmFile, std::vector<string> &listEmaFile)
 {
 	Reset();
+
+	debug_startOffset = offset_Section4_Next2;
 
 	FMP_Section4_Next2* section4_Next2 = (FMP_Section4_Next2*)(buf + offset_Section4_Next2);
 
@@ -1990,7 +2047,7 @@ bool FMP_Destruction_sub::Load(const uint8_t *buf, size_t size, size_t offset_Se
 	unk_1 = section5_Hitbox_d->unk_1;
 	unk_2 = section5_Hitbox_d->unk_2;
 	unk_3 = section5_Hitbox_d->unk_3;
-	yaw = section5_Hitbox_d->yaw * 180.0f / 3.1415926535897f;						//conver in degrees
+	yaw = section5_Hitbox_d->yaw * 180.0f / 3.1415926535897f;						//convert in degrees
 	pitch = section5_Hitbox_d->pitch * 180.0f / 3.1415926535897f;
 	roll = section5_Hitbox_d->roll * 180.0f / 3.1415926535897f;
 	unk_7 = section5_Hitbox_d->unk_7;
@@ -2137,14 +2194,17 @@ size_t FmpFile::calculeFilesize()
 	std::vector<size_t> listOfDuplicate_Hierarchy;
 	listOfDuplicate_Hierarchy.resize(nbObject, (size_t)-1);
 
-	//for (size_t i = 1; i < nbObject * 0; i++)					//here the check on duplicate. //todo remove * 0
 	for (size_t i = 1; i < nbObject; i++)					//here the check on duplicate. // I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
 	{
 		FMP_Object* obj = mListObject.at(i);
+		if (obj->unk_0B != 0xffffff80)
+			continue;
+
+
 		size_t nbEnt = obj->listEntity.size();
 		size_t nbVsp = obj->listVirtualSubParts.size();
 
-		for (size_t j = 0; j < i; j++)
+		for (int j = (int)i - 1; j >= 0; j--)
 		{
 			FMP_Object* obj_b = mListObject.at(j);
 			size_t nbEnt_b = obj_b->listEntity.size();
@@ -2869,19 +2929,17 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 
 
 
-
-	//for (size_t i = 1; i < hdr->numberSection4 * 0; i++)					//here the check on duplicate. //todo remove * 0
 	for (size_t i = 1; i < hdr->numberSection4; i++)					//here the check on duplicate. // I notice the "remove duplication" is applied if the 4 parts are the same in the same time. So here we will synchronize the 4 list
 	{
 		FMP_Object* obj = mListObject.at(i);
+		if (obj->unk_0B != 0xffffff80)
+			continue;
+
 		size_t nbEnt = obj->listEntity.size();
 		size_t nbVsp = obj->listVirtualSubParts.size();
 			
-		for (size_t j = 0; j < i; j++)
+		for (int j = (int)i - 1; j >=0 ; j--)
 		{
-			if (j == 107)
-				int aa = 42;
-			
 			FMP_Object* obj_b = mListObject.at(j);
 			size_t nbEnt_b = obj_b->listEntity.size();
 			size_t nbVsp_b = obj_b->listVirtualSubParts.size();
@@ -3390,7 +3448,7 @@ size_t FmpFile::write(uint8_t *buf, size_t size)
 				offset += section4_Next4->number_Section4_Next4_b * sizeof(FMP_Section4_Next4_b);
 
 
-				//Section4_Next4_c									todo optimize to avoid same transform.
+				//Section4_Next4_c
 				section4_Next4->number_Section4_Next4_c = obj->hierarchy->listTransform.size();
 				section4_Next4->offset_Section4_Next4_c = (section4_Next4->number_Section4_Next4_c != 0) ? offset : 0;
 
@@ -4176,6 +4234,8 @@ TiXmlElement* FMP_Object::export_Xml(bool withComments)
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
+	comment = new TiXmlComment(("debug_startOffset :" + EMO_BaseFile::UnsignedToString(debug_startOffset, true)).c_str()); mainNode->LinkEndChild(comment);		//todo remove	
+	
 	node = new TiXmlElement("name"); node->SetAttribute("value", name);  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("hitboxGroupIndex"); node->SetAttribute("value", EMO_BaseFile::UnsignedToString(hitboxGroupIndex, false)); mainNode->LinkEndChild(node);
 
@@ -4236,6 +4296,8 @@ TiXmlElement* FMP_Action::export_Xml(bool withComments)
 	TiXmlElement* mainNode = new TiXmlElement("Action");
 	TiXmlElement* node;
 	TiXmlComment* comment;
+
+	comment = new TiXmlComment(("debug_startOffset :" + EMO_BaseFile::UnsignedToString(debug_startOffset, true)).c_str()); mainNode->LinkEndChild(comment);		//todo remove
 
 	node = new TiXmlElement("unk_0"); node->SetAttribute("u32", unk_0);  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_1a"); node->SetAttribute("u8", EMO_BaseFile::UnsignedToString(unk_1a, true)); mainNode->LinkEndChild(node);
@@ -4355,6 +4417,7 @@ TiXmlElement* FMP_Hierarchy::export_Xml()
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
+	comment = new TiXmlComment(("debug_startOffset :" + EMO_BaseFile::UnsignedToString(debug_startOffset, true)).c_str()); mainNode->LinkEndChild(comment);	//todo remove
 
 	node = new TiXmlElement("ListNode");
 	size_t nbNode = listNode.size();
@@ -4495,6 +4558,7 @@ TiXmlElement* FMP_Entity::export_Xml(bool withComments)
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
+	comment = new TiXmlComment(("debug_startOffset :" + EMO_BaseFile::UnsignedToString(debug_startOffset, true)).c_str()); mainNode->LinkEndChild(comment);	//todo remove.
 
 	node = new TiXmlElement("s4n2_unk_0"); node->SetAttribute("u32", EMO_BaseFile::UnsignedToString(s4n2_unk_0, true)); if (withComments) { comment = new TiXmlComment("few holes in [0 (most), 0x11], go up to 0x74"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 
@@ -4559,7 +4623,8 @@ TiXmlElement* FMP_VirtualSubPart::export_Xml(bool withComments)
 	TiXmlElement* node;
 	TiXmlComment* comment;
 
-
+	comment = new TiXmlComment( ("debug_startOffset :" + EMO_BaseFile::UnsignedToString(debug_startOffset, true)).c_str() ); mainNode->LinkEndChild(comment);		//todo remove
+	
 	node = new TiXmlElement("unk_2"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_2, true));  if (withComments) { comment = new TiXmlComment("only 0x0 (most), 0x1"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_2b"); node->SetAttribute("u16", EMO_BaseFile::UnsignedToString(unk_2b, true));  if (withComments) { comment = new TiXmlComment("only 0, 0xffff (most)"); mainNode->LinkEndChild(comment); }  mainNode->LinkEndChild(node);
 	node = new TiXmlElement("unk_4"); node->SetAttribute("float", FloatToString(unk_4));  if (withComments) { comment = new TiXmlComment("[0.0 (most), 1000000.0]"); mainNode->LinkEndChild(comment); } mainNode->LinkEndChild(node);
@@ -4734,7 +4799,7 @@ TiXmlElement* FMP_Hitbox::export_Xml(string filename, std::vector<Havok_File*> &
 	for (size_t i = 0; i < nbHk; i++)
 	{
 		Havok_File* havokFile = listHavokFile.at(listHavokFilesIndex.at(i));
-		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) +"\\"+ LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox)  + "_" + std::to_string(i) + ".hkx";	//extract the file into a folder with the basename of the file.
+		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) +"\\"+ "Havok__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox)  + "_" + std::to_string(i) + ".hkx";	//extract the file into a folder with the basename of the file.
 
 		node_ListHavok->LinkEndChild(havokFile->export_Xml(filename_tmp));
 	}
@@ -4874,7 +4939,7 @@ TiXmlElement* FMP_Destruction::export_Xml(string filename, size_t indexGroup, si
 	if ((havokFileIndex != (size_t)-1)&&(havokFileIndex<listHavokFile.size()))
 	{
 		Havok_File* havokFile = listHavokFile.at(havokFileIndex);
-		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\" + LibXenoverse::nameFromFilenameNoExtension(filename) + "__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox) + "_" + std::to_string(indexDestructionGroup) + "_" + std::to_string(indexDestruction) + ".hkx";	//extract the file into a folder with the basename of the file.
+		string filename_tmp = LibXenoverse::folderFromFilename(filename) + LibXenoverse::nameFromFilenameNoExtension(filename) + "\\"  + "Havok__" + std::to_string(indexGroup) + "_" + std::to_string(indexHitbox) + "_" + std::to_string(indexDestructionGroup) + "_" + std::to_string(indexDestruction) + ".hkx";	//extract the file into a folder with the basename of the file.
 
 		mainNode->LinkEndChild(havokFile->export_Xml(filename_tmp));
 	}
@@ -4962,51 +5027,51 @@ bool FmpFile::import_Xml(TiXmlElement* rootNode)
 	TiXmlElement* node = node_Settings->FirstChildElement("width");
 	if (node)
 	{
-		node->QueryFloatAttribute("X", &width_X);
-		node->QueryFloatAttribute("Y", &width_Y);
-		node->QueryFloatAttribute("Z", &width_Z);
+		node->QueryFloatAttribute_floatPrecision("X", &width_X);
+		node->QueryFloatAttribute_floatPrecision("Y", &width_Y);
+		node->QueryFloatAttribute_floatPrecision("Z", &width_Z);
 	}
 	string str = "";
 	
 
-	node = node_Settings->FirstChildElement("nearDistance"); if (node) { node->QueryFloatAttribute("float", &nearDistance); }
-	node = node_Settings->FirstChildElement("farDistance"); if (node) { node->QueryFloatAttribute("float", &farDistance); }
+	node = node_Settings->FirstChildElement("nearDistance"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &nearDistance); }
+	node = node_Settings->FirstChildElement("farDistance"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &farDistance); }
 
-	node = node_Settings->FirstChildElement("s0a_unk_3"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_3); }
-	node = node_Settings->FirstChildElement("s0a_unk_4"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_4); }
-	node = node_Settings->FirstChildElement("s0a_unk_5"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_5); }
-	node = node_Settings->FirstChildElement("s0a_unk_6"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_6); }
+	node = node_Settings->FirstChildElement("s0a_unk_3"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_3); }
+	node = node_Settings->FirstChildElement("s0a_unk_4"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_4); }
+	node = node_Settings->FirstChildElement("s0a_unk_5"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_5); }
+	node = node_Settings->FirstChildElement("s0a_unk_6"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_6); }
 	node = node_Settings->FirstChildElement("s0a_unk_7"); if (node) node->QueryStringAttribute("u32", &str); s0a_unk_7 = EMO_BaseFile::GetUnsigned(str, s0a_unk_7);
 
-	node = node_Settings->FirstChildElement("s0a_unk_8"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_8); }
-	node = node_Settings->FirstChildElement("s0a_unk_9"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_9); }
-	node = node_Settings->FirstChildElement("s0a_unk_10"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_10); }
+	node = node_Settings->FirstChildElement("s0a_unk_8"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_8); }
+	node = node_Settings->FirstChildElement("s0a_unk_9"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_9); }
+	node = node_Settings->FirstChildElement("s0a_unk_10"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_10); }
 
-	node = node_Settings->FirstChildElement("s0a_unk_11"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_11); }
-	node = node_Settings->FirstChildElement("s0a_unk_12"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_12); }
-	node = node_Settings->FirstChildElement("s0a_unk_13"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_13); }
-	node = node_Settings->FirstChildElement("s0a_unk_14"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_14); }
-	node = node_Settings->FirstChildElement("s0a_unk_15"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_15); }
-	node = node_Settings->FirstChildElement("s0a_unk_16"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_16); }
-	node = node_Settings->FirstChildElement("s0a_unk_17"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_17); }
-	node = node_Settings->FirstChildElement("s0a_unk_18"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_18); }
+	node = node_Settings->FirstChildElement("s0a_unk_11"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_11); }
+	node = node_Settings->FirstChildElement("s0a_unk_12"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_12); }
+	node = node_Settings->FirstChildElement("s0a_unk_13"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_13); }
+	node = node_Settings->FirstChildElement("s0a_unk_14"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_14); }
+	node = node_Settings->FirstChildElement("s0a_unk_15"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_15); }
+	node = node_Settings->FirstChildElement("s0a_unk_16"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_16); }
+	node = node_Settings->FirstChildElement("s0a_unk_17"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_17); }
+	node = node_Settings->FirstChildElement("s0a_unk_18"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_18); }
 
-	node = node_Settings->FirstChildElement("s0a_unk_19"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_19); }
-	node = node_Settings->FirstChildElement("s0a_unk_20"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_20); }
-	node = node_Settings->FirstChildElement("s0a_unk_21"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_21); }
-	node = node_Settings->FirstChildElement("s0a_unk_22"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_22); }
-	node = node_Settings->FirstChildElement("s0a_unk_23"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_23); }
-	node = node_Settings->FirstChildElement("s0a_unk_24"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_24); }
-	node = node_Settings->FirstChildElement("s0a_unk_25"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_25); }
-	node = node_Settings->FirstChildElement("s0a_unk_26"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_26); }
+	node = node_Settings->FirstChildElement("s0a_unk_19"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_19); }
+	node = node_Settings->FirstChildElement("s0a_unk_20"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_20); }
+	node = node_Settings->FirstChildElement("s0a_unk_21"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_21); }
+	node = node_Settings->FirstChildElement("s0a_unk_22"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_22); }
+	node = node_Settings->FirstChildElement("s0a_unk_23"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_23); }
+	node = node_Settings->FirstChildElement("s0a_unk_24"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_24); }
+	node = node_Settings->FirstChildElement("s0a_unk_25"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_25); }
+	node = node_Settings->FirstChildElement("s0a_unk_26"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_26); }
 
-	node = node_Settings->FirstChildElement("s0a_unk_27"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_27); }
-	node = node_Settings->FirstChildElement("s0a_unk_28"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_28); }
+	node = node_Settings->FirstChildElement("s0a_unk_27"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_27); }
+	node = node_Settings->FirstChildElement("s0a_unk_28"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_28); }
 
-	node = node_Settings->FirstChildElement("s0a_unk_29"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_29); }
-	node = node_Settings->FirstChildElement("s0a_unk_30"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_30); }
-	node = node_Settings->FirstChildElement("s0a_unk_31"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_31); }
-	node = node_Settings->FirstChildElement("s0a_unk_34"); if (node) { node->QueryFloatAttribute("float", &s0a_unk_34); }
+	node = node_Settings->FirstChildElement("s0a_unk_29"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_29); }
+	node = node_Settings->FirstChildElement("s0a_unk_30"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_30); }
+	node = node_Settings->FirstChildElement("s0a_unk_31"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_31); }
+	node = node_Settings->FirstChildElement("s0a_unk_34"); if (node) { node->QueryFloatAttribute_floatPrecision("float", &s0a_unk_34); }
 	
 
 
@@ -5068,13 +5133,15 @@ bool FmpFile::import_Xml(TiXmlElement* rootNode)
 	node = node_Settings->FirstChildElement("s0b_unk_54"); if (node) node->QueryStringAttribute("u32", &str); s0b_unk_54 = EMO_BaseFile::GetUnsigned(str, s0b_unk_54);
 	
 
-	TiXmlElement* node_Type_names = rootNode->FirstChildElement("ItemTypes");
+	TiXmlElement* node_Type_names = node_Settings->FirstChildElement("ItemTypes");
+	if (node_Type_names)
+		mListTypeName.clear();
 	for (TiXmlElement* node = (node_Type_names) ? node_Type_names->FirstChildElement("ItemType") : 0; node; node = node->NextSiblingElement("ItemType"))
 	{
 		str = "";
 		node->QueryStringAttribute("name", &str);
-		if (str.length() == 0)
-			continue;
+		//if (str.length() == 0)
+		//	continue;
 
 		mListTypeName.push_back(str);
 	}
@@ -5212,10 +5279,10 @@ bool FMP_S1::import_Xml(TiXmlElement* node)
 
 	node_tmp = node->FirstChildElement("name"); if (node_tmp) node_tmp->QueryStringAttribute("value", &name);
 	node_tmp = node->FirstChildElement("unk_04"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_04 = EMO_BaseFile::GetUnsigned(str, unk_04);
-	node_tmp = node->FirstChildElement("unk_08"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_08); }
-	node_tmp = node->FirstChildElement("unk_0C"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_0C); }
-	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_10); }
-	node_tmp = node->FirstChildElement("unk_14"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_14); }
+	node_tmp = node->FirstChildElement("unk_08"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_08); }
+	node_tmp = node->FirstChildElement("unk_0C"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_0C); }
+	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_10); }
+	node_tmp = node->FirstChildElement("unk_14"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_14); }
 
 	return true;
 }
@@ -5230,12 +5297,12 @@ bool FMP_S2::import_Xml(TiXmlElement* node)
 	string str = "";
 
 	node_tmp = node->FirstChildElement("name"); if (node_tmp) node_tmp->QueryStringAttribute("value", &name);
-	node_tmp = node->FirstChildElement("unk_04"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_04); }
-	node_tmp = node->FirstChildElement("unk_08"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_08); }
-	node_tmp = node->FirstChildElement("unk_0C"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_0C); }
-	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_10); }
-	node_tmp = node->FirstChildElement("unk_14"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_14); }
-	node_tmp = node->FirstChildElement("unk_18"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_18); }
+	node_tmp = node->FirstChildElement("unk_04"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_04); }
+	node_tmp = node->FirstChildElement("unk_08"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_08); }
+	node_tmp = node->FirstChildElement("unk_0C"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_0C); }
+	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_10); }
+	node_tmp = node->FirstChildElement("unk_14"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_14); }
+	node_tmp = node->FirstChildElement("unk_18"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_18); }
 
 	return true;
 }
@@ -5258,7 +5325,7 @@ bool FMP_Object::import_Xml(TiXmlElement* node)
 	node_tmp = node->FirstChildElement("unk_04b"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_04b = EMO_BaseFile::GetUnsigned(str, unk_04b);
 	node_tmp = node->FirstChildElement("unk_0A"); if (node_tmp) node_tmp->QueryStringAttribute("u8", &str); unk_0A = EMO_BaseFile::GetUnsigned(str, unk_0A);
 	node_tmp = node->FirstChildElement("unk_0B"); if (node_tmp) node_tmp->QueryStringAttribute("u8", &str); unk_0B = EMO_BaseFile::GetUnsigned(str, unk_0B);
-	node_tmp = node->FirstChildElement("unk_20"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_20); }
+	node_tmp = node->FirstChildElement("unk_20"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_20); }
 
 
 
@@ -5324,7 +5391,7 @@ bool FMP_Object::import_Xml(TiXmlElement* node)
 				if (vector.size() == 3)
 				{
 					for(size_t j=0;j<3;j++)
-						transformMatrix4x3[i * 3 + j] = stof(vector.at(j));
+						transformMatrix4x3[i * 3 + j] = StringToFloat(vector.at(j));
 				}
 			}
 		}
@@ -5428,7 +5495,7 @@ bool FMP_Parameter::import_Xml(TiXmlElement* node)
 	}else if (typeValue_str == "Float") {
 
 		typeValue = TV_Float;
-		node->QueryFloatAttribute("value", &floatValue);
+		node->QueryFloatAttribute_floatPrecision("value", &floatValue);
 
 	}else if (typeValue_str == "String") {
 
@@ -5444,18 +5511,18 @@ bool FMP_Parameter::import_Xml(TiXmlElement* node)
 	}else if (typeValue_str == "Direction") {
 
 		typeValue = TV_Direction;
-		node->QueryFloatAttribute("X", &directionValue[0]);
-		node->QueryFloatAttribute("Y", &directionValue[1]);
-		node->QueryFloatAttribute("Z", &directionValue[2]);
-		node->QueryFloatAttribute("W", &directionValue[3]);
+		node->QueryFloatAttribute_floatPrecision("X", &directionValue[0]);
+		node->QueryFloatAttribute_floatPrecision("Y", &directionValue[1]);
+		node->QueryFloatAttribute_floatPrecision("Z", &directionValue[2]);
+		node->QueryFloatAttribute_floatPrecision("W", &directionValue[3]);
 
 	}else if (typeValue_str == "Position") {
 
 		typeValue = TV_Position;
-		node->QueryFloatAttribute("X", &positionValue[0]);
-		node->QueryFloatAttribute("Y", &positionValue[1]);
-		node->QueryFloatAttribute("Z", &positionValue[2]);
-		node->QueryFloatAttribute("W", &positionValue[3]);
+		node->QueryFloatAttribute_floatPrecision("X", &positionValue[0]);
+		node->QueryFloatAttribute_floatPrecision("Y", &positionValue[1]);
+		node->QueryFloatAttribute_floatPrecision("Z", &positionValue[2]);
+		node->QueryFloatAttribute_floatPrecision("W", &positionValue[3]);
 
 	}else {
 		printf("unknow Type Data %s for parameters. skipped.\n", typeValue_str.c_str());
@@ -5496,8 +5563,7 @@ bool FMP_Hierarchy::import_Xml(TiXmlElement* node)
 			listNode.pop_back();
 	}
 
-	//todo test if index Transform is correct.
-
+	
 	TiXmlElement* node_ListTransf = node->FirstChildElement("ListTransform");
 	for (TiXmlElement* node_tmp = (node_ListTransf) ? node_ListTransf->FirstChildElement("Transform") : 0; node_tmp; node_tmp = node_tmp->NextSiblingElement("Transform"))
 	{
@@ -5531,16 +5597,16 @@ bool FMP_Node::import_Xml(TiXmlElement* node)
 
 	node_tmp = node->FirstChildElement("transformIndex"); if (node_tmp) node_tmp->QueryUnsignedAttribute("value", &transformIndex);
 
-	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_0); }
-	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_1); }
-	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_2); }
-	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_3); }
-	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_4); }
-	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_5); }
-	node_tmp = node->FirstChildElement("unk_6"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_6); }
-	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_7); }
-	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_8); }
-	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_9); }
+	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_0); }
+	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_1); }
+	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_2); }
+	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_3); }
+	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_4); }
+	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_5); }
+	node_tmp = node->FirstChildElement("unk_6"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_6); }
+	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_7); }
+	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_8); }
+	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_9); }
 	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_10 = EMO_BaseFile::GetUnsigned(str, unk_10);
 
 	return true;
@@ -5558,25 +5624,25 @@ bool FMP_NodeTransform::import_Xml(TiXmlElement* node)
 	node_tmp = node->FirstChildElement("Position"); 
 	if (node_tmp)
 	{
-		node_tmp->QueryFloatAttribute("X", &position[0]);
-		node_tmp->QueryFloatAttribute("Y", &position[1]);
-		node_tmp->QueryFloatAttribute("Z", &position[2]);
+		node_tmp->QueryFloatAttribute_floatPrecision("X", &position[0]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Y", &position[1]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Z", &position[2]);
 	}
 
 	node_tmp = node->FirstChildElement("Rotation");
 	if (node_tmp)
 	{
-		node_tmp->QueryFloatAttribute("X", &rotation[0]);
-		node_tmp->QueryFloatAttribute("Y", &rotation[1]);
-		node_tmp->QueryFloatAttribute("Z", &rotation[2]);
+		node_tmp->QueryFloatAttribute_floatPrecision("X", &rotation[0]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Y", &rotation[1]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Z", &rotation[2]);
 	}
 
 	node_tmp = node->FirstChildElement("Scale");
 	if (node_tmp)
 	{
-		node_tmp->QueryFloatAttribute("X", &scale[0]);
-		node_tmp->QueryFloatAttribute("Y", &scale[1]);
-		node_tmp->QueryFloatAttribute("Z", &scale[2]);
+		node_tmp->QueryFloatAttribute_floatPrecision("X", &scale[0]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Y", &scale[1]);
+		node_tmp->QueryFloatAttribute_floatPrecision("Z", &scale[2]);
 	}
 
 	return true;
@@ -5593,9 +5659,9 @@ bool FMP_HierarchyNode::import_Xml(TiXmlElement* node)
 
 
 	node_tmp = node->FirstChildElement("typeb"); if (node_tmp) node_tmp->QueryStringAttribute("u8", &str); typeb = EMO_BaseFile::GetUnsigned(str, typeb);
-	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_0); }
-	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_1); }
-	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) { node_tmp->QueryFloatAttribute("float", &unk_2); }
+	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_0); }
+	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_1); }
+	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) { node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_2); }
 
 
 	TiXmlElement* node_listIndex = node->FirstChildElement("ListIndex");
@@ -5663,7 +5729,7 @@ bool FMP_Entity::import_Xml(TiXmlElement* node)
 		string nskFilename, emmFilename;
 		for (TiXmlElement* node_tmp_b = (node_ListLod) ? node_ListLod->FirstChildElement("Lod") : 0; node_tmp_b; node_tmp_b = node_tmp_b->NextSiblingElement("Lod"))
 		{
-			node_tmp_b->QueryFloatAttribute("distance", &distance);
+			node_tmp_b->QueryFloatAttribute_floatPrecision("distance", &distance);
 			node_tmp_b->QueryStringAttribute("Nsk", &nskFilename);
 			node_tmp_b->QueryStringAttribute("Emm", &emmFilename);
 
@@ -5678,8 +5744,8 @@ bool FMP_Entity::import_Xml(TiXmlElement* node)
 		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_5"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); s4n2b_unk_5 = EMO_BaseFile::GetUnsigned(str, s4n2b_unk_5);
 		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_6"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); s4n2b_unk_6 = EMO_BaseFile::GetUnsigned(str, s4n2b_unk_6);
 		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_8"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); s4n2b_unk_8 = EMO_BaseFile::GetUnsigned(str, s4n2b_unk_8);
-		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &s4n2b_unk_9);
-		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &s4n2b_unk_10);
+		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &s4n2b_unk_9);
+		node_tmp = node_Visual->FirstChildElement("s4n2b_unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &s4n2b_unk_10);
 	}
 
 	
@@ -5699,7 +5765,7 @@ bool FMP_Entity::import_Xml(TiXmlElement* node)
 				if (vector.size() == 3)
 				{
 					for (size_t j = 0; j<3; j++)
-						transformMatrix4x3[i * 3 + j] = stof(vector.at(j));
+						transformMatrix4x3[i * 3 + j] = StringToFloat(vector.at(j));
 				}
 			}
 		}
@@ -5733,8 +5799,8 @@ bool FMP_VirtualSubPart::import_Xml(TiXmlElement* node)
 
 	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_2 = EMO_BaseFile::GetUnsigned(str, unk_2);
 	node_tmp = node->FirstChildElement("unk_2b"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_2b = EMO_BaseFile::GetUnsigned(str, unk_2b);
-	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_4);
-	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_5);
+	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_4);
+	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_5);
 
 
 	TiXmlElement* node_listIndex = node->FirstChildElement("ListIndexCouple");
@@ -5802,7 +5868,7 @@ bool FMP_VirtualSubPart::import_Xml(TiXmlElement* node)
 				if (vector.size() == 3)
 				{
 					for (size_t j = 0; j<3; j++)
-						transformMatrix4x3[i * 3 + j] = stof(vector.at(j));
+						transformMatrix4x3[i * 3 + j] = StringToFloat(vector.at(j));
 				}
 			}
 		}
@@ -5825,18 +5891,18 @@ bool FMP_VirtualSubPart_sub::import_Xml(TiXmlElement* node)
 	node_tmp = node->FirstChildElement("Width"); 
 	if (node_tmp)
 	{
-		node_tmp->QueryFloatAttribute("X", &widthX);
-		node_tmp->QueryFloatAttribute("Y", &widthY);
-		node_tmp->QueryFloatAttribute("Z", &widthZ);
+		node_tmp->QueryFloatAttribute_floatPrecision("X", &widthX);
+		node_tmp->QueryFloatAttribute_floatPrecision("Y", &widthY);
+		node_tmp->QueryFloatAttribute_floatPrecision("Z", &widthZ);
 	}
 
 	node_tmp = node->FirstChildElement("Quaternion");
 	if (node_tmp)
 	{
-		node_tmp->QueryFloatAttribute("X", &quaternionX);
-		node_tmp->QueryFloatAttribute("Y", &quaternionY);
-		node_tmp->QueryFloatAttribute("Z", &quaternionZ);
-		node_tmp->QueryFloatAttribute("W", &quaternionW);
+		node_tmp->QueryFloatAttribute_floatPrecision("X", &quaternionX);
+		node_tmp->QueryFloatAttribute_floatPrecision("Y", &quaternionY);
+		node_tmp->QueryFloatAttribute_floatPrecision("Z", &quaternionZ);
+		node_tmp->QueryFloatAttribute_floatPrecision("W", &quaternionW);
 	}
 
 	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_0 = EMO_BaseFile::GetUnsigned(str, unk_0);
@@ -5844,17 +5910,17 @@ bool FMP_VirtualSubPart_sub::import_Xml(TiXmlElement* node)
 	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_1 = EMO_BaseFile::GetUnsigned(str, unk_1);
 	node_tmp = node->FirstChildElement("unk_1b"); if (node_tmp) node_tmp->QueryStringAttribute("u16", &str); unk_1b = EMO_BaseFile::GetUnsigned(str, unk_1b);
 	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_2 = EMO_BaseFile::GetUnsigned(str, unk_2);
-	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_3);
-	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_4);
-	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_5);
-	node_tmp = node->FirstChildElement("unk_6"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_6);
-	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_7);
-	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_8);
-	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_9);
-	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_10);
-	node_tmp = node->FirstChildElement("unk_11"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_11);
-	node_tmp = node->FirstChildElement("unk_12"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_12);
-	node_tmp = node->FirstChildElement("unk_13"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_13);
+	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_3);
+	node_tmp = node->FirstChildElement("unk_4"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_4);
+	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_5);
+	node_tmp = node->FirstChildElement("unk_6"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_6);
+	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_7);
+	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_8);
+	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_9);
+	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_10);
+	node_tmp = node->FirstChildElement("unk_11"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_11);
+	node_tmp = node->FirstChildElement("unk_12"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_12);
+	node_tmp = node->FirstChildElement("unk_13"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_13);
 	
 	return true;
 }
@@ -5955,16 +6021,16 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 			node_tmp = node_Vertex->FirstChildElement("Position");
 			if (node_tmp)
 			{
-				node_tmp->QueryFloatAttribute("X", &vertex.position[0]);
-				node_tmp->QueryFloatAttribute("Y", &vertex.position[1]);
-				node_tmp->QueryFloatAttribute("Z", &vertex.position[2]);
+				node_tmp->QueryFloatAttribute_floatPrecision("X", &vertex.position[0]);
+				node_tmp->QueryFloatAttribute_floatPrecision("Y", &vertex.position[1]);
+				node_tmp->QueryFloatAttribute_floatPrecision("Z", &vertex.position[2]);
 			}
 			node_tmp = node_Vertex->FirstChildElement("Normal");
 			if (node_tmp)
 			{
-				node_tmp->QueryFloatAttribute("X", &vertex.normal[0]);
-				node_tmp->QueryFloatAttribute("Y", &vertex.normal[1]);
-				node_tmp->QueryFloatAttribute("Z", &vertex.normal[2]);
+				node_tmp->QueryFloatAttribute_floatPrecision("X", &vertex.normal[0]);
+				node_tmp->QueryFloatAttribute_floatPrecision("Y", &vertex.normal[1]);
+				node_tmp->QueryFloatAttribute_floatPrecision("Z", &vertex.normal[2]);
 			}
 			*/
 
@@ -5975,12 +6041,12 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 			if (sp.size() != 7)
 				continue;
 
-			vertex.position[0] = stof(sp.at(1));
-			vertex.position[1] = stof(sp.at(2));
-			vertex.position[2] = stof(sp.at(3));
-			vertex.normal[0] = stof(sp.at(4));
-			vertex.normal[1] = stof(sp.at(5));
-			vertex.normal[2] = stof(sp.at(6));
+			vertex.position[0] = StringToFloat(sp.at(1));
+			vertex.position[1] = StringToFloat(sp.at(2));
+			vertex.position[2] = StringToFloat(sp.at(3));
+			vertex.normal[0] = StringToFloat(sp.at(4));
+			vertex.normal[1] = StringToFloat(sp.at(5));
+			vertex.normal[2] = StringToFloat(sp.at(6));
 
 			listVertex.push_back(vertex);
 		}
@@ -6048,7 +6114,7 @@ bool FMP_Destruction::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &l
 	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_2 = EMO_BaseFile::GetUnsigned(str, unk_2);
 	node_tmp = node->FirstChildElement("unk_5"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_5 = EMO_BaseFile::GetUnsigned(str, unk_5);
 	node_tmp = node->FirstChildElement("unk_6"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_6 = EMO_BaseFile::GetUnsigned(str, unk_6);
-	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_7);
+	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_7);
 	
 
 	TiXmlElement* node_sub0 = node->FirstChildElement("DestructionSubPart");
@@ -6101,22 +6167,22 @@ bool FMP_Destruction_sub::import_Xml(TiXmlElement* node)
 	TiXmlElement* node_tmp;
 	string str = "";
 
-	node_tmp = node->FirstChildElement("yaw"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &yaw);
-	node_tmp = node->FirstChildElement("pitch"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &pitch);
-	node_tmp = node->FirstChildElement("roll"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &roll);
+	node_tmp = node->FirstChildElement("yaw"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &yaw);
+	node_tmp = node->FirstChildElement("pitch"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &pitch);
+	node_tmp = node->FirstChildElement("roll"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &roll);
 
 
 	node_tmp = node->FirstChildElement("unk_0"); if (node_tmp) node_tmp->QueryStringAttribute("u32", &str); unk_0 = EMO_BaseFile::GetUnsigned(str, unk_0);
-	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_1);
-	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_2);
-	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_3);
-	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_7);
-	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_8);
-	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_9);
-	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_10);
-	node_tmp = node->FirstChildElement("unk_11"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_11);
-	node_tmp = node->FirstChildElement("unk_12"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_12);
-	node_tmp = node->FirstChildElement("unk_13"); if (node_tmp) node_tmp->QueryFloatAttribute("float", &unk_13);
+	node_tmp = node->FirstChildElement("unk_1"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_1);
+	node_tmp = node->FirstChildElement("unk_2"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_2);
+	node_tmp = node->FirstChildElement("unk_3"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_3);
+	node_tmp = node->FirstChildElement("unk_7"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_7);
+	node_tmp = node->FirstChildElement("unk_8"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_8);
+	node_tmp = node->FirstChildElement("unk_9"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_9);
+	node_tmp = node->FirstChildElement("unk_10"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_10);
+	node_tmp = node->FirstChildElement("unk_11"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_11);
+	node_tmp = node->FirstChildElement("unk_12"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_12);
+	node_tmp = node->FirstChildElement("unk_13"); if (node_tmp) node_tmp->QueryFloatAttribute_floatPrecision("float", &unk_13);
 	
 	return true;
 }
@@ -7617,18 +7683,6 @@ void FmpFile::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, s
 						node = new TiXmlElement("unk_5"); node->SetAttribute("float", std::to_string(section5_Hitbox_e[k].unk_5)); node_HitBox_e->LinkEndChild(node);
 
 						node_List_HitBox_e->LinkEndChild(node_HitBox_e);
-
-
-						/*
-						//To avoid too much datas, TODO Remove:
-						if ((k == 2) && (section5_Hitbox->number_Section5_Hitbox_e > 4))
-						{
-							TiXmlComment* comment = new TiXmlComment(" ... Too much Datas To analyze, so skip some of them");
-							node_List_HitBox_e->LinkEndChild(comment);
-
-							k = section5_Hitbox->number_Section5_Hitbox_e - 2;
-						}
-						*/
 					}
 					node_Box->LinkEndChild(node_List_HitBox_e);
 				}

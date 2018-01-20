@@ -725,6 +725,15 @@ int TiXmlElement::QueryDoubleAttribute( const char* name, double* dval ) const
 	return attrib->QueryDoubleValue( dval );
 }
 
+int TiXmlElement::QueryDoubleAttribute_floatPrecision(const char* name, float* fval) const
+{
+	const TiXmlAttribute* attrib = attributeSet.Find(name);
+	if (!attrib)
+		return TIXML_NO_ATTRIBUTE;
+	return attrib->QueryDoubleValue_floatPrecision(fval);
+}
+
+
 
 #ifdef TIXML_USE_STL
 int TiXmlElement::QueryDoubleAttribute( const std::string& name, double* dval ) const
@@ -1243,6 +1252,13 @@ int TiXmlAttribute::QueryIntValue( int* ival ) const
 int TiXmlAttribute::QueryDoubleValue( double* dval ) const
 {
 	if ( TIXML_SSCANF( value.c_str(), "%lf", dval ) == 1 )
+		return TIXML_SUCCESS;
+	return TIXML_WRONG_TYPE;
+}
+
+int TiXmlAttribute::QueryDoubleValue_floatPrecision(float* fval) const
+{
+	if (TIXML_SSCANF(value.c_str(), "%f", fval) == 1)
 		return TIXML_SUCCESS;
 	return TIXML_WRONG_TYPE;
 }

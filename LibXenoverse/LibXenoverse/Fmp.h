@@ -822,6 +822,8 @@ friend class FmpFile;
 
 	//Notice: here seam to be the best place for a link with S1, S2 or typeName in s0b.
 
+	size_t debug_startOffset;
+
 public:
 	FMP_Action() { Reset(); }
 	virtual ~FMP_Action() { Reset(); }
@@ -1073,6 +1075,9 @@ friend class FmpFile;
 	//float rotation[3];
 	//float scale[3];
 
+
+	size_t debug_startOffset;
+
 public:
 	FMP_VirtualSubPart(void) { sub0 = 0; sub1 = 0;  action = 0;  Reset(); }
 	virtual ~FMP_VirtualSubPart() { Reset(); }
@@ -1126,6 +1131,8 @@ friend class FmpFile;
 	float s4n2b_unk_9;
 	float s4n2b_unk_10;
 	
+	size_t debug_startOffset;
+
 public:
 	FMP_Entity() { Reset(); }
 	virtual ~FMP_Entity() { Reset(); }
@@ -1237,6 +1244,8 @@ friend class FmpFile;
 	std::vector<FMP_NodeTransform> listTransform;
 	FMP_HierarchyNode* mRoot;			//recursive.
 
+	size_t debug_startOffset;
+
 public:
 	FMP_Hierarchy() { mRoot = 0;  Reset(); }
 	virtual ~FMP_Hierarchy() { Reset(); }
@@ -1280,6 +1289,9 @@ friend class FmpFile;
 	std::vector<FMP_VirtualSubPart*> listVirtualSubParts;			//hyp : all have a Hitbox (because the number of Next depend of number of )
 	FMP_Action* action;
 	FMP_Hierarchy* hierarchy;
+
+
+	size_t debug_startOffset;
 
 public:
 	FMP_Object() { action = 0; hierarchy = 0;  Reset(); }

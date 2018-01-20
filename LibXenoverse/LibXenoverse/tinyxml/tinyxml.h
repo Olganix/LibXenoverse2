@@ -856,6 +856,8 @@ public:
 	int QueryIntValue( int* _value ) const;
 	/// QueryDoubleValue examines the value string. See QueryIntValue().
 	int QueryDoubleValue( double* _value ) const;
+	int QueryDoubleValue_floatPrecision(float* _value) const;
+
 
 	void SetName( const char* _name )	{ name = _name; }				///< Set the name of this attribute.
 	void SetValue( const char* _value )	{ value = _value; }				///< Set the value.
@@ -1017,12 +1019,22 @@ public:
 	int QueryBoolAttribute( const char* name, bool* _value ) const;
 	/// QueryDoubleAttribute examines the attribute - see QueryIntAttribute().
 	int QueryDoubleAttribute( const char* name, double* _value ) const;
+	int QueryDoubleAttribute_floatPrecision(const char* name, float* _value) const;
 	/// QueryFloatAttribute examines the attribute - see QueryIntAttribute().
 	int QueryFloatAttribute( const char* name, float* _value ) const {
 		double d;
 		int result = QueryDoubleAttribute( name, &d );
 		if ( result == TIXML_SUCCESS ) {
 			*_value = (float)d;
+		}
+		return result;
+	}
+
+	int QueryFloatAttribute_floatPrecision(const char* name, float* _value) const {
+		float f;
+		int result = QueryDoubleAttribute_floatPrecision(name, &f);
+		if (result == TIXML_SUCCESS) {
+			*_value = f;
 		}
 		return result;
 	}
