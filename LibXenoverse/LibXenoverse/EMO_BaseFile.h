@@ -162,6 +162,7 @@ public:
 	static TiXmlElement *FindRoot(TiXmlHandle *handle, const std::string &root_name);
 
 	static uint32_t GetUnsigned(const std::string &str, uint32_t default_value = 0);
+	static long long GetUnsigned64(const std::string &str, long long default_value = 0);
 	static bool GetBoolean(const std::string &str, bool default_value = false);
 
 	static size_t GetElemCount(const TiXmlElement *root, const char *name);

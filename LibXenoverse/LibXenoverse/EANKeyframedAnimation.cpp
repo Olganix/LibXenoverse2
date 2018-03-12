@@ -147,6 +147,167 @@ void EANKeyframedAnimation::operator=(EANKeyframedAnimation &source)
 	this->flag = source.flag;
 	this->keyframes = source.keyframes;
 }
+/*-------------------------------------------------------------------------------\
+|                             append					                         |
+\-------------------------------------------------------------------------------*/
+void EANKeyframedAnimation::append(EANKeyframedAnimation &source, size_t delayStartFrame)
+{
+	size_t nbKf_scr = source.keyframes.size();
+	for (size_t i = 0; i < nbKf_scr; i++)
+	{
+		this->keyframes.push_back(source.keyframes.at(i));
+		this->keyframes.back().frame += delayStartFrame;
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             delayTimeFrame			                         |
+\-------------------------------------------------------------------------------*/
+void EANKeyframedAnimation::delayTimeFrame(size_t delayStartFrame)
+{
+	size_t nbKf = keyframes.size();
+	for (size_t i = 0; i < nbKf; i++)
+		this->keyframes.at(i).frame += delayStartFrame;
+}
+/*-------------------------------------------------------------------------------\
+|                             cut						                         |
+\-------------------------------------------------------------------------------*/
+void EANKeyframedAnimation::cut(size_t indexKfStart, size_t indexKfEnd, bool pushTo0)
+{
+	if ((keyframes.size() == 0) || (indexKfEnd < keyframes.at(0).frame) || (indexKfStart > keyframes.back().frame))		//exclusion
+	{
+		keyframes.clear();
+		return;
+	}
+
+	if (indexKfStart < keyframes.at(0).frame)				//to avoid add strange values
+		indexKfStart = keyframes.at(0).frame;
+	if (indexKfEnd > keyframes.back().frame)
+		indexKfEnd = keyframes.back().frame;
+
+
+	//we add keyframe for indexKfStart and indexKfEnd if necessary, if it's the case, it will be interpolated from others
+	bool haveAllreadyKf_Start = false;
+	bool haveAllreadyKf_End = false;
+	size_t nbKf = keyframes.size();
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if (keyframes.at(i).frame == indexKfStart)
+		{
+			haveAllreadyKf_Start = true;
+			if (haveAllreadyKf_Start && haveAllreadyKf_End)
+				break;
+		}
+
+		if (keyframes.at(i).frame == indexKfEnd)
+		{
+			haveAllreadyKf_End = true;
+			if (haveAllreadyKf_Start && haveAllreadyKf_End)
+				break;
+		}
+	}
+	
+	if (!haveAllreadyKf_Start)
+	{
+		float x, y, z, w;
+		getInterpolatedFrame(indexKfStart, x, y, z, w);
+		
+		for (size_t i = 0; i < nbKf; i++)
+		{
+			if (keyframes.at(i).frame > indexKfStart)
+			{
+				keyframes.insert(keyframes.begin() + (i - 1), EANKeyframe(indexKfStart, x, y, z, w));
+				break;
+			}
+		}
+		
+
+		nbKf = keyframes.size();
+	}
+	if (!haveAllreadyKf_End)
+	{
+		float x, y, z, w;
+		getInterpolatedFrame(indexKfEnd, x, y, z, w);
+		
+
+		for (size_t i = 0; i < nbKf; i++)
+		{
+			if (keyframes.at(i).frame > indexKfEnd)
+			{
+				keyframes.insert(keyframes.begin() + (i - 1), EANKeyframe(indexKfEnd, x, y, z, w));
+				break;
+			}
+		}
+
+		nbKf = keyframes.size();
+	}
+
+	
+	
+	//So now we can keep only keyframes in range.
+	vector<EANKeyframe> keyframes_old = keyframes;
+
+	keyframes.clear();
+
+
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if ((keyframes_old.at(i).frame >= indexKfStart) && (keyframes_old.at(i).frame <= indexKfEnd))
+		{
+			keyframes.push_back(keyframes_old.at(i));
+			if(pushTo0)
+				keyframes.back().frame -= indexKfStart;
+		}
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             sort						                         |
+\-------------------------------------------------------------------------------*/
+void EANKeyframedAnimation::sort()
+{
+	std::sort(keyframes.begin(), keyframes.end(), &EANKeyframedAnimation::timeOrder);
+}
+/*-------------------------------------------------------------------------------\
+|                             addKeyFrameAtTime			                         |
+\-------------------------------------------------------------------------------*/
+void EANKeyframedAnimation::addKeyFrameAtTime(size_t frame)
+{
+	size_t nbKf = keyframes.size();
+	if (nbKf == 0)										//can't add, there is not values to duplicate.
+		return;
+
+	
+	if (frame < keyframes.at(0).frame)
+	{
+		keyframes.insert(keyframes.begin(), keyframes.at(0));
+		keyframes.at(0).frame = frame;
+		return;
+	}
+	if (frame > keyframes.back().frame)
+	{
+		keyframes.push_back(keyframes.back());
+		keyframes.back().frame = frame;
+		return;
+	}
+
+
+	size_t isFoundForInsert = (size_t)-1;
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if (keyframes.at(i).frame == frame)
+		{
+			return;
+		}else if (keyframes.at(i).frame > frame) {
+			isFoundForInsert = i - 1;
+			break;
+		}
+	}
+
+	if (isFoundForInsert != (size_t)-1)
+	{
+		keyframes.insert(keyframes.begin() + isFoundForInsert, keyframes.at(isFoundForInsert + 1));
+		keyframes.at(isFoundForInsert).frame = frame;
+	}	//normaly else is not possible.
+}
 
 
 
@@ -451,6 +612,175 @@ bool EANKeyframedAnimation::importFBXScalingAnimCurve(FbxNode *fbx_node, size_t 
 			haveNoNeutralPosition = true;
 
 		EANKeyframe keyframe(numFrame, sx, sy, sz, sw);
+		keyframes.push_back(keyframe);
+	}
+
+	return haveNoNeutralPosition;
+}
+/*-------------------------------------------------------------------------------\
+|                             importFBXTargetCameraPositionAnimCurve			 |
+\-------------------------------------------------------------------------------*/
+bool EANKeyframedAnimation::importFBXTargetCameraPositionAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_translation_x, FbxAnimCurve* fbx_animCurve_translation_y, FbxAnimCurve* fbx_animCurve_translation_z)
+{
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION;
+	float fps = 60.0f;			//TODO configure.
+	float intervale_ms = 1000.0f / fps;
+
+	//we have to fill gaps. so first thing is to search the real number of frames with merge of this animations (note : normaly, with exporter/importer behaviour, all animations must be with the same frequenty, but we need to test if is not)
+	size_t nbFrames_X = (fbx_animCurve_translation_x) ? fbx_animCurve_translation_x->KeyGetCount() : 0;
+	size_t nbFrames_Y = (fbx_animCurve_translation_y) ? fbx_animCurve_translation_y->KeyGetCount() : 0;
+	size_t nbFrames_Z = (fbx_animCurve_translation_z) ? fbx_animCurve_translation_z->KeyGetCount() : 0;
+
+	FbxLongLong time_X_tmp = (FbxLongLong)((fbx_animCurve_translation_x) ? fbx_animCurve_translation_x->KeyGetTime(fbx_animCurve_translation_x->KeyGetCount() - 1).GetMilliSeconds() : 0.0);
+	FbxLongLong time_Y_tmp = (FbxLongLong)((fbx_animCurve_translation_y) ? fbx_animCurve_translation_y->KeyGetTime(fbx_animCurve_translation_y->KeyGetCount() - 1).GetMilliSeconds() : 0.0);
+	FbxLongLong time_Z_tmp = (FbxLongLong)((fbx_animCurve_translation_z) ? fbx_animCurve_translation_z->KeyGetTime(fbx_animCurve_translation_z->KeyGetCount() - 1).GetMilliSeconds() : 0.0);
+
+	if (fbx_animCurve_translation_x)
+	{
+		FbxTime time_tmp = fbx_animCurve_translation_x->KeyGetTime(fbx_animCurve_translation_x->KeyGetCount() - 1);
+		FbxTime::EMode emod = time_tmp.GetGlobalTimeMode();
+		double framerate = time_tmp.GetFrameRate(emod);
+	}
+
+
+	std::vector<FbxTime> list_fbxtime;
+	FbxTime fbxtime;
+	size_t nbMerged = 0;
+
+
+	//get all Key_time merged
+	this->mergeListTime(fbx_animCurve_translation_x, list_fbxtime);
+	this->mergeListTime(fbx_animCurve_translation_y, list_fbxtime);
+	this->mergeListTime(fbx_animCurve_translation_z, list_fbxtime);
+
+	//now, we could add Keys
+	float px = 0, py = 0, pz = 0, pw = 1.0f;
+	float px_last = 0, py_last = 0, pz_last = 0, pw_last = 0;
+	float px_next = 0, py_next = 0, pz_next = 0, pw_next = 0;
+
+	size_t inc_x = 0;
+	size_t inc_y = 0;
+	size_t inc_z = 0;
+	size_t inc_x_next, inc_y_next, inc_z_next;
+	FbxTime fbxtime_next;
+	size_t numFrame = 0;
+
+	bool haveNoNeutralPosition = false;
+
+	nbMerged = list_fbxtime.size();
+	for (size_t i = 0; i < nbMerged; i++)
+	{
+		fbxtime = list_fbxtime.at(i);
+		fbxtime_next = (i + 1< nbMerged) ? list_fbxtime.at(i + 1) : list_fbxtime.at(i);
+
+		numFrame = (size_t)(round(fbxtime.GetMilliSeconds() / intervale_ms));
+
+		px = getValueForTime(fbx_animCurve_translation_x, fbxtime, inc_x, nbFrames_X, px_last);
+		py = getValueForTime(fbx_animCurve_translation_y, fbxtime, inc_y, nbFrames_Y, py_last);
+		pz = getValueForTime(fbx_animCurve_translation_z, fbxtime, inc_z, nbFrames_Z, pz_last);
+
+
+		// test to not have too much keyframe, we will remove duplicate ones
+		inc_x_next = inc_x;
+		inc_y_next = inc_y;
+		inc_z_next = inc_z;
+		px_next = getValueForTime(fbx_animCurve_translation_x, fbxtime_next, inc_x_next, nbFrames_X, px);
+		py_next = getValueForTime(fbx_animCurve_translation_y, fbxtime_next, inc_x_next, nbFrames_Y, py);
+		pz_next = getValueForTime(fbx_animCurve_translation_z, fbxtime_next, inc_x_next, nbFrames_Z, pz);
+
+		if ((fbxtime != fbxtime_next) &&				//if is not the last keyframe
+			(px == px_last) && (px == px_next) &&		//if the intermediaire value is not unique
+			(py == py_last) && (py == py_next) &&
+			(pz == pz_last) && (pz == pz_next)
+			)
+		{
+			continue;									//we could remove this.
+		}
+
+
+		px_last = px;
+		py_last = py;
+		pz_last = pz;
+
+		if ((!haveNoNeutralPosition) && ((abs(px) > 0.00001) || (abs(py) > 0.00001) || (abs(pz) > 0.00001)))
+			haveNoNeutralPosition = true;
+
+		EANKeyframe keyframe(numFrame, px, py, pz, pw);
+		keyframes.push_back(keyframe);
+	}
+
+	return haveNoNeutralPosition;
+}
+/*-------------------------------------------------------------------------------\
+|                             importFBXCameraAnimCurve							 |
+\-------------------------------------------------------------------------------*/
+bool EANKeyframedAnimation::importFBXCameraAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_roll, FbxAnimCurve* fbx_animCurve_focale)
+{
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA;
+
+	float fps = 60.0f;
+	float intervale_ms = 1000.0f / fps;
+
+	//we have to fill gaps. so first thing is to search the real number of frames with merge of this animations (note : normaly, with exporter/importer behaviour, all animations must be with the same frequenty, but we need to test if is not)
+	size_t nbFrames_X = (fbx_animCurve_roll) ? fbx_animCurve_roll->KeyGetCount() : 0;
+	size_t nbFrames_Y = (fbx_animCurve_focale) ? fbx_animCurve_focale->KeyGetCount() : 0;
+
+	std::vector<FbxTime> list_fbxtime;
+	FbxTime fbxtime;
+	size_t nbMerged = 0;
+
+
+	//get all Key_time merged
+	this->mergeListTime(fbx_animCurve_roll, list_fbxtime);
+	this->mergeListTime(fbx_animCurve_focale, list_fbxtime);
+
+	//now, we could add Keys
+	float rx = 0, ry = 0, rz = 0, rw = 0.0f;
+	float rx_last = 0, ry_last = 0;
+	float rx_next = 0, ry_next = 0;
+
+	size_t inc_x = 0;
+	size_t inc_y = 0;
+	size_t inc_x_next, inc_y_next;
+	FbxTime fbxtime_next;
+	size_t numFrame = 0;
+
+
+	bool haveNoNeutralPosition = false;
+
+	nbMerged = list_fbxtime.size();
+	for (size_t i = 0; i < nbMerged; i++)
+	{
+		fbxtime = list_fbxtime.at(i);
+		fbxtime_next = (i + 1< nbMerged) ? list_fbxtime.at(i + 1) : list_fbxtime.at(i);
+		numFrame = (size_t)(round(fbxtime.GetMilliSeconds() / intervale_ms));
+
+		rx = getValueForTime(fbx_animCurve_roll, fbxtime, inc_x, nbFrames_X, rx_last);
+		ry = getValueForTime(fbx_animCurve_focale, fbxtime, inc_y, nbFrames_Y, ry_last);
+
+
+
+		// test to not have too much keyframe, we will remove duplicate ones
+		inc_x_next = inc_x;
+		inc_y_next = inc_y;
+		rx_next = getValueForTime(fbx_animCurve_roll, fbxtime_next, inc_x_next, nbFrames_X, rx);
+		ry_next = getValueForTime(fbx_animCurve_focale, fbxtime_next, inc_x_next, nbFrames_Y, ry);
+
+		if ((fbxtime != fbxtime_next) &&				//if is not the last keyframe
+			(rx == rx_last) && (rx == rx_next) &&		//if the intermediaire value is not unique
+			(ry == ry_last) && (ry == ry_next)
+			)
+		{
+			continue;									//we could remove this. Todo remettre
+		}
+
+		rx_last = rx;
+		ry_last = ry;
+
+		if ((!haveNoNeutralPosition) && ((abs(rx) > 0.00001) || (abs(ry) > 0.00001) || (abs(rz) > 0.00001) || (abs(rw - 1.0) > 0.00001)))
+			haveNoNeutralPosition = true;
+
+		EANKeyframe keyframe(numFrame, rx * 3.14159265358979f / 180.0f, ry * 3.14159265358979f / 180.0f, rz, rw);
 		keyframes.push_back(keyframe);
 	}
 

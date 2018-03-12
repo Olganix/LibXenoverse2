@@ -127,7 +127,8 @@ void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* e
 {
 	name = ean->name;
 	duration = ean->frame_count;
-	unk_08 = ean->frame_index_size + (ean->frame_float_size << 16);
+	type = ean->getParent()->getType() & 0x1FF;			//todo find a way to have the type (may be the extension of the file)
+	frame_float_size = ean->frame_float_size;
 
 
 	ESKBone* eskBone;
@@ -167,7 +168,7 @@ void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* e
 
 					commands.back().timesByteSize = ((duration > 0xff) ? 0x20 : 0x0);
 
-					commands.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k);
+					commands.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k, duration);
 
 					commands.back().indexesByteSize = ((values.size() > 0xffff) ? 0x40 : 0x0);
 				}
@@ -182,8 +183,10 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 {
 	ean->name = name;
 	ean->frame_count = duration;
-	ean->frame_index_size = unk_08 & 0xffff;
-	ean->frame_float_size = (unk_08 >> 16) & 0xffff;
+	ean->frame_index_size = 0;
+	ean->getParent()->setType(type | 0x400);
+	ean->frame_float_size = (unsigned char)frame_float_size;
+	
 
 
 
@@ -206,6 +209,11 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 		std::vector<CmdBoneTransform> list;
 	};
 	std::vector<CmdBone> listByBone;
+
+
+
+	std::vector<bool> isValuesReallyUsed;  //test Todo remove
+	isValuesReallyUsed.resize(values.size(), false);
 
 
 
@@ -343,8 +351,8 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 				case 2: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE; break;
 				default:
 				{
-					//todo add a warning.
-					//assert(false);
+					printf("Warning: unknow flag %s (different position/rotation/scale)", EMO_BaseFile::UnsignedToString(flag_tmp, true));
+					LibXenoverse::notifyWarning();
 				}
 			}
 
@@ -399,7 +407,7 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 				for (size_t k=0; k < nbTransformComponent; k++)
 				{
 					cmdBoneTransformComponent = &cmdBoneTransform->list.at(k);
-					cmdBoneTransformComponent->command->writeEANKeyframe(kf, values, time);
+					cmdBoneTransformComponent->command->writeEANKeyframe(kf, values, time, isValuesReallyUsed);
 				}
 
 				//need to convert Euler Angles to Quaternion
@@ -416,7 +424,8 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 					FbxVector4 quatY = fromAngleAxis(rotY, FbxDouble3(0, 1, 0));
 					FbxVector4 quatZ = fromAngleAxis(rotZ, FbxDouble3(0, 0, 1));
 
-					FbxVector4 quat = quatMulQuat(quatZ, quatMulQuat(quatY, quatX)); //XYZ		=> not like the XYZ order in ean, strange.
+					FbxVector4 quat = quatMulQuat(quatZ, quatMulQuat(quatY, quatX)); //XYZ		=> not like the XYZ order in ean, strange. (but it's the only order solution, others give weird)
+
 					kf->x = (float)quat[0];
 					kf->y = (float)quat[1];
 					kf->z = (float)quat[2];
@@ -427,6 +436,21 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 
 			
 		}
+	}
+
+
+	
+	//test Todo remove
+	std::vector<size_t> listUnUsed;
+
+	size_t nbValues = isValuesReallyUsed.size();
+	for (size_t i = 0; i < nbValues; i++)
+		if (!isValuesReallyUsed.at(i))
+			listUnUsed.push_back(i);
+
+	if(listUnUsed.size() != 0)
+	{
+		int aa = 42;
 	}
 }
 
@@ -441,7 +465,7 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 /*-------------------------------------------------------------------------------\
 |                             readANKeyframedAnimation                           |
 \-------------------------------------------------------------------------------*/
-void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent)
+void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration)
 {
 	size_t flag_tmp = 0;
 	switch (ean->flag)
@@ -487,13 +511,12 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 
 			//Xenoverse data is on XYZ order.
 			if (currComponent == 0)					//rotation for X axis
-				value = (float)angles[2];						//roll
+				value = (float)angles[2];					//roll
 			else if (currComponent == 1)			//for Y axis
-				value = (float)angles[0];						//yaw on disc from pitch.
+				value = (float)angles[1];					//yaw on disc from pitch.
 			else if (currComponent == 2)			//for Z axis
-				value = (float)angles[1];						//pitch
+				value = (float)angles[0];					//pitch
 		}
-		
 		
 		//to reduce the number of Values (goal of this format)
 		size_t isfound = (size_t)-1;
@@ -514,11 +537,29 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 		
 		steps.back().index = isfound;
 	}
+
+
+	//apparently, not having the last keyframe make the game in infinte loop, so we will check for having frame 0 and last from duration
+	if (steps.size())
+	{
+		if (steps.at(0).time != 0)
+		{
+			steps.insert(steps.begin(), steps.at(0));					//clone the first index
+			steps.at(0).time = 0;
+		}
+
+		if((duration > 0) && (steps.back().time + 1 != duration))
+		{
+			steps.push_back(steps.back());					//clone the first index
+			steps.back().time = duration - 1;
+		}
+	}
+
 }
 /*-------------------------------------------------------------------------------\
 |                             writeEANKeyframedAnimation                         |
 \-------------------------------------------------------------------------------*/
-void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame)
+void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed)
 {
 	uint8_t transformComponent_tmp = transformComponent & 0x7;
 	
@@ -571,12 +612,11 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 			} else if (frame < steps.at(i).time) {
 				index_p = i-1;
 				index_n = i;
-				factor = ((float)frame - (float)steps.at(i).time) /((float)steps.at(i+1).time - (float)steps.at(i).time);
+				factor = ((float)frame - (float)steps.at(i-1).time) /((float)steps.at(i).time - (float)steps.at(i-1).time);
 				break;
 			}
 		}
 	}
-
 	
 	float result = 0.0;
 
@@ -585,11 +625,18 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 
 
 	size_t nbValues = values.size();
-	uint32_t mask = (!this->indexesByteSize) ? 0x3FFF : 0x3FFFFFFF;			//we remove the 2 last bits, seam the solution to remove upper index
-	//todo try to find what is about the last 2 bits.
-
+	uint32_t mask = (!this->indexesByteSize) ? 0x3FFF : 0x3FFFFFFF;			//we remove the 2 last bits, seam the solution to remove upper index.
+	
+	// 0x4xxx => isQuadraticBezier
+	bool isQuadraticBezier_p = false;
+	bool isQuadraticBezier_n = false;
+	bool isCubicBezier_p = false;
+	bool isCubicBezier_n = false;
 	if (indexValue_p >= nbValues)
 	{
+		isQuadraticBezier_p = (indexValue_p & ((!this->indexesByteSize) ? 0x4000 : 0x40000000)) != 0;
+		isCubicBezier_p = (indexValue_p & ((!this->indexesByteSize) ? 0x8000 : 0x80000000)) != 0;
+		
 		indexValue_p = indexValue_p & mask;
 
 		if (indexValue_p >= nbValues)
@@ -597,13 +644,27 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 	}
 	if (indexValue_n >= nbValues)
 	{
+		isQuadraticBezier_n = (indexValue_n & ((!this->indexesByteSize) ? 0x4000 : 0x40000000)) != 0;
+		isCubicBezier_n = (indexValue_p & ((!this->indexesByteSize) ? 0x8000 : 0x80000000)) != 0;
+		
 		indexValue_n = indexValue_n & mask;
 
 		if (indexValue_n >= nbValues)
 			assert(false);
 	}
 
-	
+	isValuesReallyUsed.at(indexValue_p) = true;
+	if((isQuadraticBezier_p) ||(isCubicBezier_p))
+		isValuesReallyUsed.at(indexValue_p + 1) = true;
+	if (isCubicBezier_p)
+		isValuesReallyUsed.at(indexValue_p + 2) = true;
+
+	isValuesReallyUsed.at(indexValue_n) = true;
+	if ((isQuadraticBezier_n)|| (isCubicBezier_n))
+		isValuesReallyUsed.at(indexValue_n + 1) = true;
+	if (isCubicBezier_n)
+		isValuesReallyUsed.at(indexValue_n + 2) = true;
+
 
 	if (indexValue_p == indexValue_n)
 	{
@@ -655,10 +716,26 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 			return;
 		}
 
-		float value_p = values.at(indexValue_p);
-		float value_n = values.at(indexValue_n);
+		double value_p = (double)values.at(indexValue_p);
+		double value_n = (double)values.at(indexValue_n);
 
-		result = value_p + factor * (value_n - value_p);
+
+		result = (float)(value_p + factor * (value_n - value_p));
+		
+		if (isQuadraticBezier_p)
+		{
+			double tangent_p = (double)values.at(indexValue_p + 1);
+
+			result = (float)quadraticBezier(factor, value_p, value_p + tangent_p, value_n);
+		}
+
+		if (isCubicBezier_p)
+		{
+			double tangent_p = (double)values.at(indexValue_p + 1);
+			double tangent_n = (double)values.at(indexValue_p + 2);
+
+			result = (float)cubicBezier(factor, value_p, value_p + tangent_p, value_n - tangent_n, value_n);
+		}
 	}
 
 
@@ -673,8 +750,6 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 		ean->w = result;
 	//else
 		//assert(false);
-
-
 }
 
 
@@ -811,7 +886,11 @@ void EmaAnimation::Decompile(TiXmlNode *root, uint32_t id) const
 	entry_root->SetAttribute("name", name);
 
 	EMO_BaseFile::WriteParamUnsigned(entry_root, "DURATION", duration);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "U_08", unk_08, true);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "type", type, true);
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "frame_float_size", frame_float_size, true);
+
+	EMO_BaseFile::WriteParamUnsigned(entry_root, "ValuesOffset", debugValuesOffset, true);
+	
 
 	for (size_t i = 0; i < commands.size(); i++)
 	{
@@ -842,8 +921,12 @@ bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 
 	this->duration = duration;
 
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_08", &unk_08))
-		return false;
+	uint32_t tmp = 0;
+	EMO_BaseFile::GetParamUnsigned(root, "type", &tmp);
+	type = (uint16_t)tmp;
+	EMO_BaseFile::GetParamUnsigned(root, "frame_float_size", &tmp);
+	frame_float_size = (uint16_t)tmp;
+		
 
 	size_t count = EMO_BaseFile::GetElemCount(root, "Command");
 	if (count > 0)
@@ -897,6 +980,222 @@ bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 EMA::EMA()
 {
 	this->big_endian = false;
+
+
+	//section 0 - HavokHeader : black/grey
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#232323");			//background color
+	listTagColors.back().back().push_back("#FFFFFF");			//font color (just to possibility read from background color)
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#464646");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 1 - Section0a : red
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC0000");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC7777");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 2 - Section0b : green
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#00CC00");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#77CC77");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 3 - Section0b_names : green
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#009900");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#339933");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+																//section 4 - Section1 : bleu
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#0000CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#7777CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+																//section 5 - Section2 : yellow
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CCCC00");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CCCC77");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+																//section 6 - Section3 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#00CCCC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#77CCCC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 7 - Section3 indexes : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#009999");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#339999");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+																//section 8 - Section4 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC00CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC77CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+																//section 9 - Section4_Next : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#990099");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#993399");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+
+																//section 10 - Section4_Next_b : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9900CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9933CC");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 11 - Section4_Next_c : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC0099");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CC3399");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 12 - Section4_Next_d : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9900AA");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9933AA");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 13 - Section4_Next_e : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#AA0099");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#AA3399");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+
+																//section 14 - Section4_Next2 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#770077");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#773377");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 15 - Section4_Next2_b : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#550055");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#553355");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+
+
+
+																//section 16 - Section4_Next2 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#AA00FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#AA33FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 17 - Section4_Next2_b : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9900FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#9933FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 18 - Section4_Next2 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#7700FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#7733FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+																//section 19 - Section4_Next2_b : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#5500FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#5533FF");			//bg
+	listTagColors.back().back().push_back("#FFFFFF");			//f
+
+
+
+
+																//section 20 - Section5 : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#CCCCCC");			//bg
+	listTagColors.back().back().push_back("#000000");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#AAAAAA");			//bg
+	listTagColors.back().back().push_back("#000000");			//f
+
+
+																//section 21 - Section5_Box : 
+	listTagColors.push_back(std::vector<std::vector<string>>());
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#999999");			//bg
+	listTagColors.back().back().push_back("#000000");			//f
+	listTagColors.back().push_back(std::vector<string>());
+	listTagColors.back().back().push_back("#777777");			//bg
+	listTagColors.back().back().push_back("#000000");			//f
 }
 
 EMA::~EMA()
@@ -1022,7 +1321,8 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 
 		animation.duration = val16(ahdr->duration);
 		animation.name = (char *)GetOffsetPtr(ahdr, ahdr->name_offset) + 11;
-		animation.unk_08 = val32(ahdr->unk_08);
+		animation.type = val32(ahdr->type);
+		animation.frame_float_size = val32(ahdr->frame_float_size);
 
 		animation.commands.resize(val16(ahdr->cmd_count));
 
@@ -1067,18 +1367,18 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 					step.time = val16(timing[k]);
 				}
 
+
 				if (!(chdr->transformComponent & 0x40))
 				{
 					uint16_t *indices = (uint16_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
 					step.index = val16(indices[k]);
-					
 				}else{
 					uint32_t *indices = (uint32_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
 					step.index = val32(indices[k]);
 				}
-
-				//if (step.index >= ahdr->value_count)
-				//	assert(false);
+				
+				//if (step.index >= ahdr->value_count)				//test to recomment
+				//	printf("step.index > ahdr->value_count : %s > %s  on %s %s \n", UnsignedToString(step.index, true).c_str(), UnsignedToString(ahdr->value_count, true).c_str(),  animation.name.c_str(), (command.bone ? command.bone->GetName() : "").c_str()  );
 			}
 		}
 
@@ -1086,13 +1386,16 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 		float* values = (float *)GetOffsetPtr(ahdr, ahdr->values_offset);
 		uint16_t* values_uint6 = (uint16_t*)values;
 
+		animation.debugValuesOffset = anim_offsets[i] + ahdr->values_offset;				//test debug Todo remove.
+
 		for (size_t j = 0; j < animation.values.size(); j++)
 		{	
-			if (!(animation.unk_08 & 0x10000))
+			if (animation.frame_float_size==0)
 				animation.values[j] = val_float(values[j]);
 			else
 				animation.values[j] = float16ToFloat(values_uint6[j]);
 		}
+
 	}
 
 	return true;
@@ -1136,7 +1439,7 @@ unsigned int EMA::CalculateFileSize() const
 		if (file_size & 3)
 			file_size += (4 - (file_size & 3));
 
-		if (!(a.unk_08 & 0x10000))
+		if (a.frame_float_size == 0)
 			file_size += a.values.size() * sizeof(float);
 		else
 			file_size += a.values.size() * sizeof(uint16_t);
@@ -1177,6 +1480,7 @@ void EMA::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
 
 			if (id == 0xFFFF)
 			{
+				LibXenoverse::notifyError();
 				throw std::runtime_error(std::string(FUNCNAME) + ": bone " + c.bone->GetName() + " is not resolved.\n");
 			}
 
@@ -1196,6 +1500,7 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 
@@ -1229,7 +1534,8 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 		ahdr->duration = val16(animation.duration);
 		ahdr->cmd_count = val16(animation.commands.size());
 		ahdr->value_count = val32(animation.values.size());
-		ahdr->unk_08 = val32(animation.unk_08);
+		ahdr->type = val16(animation.type);
+		ahdr->frame_float_size = val16(animation.frame_float_size);
 
 		offset += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
 		offset += animation.commands.size() * sizeof(uint32_t);
@@ -1289,7 +1595,7 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 				uint16_t *indices = (uint16_t *)GetOffsetPtr(buf, offset, true);
 				for (size_t k = 0; k < command.steps.size(); k++)
 				{
-					//assert(command.steps[k].index < 65536);
+					assert(command.steps[k].index < 65536);
 					indices[k] = val16(command.steps[k].index);
 					offset += sizeof(uint16_t);
 				}
@@ -1308,7 +1614,7 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 		if (offset & 3)
 			offset += (4 - (offset & 3));
 
-		if (!(animation.unk_08 & 0x10000))
+		if (animation.frame_float_size == 0)
 		{
 			float *values = (float *)GetOffsetPtr(buf, offset, true);
 			ahdr->values_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
@@ -1551,6 +1857,540 @@ bool EMA::operator==(const EMA &rhs) const
 
 	return true;
 }
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////// wxHexEditor coloration ////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             save_Coloration		                             |
+\-------------------------------------------------------------------------------*/
+void EMA::save_Coloration(string filename, bool show_error)
+{
+	uint8_t *buf;
+	size_t size;
+
+	buf = ReadFile(filename, &size, show_error);
+	if (!buf)
+		return;
+
+	TiXmlDocument *doc = new TiXmlDocument();
+	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "UTF-8", "");
+	doc->LinkEndChild(decl);
+
+	TiXmlElement *root = new TiXmlElement("wxHexEditor_XML_TAG");
+
+
+	TiXmlElement* filename_node = new TiXmlElement("filename");
+	EMO_BaseFile::WriteParamString(filename_node, "path", filename);
+
+
+
+	write_Coloration(filename_node, buf, size);
+
+
+
+	root->LinkEndChild(filename_node);
+	doc->LinkEndChild(root);
+
+
+
+	delete[] buf;
+
+	doc->SaveFile(filename + ".tags");
+
+	return;
+}
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             write_Coloration				                     |
+\-------------------------------------------------------------------------------*/
+void EMA::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size)
+{
+	EMAHeader *hdr = (EMAHeader *)buf;
+	if (size < sizeof(EMAHeader) || hdr->signature != EMA_SIGNATURE)
+		return;
+
+
+	std::vector<bool> listBytesAllreadyTagged;
+	listBytesAllreadyTagged.resize(size, false);				//to check override of the same byte (overflow)
+
+
+	size_t idTag = 0;
+	size_t offset = 0;
+	size_t incSection = 0;
+	size_t incParam = 0;
+
+	write_Coloration_Tag("signature", "string", "", offset, 4 * sizeof(char), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged);	offset += 4 * sizeof(char);
+	write_Coloration_Tag("endianess_check", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("header_size", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_08", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_0A", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("skeleton_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("anim_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_14x3", "uint32_t", "", offset, 3 * sizeof(uint32_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 3 * sizeof(uint32_t);
+
+
+	incParam = 0;
+	incSection++;
+	if (hdr->skeleton_offset)
+	{
+		write_Coloration_Skeleton(parent, GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset), hdr->skeleton_offset, listBytesAllreadyTagged);
+	}
+
+	size_t startOffset_animAdress = hdr->header_size;
+
+	uint32_t* anim_offsets = (uint32_t *)GetOffsetPtr(buf, val16(startOffset_animAdress), true);
+	animations.resize(val16(hdr->anim_count));
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		incParam = 0;
+		incSection = 2;
+		write_Coloration_Tag("offset_animation", "uint32_t", "", startOffset_animAdress + i * sizeof(uint32_t), sizeof(uint32_t), "Animation", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i);
+
+		size_t startAnimOffset = anim_offsets[i];
+		offset = startAnimOffset;
+
+		EmaAnimation &animation = animations[i];
+		EMAAnimationHeader *ahdr = (EMAAnimationHeader*)GetOffsetPtr(buf, offset);
+
+		incParam = 0;
+		incSection++;
+		write_Coloration_Tag("duration", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("cmd_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("value_count", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+		write_Coloration_Tag("unk_08", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+		write_Coloration_Tag("name_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+		write_Coloration_Tag("values_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+		
+		incParam = 0;
+		incSection++;
+		for (size_t j = 0; j < ahdr->cmd_count; j++)
+		{
+			write_Coloration_Tag("cmd_offsets_"+ std::to_string(i), "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint32_t);
+		}
+
+
+		animation.duration = val16(ahdr->duration);
+		animation.type = val16(ahdr->type);
+		animation.frame_float_size = val16(ahdr->frame_float_size);
+		animation.commands.resize(val16(ahdr->cmd_count));
+
+		animation.name = (char *)GetOffsetPtr(buf, startAnimOffset + ahdr->name_offset) + 11;
+		write_Coloration_Tag("nbChar", "uint8_t", "", startAnimOffset + ahdr->name_offset + 10, sizeof(uint8_t), "NAME", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+		write_Coloration_Tag("name", "string", "", startAnimOffset + ahdr->name_offset + 11, animation.name.length() + 1, "NAME", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged);
+
+
+		for (size_t j = 0; j < animation.commands.size(); j++)
+		{
+			size_t startCommandOffset = startAnimOffset + ahdr->cmd_offsets[j];
+			offset = startCommandOffset;
+
+			EmaCommand &command = animation.commands[j];
+			EMAAnimationCommandHeader *chdr = (EMAAnimationCommandHeader *)GetOffsetPtr(buf, startCommandOffset);
+
+			incParam = 0;
+			incSection = 5;
+			write_Coloration_Tag("bone_idx", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
+			write_Coloration_Tag("transform", "uint8_t", "", offset, sizeof(uint8_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
+			write_Coloration_Tag("transformComponent", "uint8_t", "", offset, sizeof(uint8_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
+			write_Coloration_Tag("step_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
+			write_Coloration_Tag("indices_offset", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
+
+
+
+			if (HasSkeleton())
+			{
+				if (val16(chdr->bone_idx) >= GetNumBones())
+				{
+					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in command 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
+					return;
+				}
+				command.bone = &bones[val16(chdr->bone_idx)];
+			}else{
+				command.bone = nullptr;
+			}
+
+			command.transformComponent = (chdr->transformComponent & 0xF);
+			command.timesByteSize = (chdr->transformComponent & 0x20);
+			command.indexesByteSize = (chdr->transformComponent & 0x40);
+
+			command.transform = chdr->transform;
+			command.steps.resize(val16(chdr->step_count));
+
+			
+			size_t startOffsetStepTimeIndexes = startCommandOffset + sizeof(EMAAnimationCommandHeader);
+			offset = startOffsetStepTimeIndexes;
+
+			incParam = 0;
+			incSection++;
+
+			uint8_t* timing_u8 = (uint8_t*)GetOffsetPtr(buf, startOffsetStepTimeIndexes);
+			uint16_t* timing_16 = (uint16_t*)GetOffsetPtr(buf, startOffsetStepTimeIndexes);
+
+			for (size_t k = 0; k < command.steps.size(); k++)
+			{
+				EmaStep &step = command.steps[k];
+
+				if (!(chdr->transformComponent & 0x20))
+				{
+					step.time = timing_u8[k];
+					write_Coloration_Tag("indexForTiming", "uint8_t", "", offset, sizeof(uint8_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
+				}else {
+					step.time = val16(timing_16[k]);
+					write_Coloration_Tag("indexForTiming", "uint16_t", "", offset, sizeof(uint16_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
+				}
+			}
+
+
+
+			size_t startOffsetStepIndexes = startCommandOffset + val16(chdr->indices_offset);
+			offset = startOffsetStepIndexes;
+
+			incParam = 0;
+			incSection++;
+
+			uint16_t* indices_u16 = (uint16_t*)GetOffsetPtr(buf, startOffsetStepIndexes);
+			uint32_t* indices_u32 = (uint32_t*)GetOffsetPtr(buf, startOffsetStepIndexes);
+
+			for (size_t k = 0; k < command.steps.size(); k++)
+			{
+				EmaStep &step = command.steps[k];
+
+				if (!(chdr->transformComponent & 0x40))
+				{
+					step.index = val16(indices_u16[k]);
+					write_Coloration_Tag("indexForValue", "uint16_t", "", offset, sizeof(uint16_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
+				}else {
+					step.index = val32(indices_u32[k]);
+					write_Coloration_Tag("indexForValue", "uint32_t", "", offset, sizeof(uint32_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
+				}
+			}
+		}
+
+
+
+
+		animation.values.resize(val32(ahdr->value_count));
+
+		size_t startoffsetFloatValues = startAnimOffset + ahdr->values_offset;
+		offset = startoffsetFloatValues;
+
+		float* values_32 = (float *)GetOffsetPtr(buf, startoffsetFloatValues);
+		uint16_t* values_u16 = (uint16_t*)values_32;
+
+		animation.debugValuesOffset = startoffsetFloatValues;				//test debug Todo remove.
+
+		incParam = 0;
+		incSection++;
+
+		for (size_t j = 0; j < animation.values.size(); j++)
+		{
+			if (animation.frame_float_size == 0)
+			{
+				animation.values[j] = val_float(values_32[j]);
+				write_Coloration_Tag("Float", "uint32_t", "", offset, sizeof(uint32_t), "ListFloatValues", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint32_t);
+			}else {
+				animation.values[j] = float16ToFloat(values_u16[j]);
+				write_Coloration_Tag("Float", "uint16_t", "", offset, sizeof(uint16_t), "ListFloatValues", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
+			}
+		}
+	}
+
+
+
+}
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             write_Coloration_Skeleton		                     |
+\-------------------------------------------------------------------------------*/
+void EMA::write_Coloration_Skeleton(TiXmlElement *parent, const uint8_t *buf, size_t size, size_t startOffset_Skeleton, std::vector<bool> &listBytesAllreadyTagged)
+{
+	size_t idTag = 0;
+	size_t offset = 0;
+	size_t incSection = 0;
+	size_t incParam = 0;
+
+	SkeletonHeader *hdr = (SkeletonHeader *)buf;
+
+	write_Coloration_Tag("node_count", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_02", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("ik_count", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_06", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("start_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("names_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_10_0", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_10_1", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_skd_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("matrix_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("ik_data_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_24_0", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_24_1", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_24_2", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_24_3", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	write_Coloration_Tag("unk_34_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_34_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	write_Coloration_Tag("unk_38_0", "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
+	write_Coloration_Tag("unk_38_1", "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
+
+
+
+	incParam = 0;
+	incSection++;
+
+	uint16_t node_count = val16(hdr->node_count);
+	size_t startOffset_data = hdr->ik_data_offset;
+
+	size_t ik_size = 0;
+	uint8_t* ik_data;
+
+	if (startOffset_data)
+	{
+		ik_size = 0;
+		for (uint16_t i = 0; i < hdr->ik_count; i++)
+			ik_size += val16(*(uint16_t *)(buf + startOffset_data + ik_size + 2));
+
+
+		ik_data = new uint8_t[ik_size];
+
+		if (this->big_endian == false)
+		{
+			memcpy(ik_data, buf + startOffset_data, ik_size);
+		}
+		else {
+
+			const IKEntry *ike_src = (const IKEntry *)(buf + startOffset_data);
+			IKEntry *ike_dst = (IKEntry *)ik_data;
+			IKEntry *top = (IKEntry *)(ik_data + size);
+
+			while (ike_dst < top)
+			{
+				ike_dst->unk_00 = val16(ike_src->unk_00);
+				ike_dst->entry_size = val16(ike_src->entry_size);
+				assert(ike_dst->entry_size == 0x18);
+				ike_dst->unk_03 = ike_src->unk_03;
+				ike_dst->unk_04 = ike_src->unk_04;
+				ike_dst->unk_06 = val16(ike_src->unk_06);
+				ike_dst->unk_08[0] = val16(ike_src->unk_08[0]);
+				ike_dst->unk_08[1] = val16(ike_src->unk_08[1]);
+				assert(ike_src->unk_08[2] == 0 && ike_src->unk_08[3] == 0);
+				ike_dst->unk_08[2] = 0;
+				ike_dst->unk_08[3] = 0;
+				ike_dst->unk_10[0] = val32(ike_src->unk_10[0]);
+				ike_dst->unk_10[1] = val32(ike_src->unk_10[1]);
+				assert(ike_dst->unk_10[0] == 0x3F000000 && ike_dst->unk_10[1] == 0);
+				ike_src++;
+				ike_dst++;
+			}
+		}
+
+		write_Coloration_Tag("Data InverseKinematic", "blob", "", startOffset_Skeleton + startOffset_data, ik_size, "DataIK", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += ik_size;
+
+	}
+	else {
+		ik_data = nullptr;
+		ik_size = 0;
+	}
+
+	if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)
+	{
+		LOG_DEBUG("%s: unk_24 not zero as expected.\n", FUNCNAME);
+		return;
+	}
+
+
+	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, hdr->names_offset);
+	SkeletonNode *nodes = (SkeletonNode*)GetOffsetPtr(buf, hdr->start_offset);
+	UnkSkeletonData *unks = nullptr;
+	MatrixData *matrixes = nullptr;
+
+
+	incParam = 0;
+	incSection++;
+
+	if (hdr->names_offset)
+	{
+		offset = hdr->names_offset;
+		for (size_t i = 0; i < node_count; i++)
+		{
+			write_Coloration_Tag("nameOffset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "NameOffset", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+		}
+	}
+
+
+	incParam = 0;
+	incSection++;
+	if (hdr->unk_skd_offset)
+	{
+		unks = (UnkSkeletonData*)GetOffsetPtr(buf, hdr->unk_skd_offset);
+
+		offset = hdr->unk_skd_offset;
+		for (size_t i = 0; i < node_count; i++)
+		{
+			incParam = 0;
+			write_Coloration_Tag("unk_00_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+			write_Coloration_Tag("unk_00_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+			write_Coloration_Tag("unk_00_2", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+			write_Coloration_Tag("unk_00_3", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		}
+	}
+
+	incParam = 0;
+	incSection++;
+	if (hdr->matrix_offset)
+	{
+		matrixes = (MatrixData *)GetOffsetPtr(buf, hdr->matrix_offset);
+
+		offset = hdr->matrix_offset;
+		for (size_t i = 0; i < 16; i++)
+		{
+			write_Coloration_Tag("matrix_00", "float", "", startOffset_Skeleton + offset, sizeof(float), "MatrixData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(float);
+		}
+	}
+
+
+
+	for (uint16_t i = 0; i < node_count; i++)
+	{
+		EMO_Bone bone;
+
+		size_t startSkeletonNode = hdr->start_offset + i * sizeof(SkeletonNode);
+		offset = startSkeletonNode;
+
+		incParam = 0;
+		incSection = 5;
+
+		write_Coloration_Tag("parent_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("child_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("sibling_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("emgIndex", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("index_4", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("unk_0A_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("unk_0A_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		write_Coloration_Tag("unk_0A_2", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+		for (size_t j = 0; j < 16; j++)
+		{
+			write_Coloration_Tag("matrix_" + std::to_string(j), "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(float);
+		}
+
+		incParam = 0;
+		incSection++;
+
+		bone.meta_original_offset = EMO_BaseFile::DifPointer(&nodes[i], buf);
+		bone.name = std::string((char *)GetOffsetPtr(buf, names_table, i));
+		write_Coloration_Tag("BoneName", "string", "", startOffset_Skeleton + names_table[i], bone.name.length() + 1, "SkeletonName", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += bone.name.length() + 1;
+	}
+}
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             write_Coloration_Tag			                     |
+\-------------------------------------------------------------------------------*/
+void EMA::write_Coloration_Tag(string paramName, string paramType, string paramComment, size_t startOffset, size_t size, string sectionName, TiXmlElement* parent, size_t idTag, size_t sectionIndex, size_t paramIndex, std::vector<bool> &listBytesAllreadyTagged, size_t sectionIndexInList, bool checkAllreadyTaggued)
+{
+	TiXmlElement* tag_node = new TiXmlElement("TAG");
+
+	tag_node->SetAttribute("id", UnsignedToString(idTag, false));
+
+
+	TiXmlElement* start_offset_node = new TiXmlElement("start_offset");
+	TiXmlText* text = new TiXmlText(std::to_string(startOffset));
+	start_offset_node->LinkEndChild(text);
+	tag_node->LinkEndChild(start_offset_node);
+
+	TiXmlElement* end_offset_node = new TiXmlElement("end_offset");
+	text = new TiXmlText(std::to_string(startOffset + size - 1));
+	end_offset_node->LinkEndChild(text);
+	tag_node->LinkEndChild(end_offset_node);
+
+	TiXmlElement* text_node = new TiXmlElement("tag_text");
+	text = new TiXmlText(sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment);
+	text_node->LinkEndChild(text);
+	tag_node->LinkEndChild(text_node);
+
+
+
+
+
+	if (listTagColors.size() == 0)
+	{
+		listTagColors.push_back(std::vector<std::vector<string>>());
+		listTagColors.back().push_back(std::vector<string>());
+		listTagColors.back().back().push_back("#000000");			//background color
+		listTagColors.back().back().push_back("#FFFFFF");			//font color (just to possibility read from background color)
+	}
+
+	size_t sectionIndex_tmp = sectionIndex % listTagColors.size();
+	std::vector<std::vector<string>> &sectionColorlist = listTagColors.at(sectionIndex_tmp);
+	size_t paramIndex_tmp = paramIndex % sectionColorlist.size();
+	std::vector<string> &paramColors = sectionColorlist.at(paramIndex_tmp);
+
+	TiXmlElement* font_colour_node = new TiXmlElement("font_colour");
+	text = new TiXmlText(paramColors.at(1));
+	font_colour_node->LinkEndChild(text);
+	tag_node->LinkEndChild(font_colour_node);
+
+	TiXmlElement* bg_colour_node = new TiXmlElement("note_colour");
+	text = new TiXmlText(paramColors.at(0));
+	bg_colour_node->LinkEndChild(text);
+	tag_node->LinkEndChild(bg_colour_node);
+
+	parent->LinkEndChild(tag_node);
+
+
+
+
+	//un check d'overide , pour savoir si des blocks se chevauche.
+	size_t index;
+	size_t limit = listBytesAllreadyTagged.size();
+	for (size_t i = 0; i < size; i++)
+	{
+		index = startOffset + i;
+		if (index >= limit)
+		{
+			printf("Error on tagID %i : overflow %s >= %s.\n", idTag, UnsignedToString(index, true).c_str(), UnsignedToString(limit, true).c_str());
+			LibXenoverse::notifyError();
+			continue;
+		}
+
+		if (index == 0x11ac)			//for test
+			int aa = 42;
+
+		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
+		{
+			printf("warning on tagID %i : the byte %s allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, UnsignedToString(index, true).c_str(), (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
+			LibXenoverse::notifyWarning();
+		}
+
+		listBytesAllreadyTagged.at(index) = true;
+	}
+}
+
 
 
 }

@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 
 	string help = "Commands: \n\
 		'Help' to see this list\n\
-		'Load <path\\filenameEskFile>' load a esk file (or ean file, because there is a esk part into)\n\
+		'Load <path\\filenameEskFile> <file2.ext> ...' load a esk file (or ean file, because there is a esk part into)\n\
 		'Save <indexEsk> <path\\filename>' save your modified esk (or ean) file\n\
 		'GetEskFileList'\n\
 		'GetBoneList <indexEsk> <useTree>' if useTree is 'true', you will parent-child relation, if 'false' just the list byIndex\n\
@@ -131,116 +131,190 @@ int main(int argc, char** argv)
 
 
 	string line = "";
-	while (line.substr(0, 4) != "Quit")
+	std::vector<string> arguments;
+	std::vector<string> arg_tmp;
+
+
+
+	while ((arguments.size() == 0) || (arguments.at(0) != "Quit"))
 	{
 		printf("So, what do you want ?\n");
 		line = readLine();
 		
 
 
-		if (line.substr(0, 4) == "Quit")
+
+		//get full argument with take care of '"' to have filename with spaces.
+		arg_tmp = split(line, ' ');
+		size_t nbArg = arg_tmp.size();
+
+		arguments.clear();
+		string str_tmp = "";
+		string str2_tmp = "";
+		for (size_t i = 0; i < nbArg; i++)									//detection of options, remove then from arguments list, plus take care of folder with spaces inside (use " ")
+		{
+			str_tmp = arg_tmp.at(i);
+			if ((str2_tmp.length() == 0) && (str_tmp.length() == 0))
+				continue;
+
+			if ((str2_tmp.length() == 0) && (str_tmp[0] == '"'))
+			{
+				if (str_tmp[str_tmp.length() - 1] != '"')
+				{
+					str2_tmp = str_tmp.substr(1);
+				}
+				else {
+					str2_tmp = str_tmp.substr(1, str_tmp.length() - 2);
+					arguments.push_back(str2_tmp);
+					str2_tmp = "";
+				}
+				continue;
+			}else if (str2_tmp.length() != 0) {
+
+				str2_tmp += " " + str_tmp;
+
+				if (str_tmp[str_tmp.length() - 1] == '"')
+				{
+					arguments.push_back(str2_tmp.substr(0, str2_tmp.length() - 1));
+					str2_tmp = "";
+				}
+				continue;
+			}
+			arguments.push_back(str_tmp);
+		}
+		if (str2_tmp.length() != 0)					//put the last argument if they miss a " at the end
+			arguments.push_back(str2_tmp);
+
+
+		if (arguments.size() == 0)
+			continue;
+
+
+
+
+
+
+
+
+		//begin to work on Each case.
+
+		string command = arguments.at(0);
+		arguments.erase(arguments.begin());
+		nbArg = arguments.size();
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		if (command == "Quit")
 		{
 			break;
-		}
-		else if (line.substr(0, 4) == "Help")
-		{
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Help"){
 			printf("%s",help.c_str());
 
-		}else if (line.substr(0, 4) == "Load"){
 
-			if (line.size() <= 5)
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Load"){
+
+
+			size_t inc = 0;
+			for (size_t i = 0; i < nbArg; i++)
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
+				string filename = arguments.at(i);
+				string extension = LibXenoverse::extensionFromFilename(filename, true);
 
-			string filename = line.substr(5);
 
-			
-
-			std::vector<string> sv = split(filename, '.');
-			string extension = sv.at(sv.size() - 1);
-
-			EanOrEskFile *eanOrEskFile = new EanOrEskFile(filename);
-
-			try{
-				
 				if (extension == "ean")
 				{
+					EanOrEskFile *eanOrEskFile = new EanOrEskFile(filename);
 					eanOrEskFile->mEan = new LibXenoverse::EAN();
-					eanOrEskFile->mEan->load(filename);
-					eanOrEskFile->mEsk = eanOrEskFile->mEan->getSkeleton();
+					if (eanOrEskFile->mEan->load(filename))
+					{
+						eanOrEskFile->mEsk = eanOrEskFile->mEan->getSkeleton();
+						printf("Ean Loaded\n");
+					}else {
+						printf("Error: Fail on loading %s", filename.c_str());
+						delete eanOrEskFile;
+					}
 
-				}else if (extension == "esk"){
+				}else if (extension == "esk") {
 
+					EanOrEskFile *eanOrEskFile = new EanOrEskFile(filename);
 					eanOrEskFile->mEsk = new LibXenoverse::ESK();
-					eanOrEskFile->mEsk->load(filename);
+					if (eanOrEskFile->mEsk->load(filename))
+					{
+						listEskFile.push_back(eanOrEskFile);
+						printf("Esk Loaded\n");
+					}else {
+						printf("Error: Fail on loading %s", filename.c_str());
+						delete eanOrEskFile;
+					}
+
+				}else {
+					printf("%s it's not a Ean or Esk", filename.c_str());
 				}
-				listEskFile.push_back(eanOrEskFile);
-
-				printf("file loaded.\n");
-			} catch(...){
-
-				printf("Error on try to load %s\n", filename.c_str());
-				if (eanOrEskFile != NULL)
-					delete eanOrEskFile;
 			}
+				
 
-		}else if (line.substr(0, 4) == "Save"){
 
-			if (line.size() <= 5)
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Save"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(5), ' ');
-			size_t index = std::stoi(sv.at(0));
+			size_t index = std::stoi(arguments.at(0));
+			string filename = arguments.at(1);
+			string extension = LibXenoverse::extensionFromFilename(filename, true);
 
 			if (index < listEskFile.size())
 			{
-				string filename = listEskFile.at(index)->mFilename;
-
-				if (sv.size()>1)
-					filename = sv.at(1);
-
-				std::vector<string> sv = split(filename, '.');
-				string extension = sv.at(sv.size() - 1);
-
 				if ((listEskFile.at(index)->mEan) && (extension == "ean"))
+				{
 					listEskFile.at(index)->mEan->save(filename);
-				else
+					printf("Ean file saved at %s.\n", filename.c_str());
+
+				}else if (extension == "esk") {
 					listEskFile.at(index)->mEsk->save(filename);
+					printf("Esk file saved at %s.\n", filename.c_str());
 
-				printf("file saved at %s.\n", filename.c_str());
-
+				}else{
+					printf("extension is not correct (.ean or .esk): %s.\n", filename.c_str());
+				}
 			}else{
 				printf("index %i is not in file list.\n", index);
 			}
-		}
-		else if (line.substr(0, 14) == "GetEskFileList"){
+
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetEskFileList"){
 
 			size_t nbFile = listEskFile.size();
 			for (size_t i = 0; i < nbFile; i++)
 				printf("%i : %s\n", i, listEskFile.at(i)->mFilename.c_str());
 
 
-		}else if (line.substr(0, 11) == "GetBoneList"){
 
-			if (line.size() <= 12)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetBoneList"){
+
+			if (nbArg < 1)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(12), ' ');
-			size_t index = std::stoi(sv.at(0));
+			size_t index = std::stoi(arguments.at(0));
+			bool useTree = (nbArg > 1) ? (arguments.at(1) == "true") : false;
+				
 
-			bool useTree = false;
-			if (sv.size() > 1)
-				useTree = (sv.at(1)=="true");
-
-			
 
 			if (index < listEskFile.size())
 			{
@@ -255,47 +329,37 @@ int main(int argc, char** argv)
 					{
 						for (size_t i = 0; i < nbBone; i++)
 							printf("%i : %s\n", i, bones.at(i)->getName().c_str());
-					}
-					else{
-						
+					}else{
 						LibXenoverse::EskTreeNode *treeNode = esk->getTreeOrganisation();
 						printf("%s\n", treeNode->getDisplayStr().c_str());
 					}
-				}
-				else{
+				}else{
 					printf("No skeleton definition in this file\n");
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list.\n", index);
 			}
 
-		}else if (line.substr(0, 6) == "Rename"){
 
-			if (line.size() <= 7)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Rename"){
+
+			if (nbArg < 3)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(7), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 2)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			string newName = sv.at(2);
-
-			bool renameEmd = false;
-			if (sv.size() > 3)
-				renameEmd = (sv.at(3) == "true");
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
+			string newName = arguments.at(2);
+			bool renameEmd = (nbArg > 3) ? (arguments.at(3) == "true") : false;
+				
 
 			if(indexFile < listEskFile.size())
-			{
-				
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+			{				
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 				
 				if (boneIndex < listEskFile.at(indexFile)->mEsk->getBones().size())
 				{
@@ -312,41 +376,31 @@ int main(int argc, char** argv)
 
 						printf("Emd bone also renamed.\n");
 					}
-
-				}
-				else{
+				}else{
 					printf("boneIndex %i is not in list of bones.\n", boneIndex);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 		
-		}
-		else if (line.substr(0, 6) == "Remove"){
 
-			if (line.size() <= 7)
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Remove"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
+			bool recursive = (nbArg>2) ? (arguments.at(2) == "true") : true;
+				
 
-			std::vector<std::string> sv = split(line.substr(7), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			bool recursive = true;
-			if (sv.size()>2)
-				recursive = (sv.at(2) == "true");
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				if (boneIndex < listEskFile.at(indexFile)->mEsk->getBones().size())
 				{
@@ -357,44 +411,33 @@ int main(int argc, char** argv)
 						listEskFile.at(indexFile)->mEan->changeBoneIndexes(listMovingindex);
 
 					printf("Done.\nATTENTION: index of bone could have changed.\n");
-				}
-				else{
+				}else{
 					printf("boneIndex %i is not in list of bones.\n", boneIndex);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Copy"){
 
-		}
-		else if (line.substr(0, 4) == "Copy"){
-
-			if (line.size() <= 5)
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
+			bool recursive = (nbArg>2) ? (arguments.at(2) == "true") : true;
+				
 
-			std::vector<std::string> sv = split(line.substr(5), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			bool recursive = true;
-			if (sv.size()>2)
-				recursive = (sv.at(2) == "true");
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				if (boneIndex < listEskFile.at(indexFile)->mEsk->getBones().size())
 				{
@@ -407,20 +450,16 @@ int main(int argc, char** argv)
 						eskOrganizer_Copy.mSourceFile = nullptr;
 					}
 
-
-					LibXenoverse::EskTreeNode* rootNode = listEskFile.at(indexFile)->mEsk->getTreeOrganisation();
-					
+					LibXenoverse::EskTreeNode* rootNode = listEskFile.at(indexFile)->mEsk->getTreeOrganisation();					
 					eskOrganizer_Copy.mSourceFile = listEskFile.at(indexFile);
 					eskOrganizer_Copy.mTreeNode = rootNode->getBoneWithIndex(boneIndex);
 					eskOrganizer_Copy.mRootToClean = rootNode;
 
 					printf("Copyed.\n");
-				}
-				else{
+				}else{
 					printf("boneIndex %i is not in list of bones.\n", boneIndex);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
@@ -429,43 +468,31 @@ int main(int argc, char** argv)
 
 
 
-
-		}
-		else if (line.substr(0, 5) == "Paste"){
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Paste"){
 
 			if (eskOrganizer_Copy.mRootToClean == nullptr)
 			{
 				printf("Nothing Copyed. please use 'Copy' command before. try 'Help' command\n");
 				continue;
 			}
-			if (line.size() <= 6)
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
+			bool copyAnimation = (nbArg>2) ? (arguments.at(2) == "true") : true;
+			bool matchDuration = (nbArg>3) ? (arguments.at(3) == "true") : true;
 
-			std::vector<std::string> sv = split(line.substr(6), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			bool copyAnimation = true;
-			if (sv.size()>2)
-				copyAnimation = (sv.at(2) == "true");
-
-			bool matchDuration = true;
-			if (sv.size()>3)
-				matchDuration = (sv.at(3) == "true");
 
 			
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				if (boneIndex < listEskFile.at(indexFile)->mEsk->getBones().size())
 				{
@@ -487,12 +514,10 @@ int main(int argc, char** argv)
 					}
 
 					printf("Pasted.\nATTENTION: index of bone could have changed.\n");
-				}
-				else{
+				}else{
 					printf("boneIndex %i is not in list of bones.\n", boneIndex);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
@@ -502,37 +527,23 @@ int main(int argc, char** argv)
 
 
 
-			
-		}
-		else if ((line.substr(0, 20) == "ClearTransformMatrix") || (line.substr(0, 19) == "ClearSkinningMatrix")){
+		///////////////////////////////////////////////////////////////////////////////////////////////////	
+		}else if ((command == "ClearTransformMatrix") || (command == "ClearSkinningMatrix")){
 
-			size_t nbCharac = 21;
-			bool isSkinningMatrix = false;
-			if (line.substr(0, 19) == "ClearSkinningMatrix")
+			if (nbArg < 2)
 			{
-				nbCharac = 20;
-				isSkinningMatrix = true;
-			}
-
-			if (line.size() <= nbCharac)
-			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			bool isSkinningMatrix = (command == "ClearSkinningMatrix");
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
 
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
 
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				std::vector<LibXenoverse::ESKBone*> &bones = listEskFile.at(indexFile)->mEsk->getBones();
 				LibXenoverse::ESKBone* bone = nullptr;
@@ -564,8 +575,7 @@ int main(int argc, char** argv)
 				}
 
 				printf("Done.\n");
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
@@ -573,37 +583,24 @@ int main(int argc, char** argv)
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if ((command == "CalculTransformMatrixFromSkinningMatrix") || (command == "CalculSkinningMatrixFromTransformMatrix")){
 
-		}
-		else if ((line.substr(0, 39) == "CalculTransformMatrixFromSkinningMatrix") || (line.substr(0, 39) == "CalculSkinningMatrixFromTransformMatrix")){
-
-			size_t nbCharac = 40;
-			bool isSkinningMatrix = false;
-			if (line.substr(0, 39) == "CalculSkinningMatrixFromTransformMatrix")
+			
+			if (nbArg < 2)
 			{
-				nbCharac = 40;
-				isSkinningMatrix = true;
-			}
-
-			if (line.size() <= nbCharac)
-			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			bool isSkinningMatrix = (command == "CalculSkinningMatrixFromTransformMatrix");
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
 
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
+			
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				std::vector<LibXenoverse::ESKBone*> &bones = listEskFile.at(indexFile)->mEsk->getBones();
 				LibXenoverse::ESKBone* bone = nullptr;
@@ -634,58 +631,49 @@ int main(int argc, char** argv)
 
 
 		
-
-		}
-		else if ((line.substr(0, 15) == "GetBonePosition") || (line.substr(0, 15) == "SetBonePosition") 
-			|| (line.substr(0, 18) == "GetBoneOrientation") || (line.substr(0, 18) == "SetBoneOrientation")
-			|| (line.substr(0, 15) == "GetBoneRotation") || (line.substr(0, 15) == "SetBoneRotation")
-			|| (line.substr(0, 12) == "GetBoneScale") || (line.substr(0, 12) == "SetBoneScale")
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if ((command == "GetBonePosition") || (command == "SetBonePosition")
+			|| (command == "GetBoneOrientation") || (command == "SetBoneOrientation")
+			|| (command == "GetBoneRotation") || (command == "SetBoneRotation")
+			|| (command == "GetBoneScale") || (command == "SetBoneScale")
 			){
 
-			size_t nbCharac = 16;
-			string command = "GetBonePosition";
-			size_t nbMinimumArg = 2;
-			if (line.substr(0, 15) == "SetBonePosition") { nbCharac = 16; command = "SetBonePosition"; nbMinimumArg = 5; }
-			else if (line.substr(0, 18) == "GetBoneOrientation") { nbCharac = 19; command = "GetBoneOrientation"; }
-			else if (line.substr(0, 18) == "SetBoneOrientation") { nbCharac = 19; command = "SetBoneOrientation"; nbMinimumArg = 6; }
-			else if(line.substr(0, 15) == "GetBoneRotation") { nbCharac = 16; command = "GetBoneRotation"; }
-			else if (line.substr(0, 15) == "SetBoneRotation") { nbCharac = 16; command = "SetBoneRotation"; nbMinimumArg = 5; }
-			else if(line.substr(0, 12) == "GetBoneScale") { nbCharac = 13; command = "GetBoneScale"; }
-			else if (line.substr(0, 12) == "SetBoneScale") { nbCharac = 13; command = "SetBoneScale"; nbMinimumArg = 5; }
+			size_t nbMinimumArg = 1;
+			if      (command == "SetBonePosition")		nbMinimumArg = 5;
+			else if (command == "GetBoneOrientation")	nbMinimumArg = 2;
+			else if (command == "SetBoneOrientation")	nbMinimumArg = 6;
+			else if (command == "GetBoneRotation")		nbMinimumArg = 2;
+			else if (command == "SetBoneRotation")		nbMinimumArg = 5;
+			else if (command == "GetBoneScale")			nbMinimumArg = 2;
+			else if (command == "SetBoneScale")			nbMinimumArg = 5;
 
-			if (line.size() <= nbCharac)
+			if (nbArg < nbMinimumArg)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
-
-			if (sv.size() < nbMinimumArg)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			bool absolute = false;
-			if (sv.size() > nbMinimumArg)
-				absolute = (sv.at(nbMinimumArg) == "true");
+			size_t indexFile = std::stoi(arguments.at(0));
+			string boneRef = arguments.at(1);
 
 			std::vector<float> vector;
-			if ((nbMinimumArg == 5) || (nbMinimumArg == 6))
+			if (nbMinimumArg >= 5)
 			{
-				vector.push_back(std::stof(sv.at(2)));
-				vector.push_back(std::stof(sv.at(3)));
-				vector.push_back(std::stof(sv.at(4)));
-				if(nbMinimumArg == 6)
-					vector.push_back(std::stof(sv.at(5)));
+				vector.push_back(std::stof(arguments.at(2)));
+				vector.push_back(std::stof(arguments.at(3)));
+				vector.push_back(std::stof(arguments.at(4)));
+				if (nbMinimumArg >= 6)
+					vector.push_back(std::stof(arguments.at(5)));
 			}
+
+			bool absolute = (nbArg > nbMinimumArg) ? (arguments.at(nbMinimumArg) == "true") : false;
+			
+
+			
 
 
 			if (indexFile < listEskFile.size())
 			{
-				size_t boneIndex = (isNumber(sv.at(1)) ? std::stoi(sv.at(1)) : listEskFile.at(indexFile)->mEsk->getBoneIndex(sv.at(1)));
+				size_t boneIndex = (isNumber(boneRef) ? std::stoi(boneRef) : listEskFile.at(indexFile)->mEsk->getBoneIndex(boneRef));
 
 				if (boneIndex < listEskFile.at(indexFile)->mEsk->getBones().size())
 				{
@@ -727,40 +715,26 @@ int main(int argc, char** argv)
 						if (command == "GetBonePosition")
 						{
 							printf("Position : %f, %f, %f\n", skinning_matrix[0], skinning_matrix[1], skinning_matrix[2]);
-						}
-						else if (command == "GetBoneOrientation")
-						{
+						}else if (command == "GetBoneOrientation"){
 							printf("Orientation (xyzw): %f, %f, %f, %f\n", skinning_matrix[4], skinning_matrix[5], skinning_matrix[6], skinning_matrix[7]);
-						}
-						else if (command == "GetBoneRotation")
-						{
+						}else if (command == "GetBoneRotation"){
 							printf("TODO. sorry\n");
-						}
-						else if (command == "GetBoneScale")
-						{
+						}else if (command == "GetBoneScale"){
 							printf("Scale : %f, %f, %f\n", skinning_matrix[8], skinning_matrix[9], skinning_matrix[10]);
-						}
-						else if (command == "SetBonePosition")
-						{
+						}else if (command == "SetBonePosition"){
 							skinning_matrix[0] = vector.at(0);
 							skinning_matrix[1] = vector.at(1);
 							skinning_matrix[2] = vector.at(2);
 							isASet = true;
-						}
-						else if (command == "SetBoneOrientation")
-						{
+						}else if (command == "SetBoneOrientation"){
 							skinning_matrix[4] = vector.at(0);
 							skinning_matrix[5] = vector.at(1);
 							skinning_matrix[6] = vector.at(2);
 							skinning_matrix[7] = vector.at(3);
 							isASet = true;
-						}
-						else if (command == "SetBoneRotation")
-						{
+						}else if (command == "SetBoneRotation"){
 							printf("TODO. sorry\n");
-						}
-						else if (command == "SetBoneScale")
-						{
+						}else if (command == "SetBoneScale"){
 							skinning_matrix[8] = vector.at(0);
 							skinning_matrix[9] = vector.at(1);
 							skinning_matrix[10] = vector.at(2);
@@ -775,8 +749,7 @@ int main(int argc, char** argv)
 									bone->skinning_matrix[i] = skinning_matrix[i];
 
 								printf("Done. Please Considere to use 'CalculTransformMatrixFromSkinningMatrix %i -1' to update TransformMatrix.\n", indexFile);
-							}
-							else{
+							}else{
 
 								double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
 								for (size_t i = 0; i < 12; i++)
@@ -799,49 +772,45 @@ int main(int argc, char** argv)
 						}
 						break;
 					}
-				}
-				else{
+				}else{
 					printf("boneIndex %i is not in list of bones.\n", boneIndex);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "getJson"){
 
-		}
-		else if (line.substr(0, 7) == "getJson"){
-
-			size_t nbCharac = 8;
-			if (line.size() <= nbCharac)
+			if (nbArg < 1)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
+			size_t indexFile = std::stoi(arguments.at(0));
 
 			if (indexFile < listEskFile.size())
 				printf("\n\n%s\n\n", listEskFile.at(indexFile)->mEsk->getTreeOrganisation()->getJsonStr().c_str());
 			else
 				printf("index %i is not in file list.\n", indexFile);
 
-		}
-		else if (line.substr(0, 4) == "Test"){
 
-			size_t nbCharac = 5;
-			if (line.size() <= nbCharac)
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Test"){
+
+			if (nbArg < 1)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			size_t indexFile = std::stoi(arguments.at(0));
 
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile = std::stoi(sv.at(0));
 
 			if (indexFile < listEskFile.size())
 			{
@@ -856,33 +825,23 @@ int main(int argc, char** argv)
 				}
 
 				printf("Done.\n");
-			}
-			else
-			{
+			}else{
 				printf("index %i is not in file list.\n", indexFile);
 			}
 
 		
-		}
-		else if (line.substr(0, 5) == "Merge"){
 
-			size_t nbCharac = 6;
-			if (line.size() <= nbCharac)
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Merge"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(nbCharac), ' ');
-			size_t indexFile_src = std::stoi(sv.at(0));
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			size_t indexFile_dest = std::stoi(sv.at(1));
+			size_t indexFile_src = std::stoi(arguments.at(0));
+			size_t indexFile_dest = std::stoi(arguments.at(1));
 
 
 			if ((indexFile_src < listEskFile.size()) && (indexFile_dest < listEskFile.size()))
@@ -890,15 +849,12 @@ int main(int argc, char** argv)
 				if ((listEskFile.at(indexFile_dest)->mEan) && (listEskFile.at(indexFile_src)->mEan))
 				{
 					listEskFile.at(indexFile_dest)->mEan->merge(listEskFile.at(indexFile_src)->mEan);
-				}
-				else{
+				}else{
 					listEskFile.at(indexFile_dest)->mEsk->merge(listEskFile.at(indexFile_src)->mEsk);
 				}
 
 				printf("Done.\n");
-			}
-			else
-			{
+			}else{
 				if ((indexFile_src < listEskFile.size()) && (indexFile_dest < listEskFile.size()))
 					printf("indexFile_src %i or  %i is not in file list.\n", indexFile_src, indexFile_dest);
 			}
@@ -906,65 +862,48 @@ int main(int argc, char** argv)
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "EMD_Load"){
 
-		}
-		else if (line.substr(0, 8) == "EMD_Load"){
 
-			if (line.size() <= 9)
+			for (size_t i = 0; i < nbArg; i++)
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			std::vector<std::string> sv = split(line.substr(9), ' ');
-
-			size_t nbFiles = sv.size();
-			for (size_t i = 0; i < nbFiles; i++)
-			{
-				string filename = sv.at(i);
-
-				std::vector<string> sv2 = split(filename, '.');
-				string extension = sv2.at(sv2.size() - 1);
+				string filename = arguments.at(i);
+				string extension = LibXenoverse::extensionFromFilename(filename, true);
 
 				if (extension != "emd")
+				{
+					printf("%s not a Emd. skipped\n", filename.c_str());
 					continue;
+				}
 
 				LibXenoverse::EMD* emd = new LibXenoverse::EMD();
-
 				if (emd->load(filename))
 				{
 					listEmdFile.push_back(emd);
 					printf("file %s loaded.\n", filename.c_str());
 				}else{
+					printf("Error: fail on loading %s\n", filename.c_str());
 					delete emd;
 				}
 			}
 			
 
-		}
-		else if (line.substr(0, 8) == "EMD_Save"){
 
-			if (line.size() < 8)
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "EMD_Save"){
+
+			if (arguments.at(0) == "")
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
+				arguments.erase(arguments.begin());
+				nbArg--;
 			}
+			size_t index = (nbArg>0) ? std::stoi(arguments.at(0)) : (size_t)-1;
 
-			std::vector<std::string> sv = split(line.substr(8), ' ');
-			if (sv.at(0) == "")
-				sv.erase(sv.begin());
-			
-			
-			size_t index = (size_t)-1;
-			
-			if(sv.size()>0) 
-				index = std::stoi(sv.at(0));
 
 			size_t nbEmdFile = listEmdFile.size();
-
 			if ((index == (size_t)-1) || (index < nbEmdFile))
-			{
-				
+			{	
 				for (size_t i = 0; i < nbEmdFile; i++)
 				{
 					if ((index != (size_t)-1) && (i != index))
@@ -976,8 +915,8 @@ int main(int argc, char** argv)
 					{
 						filename = filename + "_modified.emd";
 					}else{
-						if (sv.size()>1)
-							filename = sv.at(1);
+						if (nbArg>1)
+							filename = arguments.at(1);
 					}
 
 					listEmdFile.at(i)->save(filename);
@@ -986,39 +925,37 @@ int main(int argc, char** argv)
 					if (index != (size_t)-1)
 						break;
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in emd file list.\n", index);
 			}
-		}
-		else if (line.substr(0, 18) == "EMD_GetEmdFileList"){
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "EMD_GetEmdFileList"){
 
 			size_t nbFile = listEmdFile.size();
 			for (size_t i = 0; i < nbFile; i++)
 				printf("%i : %s\n", i, listEmdFile.at(i)->getName().c_str());
 
-		}
-		else if (line.substr(0, 15) == "EMD_GetBoneList"){
 
-			if (line.size() < 15)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "EMD_GetBoneList"){
+
+			
+			if (arguments.at(0) == "")
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
+				arguments.erase(arguments.begin());
+				nbArg--;
 			}
+			size_t index = (nbArg>0) ? std::stoi(arguments.at(0)) : (size_t)-1;
 
-			std::vector<std::string> sv = split(line.substr(15), ' ');
-			if (sv.at(0) == "")
-				sv.erase(sv.begin());
-
-			size_t index = (size_t)-1;
-			if (sv.size()>0)
-				index = std::stoi(sv.at(0));
 
 			size_t nbEmdFile = listEmdFile.size();
-
 			if ((index == (size_t)-1) || (index < nbEmdFile))
 			{
-
 				for (size_t i = 0; i < nbEmdFile; i++)
 				{
 					if ((index != (size_t)-1) && (i != index))
@@ -1035,44 +972,28 @@ int main(int argc, char** argv)
 					if (index != (size_t)-1)
 						break;
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in emd file list.\n", index);
 			}
 
 
-		}
-		else if (line.substr(0, 10) == "EMD_Rename"){
 
-			//'EMD_Rename' <indexEmd> <oldBoneName> <newBoneName>' rename bone into Emds, use -1 on indexEmd for apply on all Emd\n\
 
-			if (line.size() < 11)
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "EMD_Rename"){
+
+			if (nbArg < 3)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(11), ' ');
-
-			if (sv.size() <= 2)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			size_t index = (size_t)-1;
-			if (sv.size()>0)
-				index = std::stoi(sv.at(0));
-
-			string oldName = sv.at(1);
-			string newName = sv.at(2);
-
+			size_t index = (arguments.size()>0) ? std::stoi(arguments.at(0)) : (size_t)-1;
+			string oldName = arguments.at(1);
+			string newName = arguments.at(2);
 
 			size_t nbEmdFile = listEmdFile.size();
-
 			if ((index == (size_t)-1) || (index < nbEmdFile))
 			{
-
 				for (size_t i = 0; i < nbEmdFile; i++)
 				{
 					if ((index != (size_t)-1) && (i != index))
@@ -1085,8 +1006,7 @@ int main(int argc, char** argv)
 				}
 
 				printf("Done.\n");
-			}
-			else{
+			}else{
 				printf("index %i is not in emd file list.\n", index);
 			}
 
@@ -1095,10 +1015,11 @@ int main(int argc, char** argv)
 			*/			
 
 
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
 		}else{
 			printf("Unknow command *%s*.\n Type 'Help' to see valid commands\n", line.c_str());
 		}
-
 	}
 	
 

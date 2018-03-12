@@ -100,18 +100,31 @@ std::string shader_ps_5_0_decode(std::string asm_str, string filename = "")
 int main(int argc, char** argv)
 {
 
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for converter shader from assembler to Hlsl.\n\
+ Usage: 'asmToHlslCode.exe [options] file.ext file2.ext ... '\n\
+ Files could be assembler vertexShader (.xvu.asm) or pixelShader (.xpu.asm).\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: .xpu.asm or .xvu.asm (may be .xcu.asm after) file\n");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
 
-	for (size_t i = 1; i < (size_t)argc; i++)
+
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
 	{
-		string filename = ToString(argv[i]);
+		string filename = arguments.at(i);
 		string baseFilename = LibXenoverse::nameFromFilenameNoExtension(filename);
 		string extension = LibXenoverse::extensionFromFilename(filename);
 
@@ -131,24 +144,22 @@ int main(int argc, char** argv)
 				printf("miss vs_5_0\n");
 				continue;
 			}
-
 			hlsl_str = shader_vs_5_0_decode(asm_str, filename);
 
-		}
-		else {
+		}else {
 
 			if (asm_str.find("ps_5_0") == std::string::npos)
 			{
 				printf("miss ps_5_0\n");
 				continue;
 			}
-
 			hlsl_str = shader_ps_5_0_decode(asm_str, filename);
 		}
-
 
 		writeFile(filename.substr(0, filename.length() - 3) + "hlsl", hlsl_str);
 	}
 
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

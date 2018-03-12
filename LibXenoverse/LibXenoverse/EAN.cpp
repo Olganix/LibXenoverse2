@@ -65,7 +65,8 @@ void EAN::read(File *file)
 	unsigned short animation_count = 0;
 
 	file->readInt32E(&unknown_total);
-	file->moveAddress(6);
+	file->moveAddress(4);
+	file->readInt16E(&type);
 	file->readInt16E(&animation_count);
 	file->readInt32E(&skeleton_offset);
 	file->readInt32E(&animation_keyframes_offset);
@@ -127,9 +128,8 @@ void EAN::write(File *file)
 	unsigned int animation_names_offset = 0;	//define after.
 
 	file->writeInt32E(&unknown_total);
-	file->writeNull(2);
-	unsigned int unknown_1 = 0x04000000;
-	file->writeInt32E(&unknown_1);				//non iddentifier
+	file->writeNull(4);
+	file->writeInt16E(&type);
 	file->writeInt16E(&animation_count);
 	file->writeInt32E(&skeleton_offset);
 	file->writeInt32E(&animation_keyframes_offset);
@@ -316,7 +316,7 @@ void EAN::addBoneAnimationFromAnotherEan(EAN* ean_src, std::vector<std::vector<s
 /*-------------------------------------------------------------------------------\
 |                             addTPoseAnimation				                     |
 \-------------------------------------------------------------------------------*/
-void EAN::addTPoseAnimation(void)
+void EAN::addTPoseAnimation(bool addCameraComponent)
 {
 	size_t nbAnim = animations.size();
 	for (size_t i = 0; i < nbAnim; i++)
@@ -325,9 +325,23 @@ void EAN::addTPoseAnimation(void)
 
 	animations.push_back(EANAnimation());
 	animations.back().setName("Tpose");
-	animations.back().addTPoseAnimation(skeleton);
+	animations.back().addTPoseAnimation(skeleton, addCameraComponent);
 }
-
+/*-------------------------------------------------------------------------------\
+|                             removeAnimation				                     |
+\-------------------------------------------------------------------------------*/
+void EAN::removeAnimation(string name)
+{
+	size_t nbAnim = animations.size();
+	for (size_t i = 0; i < nbAnim; i++)
+	{
+		if (animations.at(i).getName() == name)
+		{
+			animations.erase(animations.begin() + i);
+			return;
+		}
+	}
+}
 
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
@@ -343,10 +357,12 @@ void EAN::addTPoseAnimation(void)
 \-------------------------------------------------------------------------------*/
 void EAN::importFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_AnimStack)
 {
+	bool isCameraAnimation = (type == 0x401);
+	
 	//Skeleton is needed because aniamtion use skeleton original position/rotation/scale. definition (name of bone) is written in ean file.
 	if (!skeleton)
 		skeleton = new ESK();
-	skeleton->importFBXSkeleton(scene);
+	skeleton->importFBXSkeleton(scene, isCameraAnimation);				//special case if camera Animations, the fbxNode with camera will be add to Bones.
 		
 		
 	size_t nbAnims = list_AnimStack.size();
@@ -354,7 +370,7 @@ void EAN::importFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_
 	{
 		EANAnimation animation;
 		animation.setParent(this);
-		animation.importFBXAnimation(scene, list_AnimStack.at(i), skeleton);
+		animation.importFBXAnimation(scene, list_AnimStack.at(i), skeleton, isCameraAnimation);
 		animations.push_back(animation);
 	}
 }
@@ -396,7 +412,7 @@ vector<FbxAnimCurveNode *> EAN::exportFBXAnimations(FbxScene *scene, std::vector
 		{
 			if (fbxBoneInstName == skeleton->getBone( anim_nodes.at(j).getBoneIndex())->getName() )		//animations and bones are linked by the indexBone
 			{
-				FbxAnimCurveNode* fbx_anim_curveNode = createFBXAnimationCurveNode(fbx_node, animation, &anim_nodes.at(j), lAnimStack, lAnimLayer);
+				FbxAnimCurveNode* fbx_anim_curveNode = createFBXAnimationCurveNode(fbx_node, animation, &anim_nodes.at(j), lAnimStack, lAnimLayer, scene);
 				fbx_anims.push_back(fbx_anim_curveNode);
 			}
 		}
@@ -407,7 +423,7 @@ vector<FbxAnimCurveNode *> EAN::exportFBXAnimations(FbxScene *scene, std::vector
 /*-------------------------------------------------------------------------------\
 |                             createFBXAnimationCurveNode                        |
 \-------------------------------------------------------------------------------*/
-FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimation *animation, EANAnimationNode* anim_node, FbxAnimStack *lAnimStack, FbxAnimLayer* lAnimLayer) {
+FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimation *animation, EANAnimationNode* anim_node, FbxAnimStack *lAnimStack, FbxAnimLayer* lAnimLayer, FbxScene *scene) {
 
 
 	float fps = 60.0f;
@@ -419,9 +435,10 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 	bone_relative_matrix.SetIdentity();
 
 	FbxVector4 pos_tmp;
-	FbxVector4 scale_tmp;
 	FbxQuaternion rot_tmp;
 	FbxVector4 rotation_eulerAngles;
+	FbxVector4 scale_tmp;
+	FbxVector4 cameraProp_tmp;
 
 	size_t index_bone = anim_node->getBoneIndex();
 
@@ -441,6 +458,8 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 	fbx_bone_relative_matrix.SetTRS(pos_tmp, rotation_eulerAngles, scale_tmp);
 		
 
+	cameraProp_tmp = FbxVector4(0,40.0,0,0);
+
 	if ((skeleton) && (index_bone < skeleton->getBones().size()))
 	{
 		esk_bone = skeleton->getBones().at(index_bone);
@@ -457,6 +476,24 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 
 
 
+
+	//special case of Camera Animation: orientation channel is position of a target. and Camera channel is for roll + focale.
+	bool isCameraAnimation = (fbx_node->GetCamera()!=0);
+	FbxNode* fbx_node_CameraTarget = 0;
+	bool isCreated = true;
+	if (isCameraAnimation)
+	{
+		fbx_node_CameraTarget = scene->GetRootNode()->FindChild("CameraTarget", true);
+		if (!fbx_node_CameraTarget)
+		{
+			fbx_node_CameraTarget = FbxNode::Create(scene, "CameraTarget");
+			scene->GetRootNode()->AddChild(fbx_node_CameraTarget);
+			fbx_node->SetTarget(fbx_node_CameraTarget);
+			isCreated = true;
+		}
+	}
+
+
 	FbxAnimCurveNode *fbx_animCurveNode = fbx_node->GeometricTranslation.GetCurveNode(lAnimLayer, true);
 
 	FbxAnimCurve *fbx_animCurve_translation_x = 0;
@@ -469,6 +506,12 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 	FbxAnimCurve *fbx_animCurve_scale_y = 0;
 	FbxAnimCurve *fbx_animCurve_scale_z = 0;
 
+	FbxAnimCurve *fbx_animCurve_Target_translation_x = 0;
+	FbxAnimCurve *fbx_animCurve_Target_translation_y = 0;
+	FbxAnimCurve *fbx_animCurve_Target_translation_z = 0;
+	FbxAnimCurve *fbx_animCurve_roll = 0;
+	FbxAnimCurve *fbx_animCurve_focale = 0;
+
 		
 	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION))
 	{
@@ -478,9 +521,16 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 	}
 	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION))
 	{
-		fbx_animCurve_rotation_x = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
-		fbx_animCurve_rotation_y = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
-		fbx_animCurve_rotation_z = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+		if (!isCameraAnimation)
+		{
+			fbx_animCurve_rotation_x = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
+			fbx_animCurve_rotation_y = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+			fbx_animCurve_rotation_z = fbx_node->LclRotation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+		}else {
+			fbx_animCurve_Target_translation_x = fbx_node_CameraTarget->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
+			fbx_animCurve_Target_translation_y = fbx_node_CameraTarget->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+			fbx_animCurve_Target_translation_z = fbx_node_CameraTarget->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+		}
 	}
 	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE))
 	{
@@ -488,6 +538,17 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 		fbx_animCurve_scale_y = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 		fbx_animCurve_scale_z = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 	}
+	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA))
+	{
+		FbxCamera* camera = fbx_node->GetCamera();
+		if (camera)
+		{
+			fbx_animCurve_roll = camera->Roll.GetCurve(lAnimLayer, true);
+			fbx_animCurve_focale = camera->FieldOfView.GetCurve(lAnimLayer, true);
+		}
+	}
+
+	
 
 	if (fbx_animCurve_translation_x)
 		fbx_animCurve_translation_x->KeyModifyBegin();
@@ -507,8 +568,20 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 		fbx_animCurve_scale_y->KeyModifyBegin();
 	if (fbx_animCurve_scale_z)
 		fbx_animCurve_scale_z->KeyModifyBegin();
+	if (fbx_animCurve_Target_translation_x)
+		fbx_animCurve_Target_translation_x->KeyModifyBegin();
+	if (fbx_animCurve_Target_translation_y)
+		fbx_animCurve_Target_translation_y->KeyModifyBegin();
+	if (fbx_animCurve_Target_translation_z)
+		fbx_animCurve_Target_translation_z->KeyModifyBegin();
+	if (fbx_animCurve_roll)
+		fbx_animCurve_roll->KeyModifyBegin();
+	if (fbx_animCurve_focale)
+		fbx_animCurve_focale->KeyModifyBegin();
 
-	float px, py, pz, pw, rx, ry, rz, rw, sx, sy, sz, sw;
+	
+
+	float px, py, pz, pw, rx, ry, rz, rw, sx, sy, sz, sw, cx, cy, cz, cw;
 	float frame;
 	FbxTime lTime;
 	FbxMatrix anim_matrix;
@@ -518,25 +591,43 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 	for (size_t i = 0; i < frame_count; i++)
 	{
 		frame = (float)i / fps;
-		px = py = pz = rx = ry = rz = 0.0f;
+		px = py = pz = rx = ry = rz = cx = cz = cw = 0.0f;
 		pw = rw = sx = sy = sz = sw = 1.0f;
+		cy = 0.6981311f;				//40.0 deg in radians.
+		 
 
 		FbxVector4 translate = pos_tmp;
 		FbxQuaternion rotation = rot_tmp;
 		FbxVector4 scale = scale_tmp;
+		FbxVector4 target_translate = pos_tmp;
+		FbxVector4 cameraProp = cameraProp_tmp;
 
 		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION, px, py, pz, pw))
 			translate = FbxVector4(px, py, pz, pw);
 
 		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION, rx, ry, rz, rw))
+		{
 			rotation = FbxQuaternion(rx, ry, rz, rw);
+			target_translate = FbxVector4(rx, ry, rz, rw);
+		}
 
 		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE, sx, sy, sz, sw))
 			scale = FbxVector4(sx, sy, sz, sw);
 
+		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA, cx, cy, cz, cw))
+			cameraProp = FbxVector4(cx * 180.0f / 3.14159265358979f, cy * 180.0f / 3.14159265358979f, cz, cw);
+
+
 		if ((pw != 1.0f) && (pw != 0.0f))
 			translate /= pw;
 		translate[3] = 1.0;
+
+		if (isCameraAnimation)
+		{
+			if ((pw != 1.0f) && (pw != 0.0f))
+				target_translate /= pw;
+			target_translate[3] = 1.0;
+		}
 
 		if ((sw != 1.0f) && (sw != 0.0f))
 			scale /= sw;
@@ -545,12 +636,19 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 
 
 		FbxDouble3 test = giveAngleOrientationForThisOrientationTaitBryan(FbxVector4(rotation[0], rotation[1], rotation[2], rotation[3]));
-
 		rotation_eulerAngles[1] = test[0];			//lacet sur Y
 		rotation_eulerAngles[2] = test[1];			//tangage sur Z
 		rotation_eulerAngles[0] = test[2];			//roulis sur X		=>YZX order
 
-
+		if (isCameraAnimation)					//in case of camera animation, as w is always 1.0, I think, it's directly rotXYZ (I don't konw for order) in radians.
+		{
+			rotation_eulerAngles[0] = 0;
+			rotation_eulerAngles[1] = 0;
+			rotation_eulerAngles[2] = 0;
+			
+			if (isCreated)
+				fbx_node_CameraTarget->LclTranslation = target_translate;				//as it's not a bone, there is not initial position, so we give the first value
+		}
 
 
 
@@ -620,6 +718,38 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 			fbx_animCurve_scale_z->KeySetValue(lKeyIndex, (float)(scale[2]));
 			fbx_animCurve_scale_z->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
 		}
+
+		//camera
+		if (fbx_animCurve_Target_translation_x)
+		{
+			lKeyIndex = fbx_animCurve_Target_translation_x->KeyAdd(lTime);
+			fbx_animCurve_Target_translation_x->KeySetValue(lKeyIndex, (float)(target_translate[0]));
+			fbx_animCurve_Target_translation_x->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
+		}
+		if (fbx_animCurve_Target_translation_y)
+		{
+			lKeyIndex = fbx_animCurve_Target_translation_y->KeyAdd(lTime);
+			fbx_animCurve_Target_translation_y->KeySetValue(lKeyIndex, (float)(target_translate[1]));
+			fbx_animCurve_Target_translation_y->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
+		}
+		if (fbx_animCurve_Target_translation_z)
+		{
+			lKeyIndex = fbx_animCurve_Target_translation_z->KeyAdd(lTime);
+			fbx_animCurve_Target_translation_z->KeySetValue(lKeyIndex, (float)(target_translate[2]));
+			fbx_animCurve_Target_translation_z->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
+		}
+		if (fbx_animCurve_roll)
+		{
+			lKeyIndex = fbx_animCurve_roll->KeyAdd(lTime);
+			fbx_animCurve_roll->KeySetValue(lKeyIndex, (float)(cameraProp[0]));
+			fbx_animCurve_roll->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
+		}
+		if (fbx_animCurve_focale)
+		{
+			lKeyIndex = fbx_animCurve_focale->KeyAdd(lTime);
+			fbx_animCurve_focale->KeySetValue(lKeyIndex, (float)(cameraProp[1]));
+			fbx_animCurve_focale->KeySetInterpolation(lKeyIndex, FbxAnimCurveDef::eInterpolationLinear);
+		}
 	}
 
 
@@ -668,6 +798,33 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 		fbx_animCurve_scale_z->KeyModifyEnd();
 		fbx_animCurve_scale_z->ConnectSrcObject(fbx_animCurveNode);
 	}
+
+	if (fbx_animCurve_Target_translation_x)
+	{
+		fbx_animCurve_Target_translation_x->KeyModifyEnd();
+		fbx_animCurve_Target_translation_x->ConnectSrcObject(fbx_animCurveNode);
+	}
+	if (fbx_animCurve_Target_translation_y)
+	{
+		fbx_animCurve_Target_translation_y->KeyModifyEnd();
+		fbx_animCurve_Target_translation_y->ConnectSrcObject(fbx_animCurveNode);
+	}
+	if (fbx_animCurve_Target_translation_z)
+	{
+		fbx_animCurve_Target_translation_z->KeyModifyEnd();
+		fbx_animCurve_Target_translation_z->ConnectSrcObject(fbx_animCurveNode);
+	}
+	if (fbx_animCurve_roll)
+	{
+		fbx_animCurve_roll->KeyModifyEnd();
+		fbx_animCurve_roll->ConnectSrcObject(fbx_animCurveNode);
+	}
+	if (fbx_animCurve_focale)
+	{
+		fbx_animCurve_focale->KeyModifyEnd();
+		fbx_animCurve_focale->ConnectSrcObject(fbx_animCurveNode);
+	}
+
 	return fbx_animCurveNode;
 }
 

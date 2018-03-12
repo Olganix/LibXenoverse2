@@ -29,6 +29,7 @@ bool EMA_Material::load(string filename)
 	if ((extension != "ema") || (extension2 != "mat"))
 	{
 		printf("Error on %s : only .mat.ema extension is valid.\n", filename.c_str());
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -41,6 +42,7 @@ bool EMA_Material::load(string filename)
 	if (!emm.load(filename_NoExt + ".emm"))
 	{
 		printf("Error on %s : the emm file needed in the same directory.\n", (filename_NoExt + ".emm").c_str());
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -61,6 +63,7 @@ void EMA_Material::save(string filename, bool big_endian)
 	if ((extension != "ema") || (extension2 != "mat"))
 	{
 		printf("Error on %s : only .mat.ema.xml extension is valid.\n", filename.c_str());
+		LibXenoverse::notifyError();
 		return;
 	}
 
@@ -69,6 +72,7 @@ void EMA_Material::save(string filename, bool big_endian)
 	if (!emm.load(filename_NoExt + ".emm"))
 	{
 		printf("Error on %s : the emm file needed in the same directory.\n", (filename_NoExt + ".emm").c_str());
+		LibXenoverse::notifyError();
 		return;
 	}
 
@@ -157,7 +161,9 @@ void EMA_Material_Animation::readEmaEmm(EmaAnimation* ema, std::vector<EMO_Bone>
 {
 	name = ema->name;
 	frame_count = ema->duration;
-	unk_08 = ema->unk_08;
+	type = ema->type;
+	frame_float_size = ema->frame_float_size;
+
 
 	//it could have differences between the name of the material into Ema and Emm (Ex: Bas_B2/BasB2 or aCor/Cor).
 	//to do the link, it apparently deal with order on bones for ema and on material into emm.
@@ -323,12 +329,14 @@ void EMA_Material_Animation::readEmaEmm(EmaAnimation* ema, std::vector<EMO_Bone>
 		if (isfound == (size_t)-1)
 		{
 			printf("warning: bone name %s not found. skipped\n", emaBoneName.c_str());
+			LibXenoverse::notifyWarning();
 			continue;
 		}
 
 		if (isfound >= materials.size())
 		{
 			printf("warning: bone name %s is up to the materiallist. did you have the right .emm witch is for this mat.ema ? skipped\n", emaBoneName.c_str());
+			LibXenoverse::notifyWarning();
 			continue;
 		}
 
@@ -586,7 +594,8 @@ void EMA_Material_Animation::writeEma(EmaAnimation* ema, EMO_Skeleton* emoSkelet
 {
 	ema->name = name;
 	ema->duration = frame_count;
-	ema->unk_08 = unk_08;
+	ema->type = type;
+	ema->frame_float_size = frame_float_size;
 
 
 	EMO_Bone* emo_Bone;
@@ -806,9 +815,10 @@ bool EMA_Material_Animation::importXml(TiXmlElement* xmlCurrentNode)
 	size_t tmp;
 	xmlCurrentNode->QueryUnsignedAttribute("frameCount", &frame_count);
 
-	if (xmlCurrentNode->QueryUnsignedAttribute("unk_08", &tmp) == TIXML_SUCCESS)
-		unk_08 = tmp;
-
+	if (xmlCurrentNode->QueryUnsignedAttribute("type", &tmp) == TIXML_SUCCESS)
+		type = tmp;
+	if (xmlCurrentNode->QueryUnsignedAttribute("frame_float_size", &tmp) == TIXML_SUCCESS)
+		frame_float_size = tmp;
 
 	TiXmlElement* materialsNode = xmlCurrentNode->FirstChildElement("Materials");
 	if (!materialsNode)
@@ -947,7 +957,8 @@ TiXmlElement* EMA_Material_Animation::exportXml(void)
 	xmlCurrentNode->SetAttribute("name", name);
 	xmlCurrentNode->SetAttribute("frameCount", frame_count);
 
-	xmlCurrentNode->SetAttribute("unk_08", unk_08);
+	xmlCurrentNode->SetAttribute("type", type);
+	xmlCurrentNode->SetAttribute("frame_float_size", frame_float_size);
 
 
 	TiXmlElement* materialsNode = new TiXmlElement("Materials");

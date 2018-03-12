@@ -2,37 +2,54 @@
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for Extract files from .emb files or repack.\n\
+ Usage: 'embpack.exe [options] file.emb' or 'embpack.exe [options] folder'\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: embpack file\n");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
+	string filename = arguments.at(0);
+	string extension = LibXenoverse::extensionFromFilename(filename, true);
 
-	string pack_name = ToString(argv[1]);
-
-	if (pack_name.find(".emb") != string::npos)
+	if (extension == "emb")
 	{
 		LibXenoverse::EMB *emb_pack = new LibXenoverse::EMB();
-		emb_pack->load(pack_name);
+		if (emb_pack->load(filename))
+		{
+			string name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+			string folder = LibXenoverse::folderFromFilename(filename);
+			string new_folder = folder + name;
 
-		string name = LibXenoverse::nameFromFilenameNoExtension(pack_name, true);
-		string folder = LibXenoverse::folderFromFilename(pack_name);
-
-		string new_folder = folder + name;
-		CreateDirectory(new_folder.c_str(), NULL);
-		emb_pack->extract(new_folder + "/");
+			CreateDirectory(new_folder.c_str(), NULL);
+			emb_pack->extract(new_folder + "/");	
+		}
 		delete emb_pack;
-
-	}else{
+		
+	}else if (extension == ""){
 
 		LibXenoverse::EMB *emb_pack = new LibXenoverse::EMB();
-		emb_pack->addFolder(pack_name + "/");
-		emb_pack->save(pack_name + ".emb", emb_pack->detectFilenameMode());
+		emb_pack->addFolder(filename + "/");
+		emb_pack->save(filename + ".emb", emb_pack->detectFilenameMode());
 		delete emb_pack;
+
+	}else {
+		printf("Error on arguments.\n");
+		LibXenoverse::notifyError();
 	}
 
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

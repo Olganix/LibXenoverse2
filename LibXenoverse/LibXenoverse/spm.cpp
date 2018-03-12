@@ -352,6 +352,7 @@ uint8_t* Spm::CreateFile(unsigned int *psize)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 	memset(buf, 0, filesize);				//fill by 0 to secure, and not having random memory.
@@ -952,6 +953,7 @@ bool Spm::Compile(TiXmlDocument *doc, bool big_endian)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 	memset(buf, 0, filesize);				//fill by 0 to secure, and not having random memory.
@@ -1789,14 +1791,15 @@ void Spm::write_Coloration_Tag(string paramName, string paramType, string paramC
 		if (index >= limit)
 		{
 			printf("Error on tagID %i : overflow %i >= %i.\n", idTag, index, limit);
+			LibXenoverse::notifyError();
 			continue;
 		}
 
-		if (index == 0x11ac)			//for test
-			int aa = 42;
-
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
-			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str() );
+		{
+			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
+			LibXenoverse::notifyError();
+		}
 
 		listBytesAllreadyTagged.at(index) = true;
 	}

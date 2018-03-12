@@ -4,20 +4,32 @@
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	
+	printf("*******************************************************************\n\
+ This tool is for convert animations files of Dbxv2 and SaintSeya : Ema <-> Ean.\n\
+ Usage: 'emaEan.exe [options] file.ext'\n\
+ Files could be .ema, or .ean .\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: emaEan file.ema or file.ean.\n");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
+	
 
 	printf("Converter Ema to Ean Started. please wait ...\n");
 
-	
-	
-	string filename = ToString(argv[1]);
+
+	string filename = arguments.at(0);
 	string extension = LibXenoverse::extensionFromFilename(filename, true);
 
 	if(extension == "ema")
@@ -27,10 +39,9 @@ int main(int argc, char** argv)
 		{
 			LibXenoverse::EAN* ean = new LibXenoverse::EAN();
 			ema->writeEAN(ean);
-			
-			//ema->DecompileToFile(filename + "_resave.ema.xml");		//test
 
 			ean->save(filename + ".ean");
+			//ema->DecompileToFile(filename + "_resave.ema.xml");		//test
 			delete ean;
 		}
 		delete ema;
@@ -42,14 +53,19 @@ int main(int argc, char** argv)
 		{
 			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
 			ema->readEAN(ean);
+
 			ema->SaveToFile(filename + ".ema");
-
 			//ema->DecompileToFile(filename + "_resave.ema.xml");		//test
-
 			delete ema;
 		}
 		delete ean;
+
+	}else {
+		printf("Error on arguments.\n");
+		LibXenoverse::notifyError();
 	}
 
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

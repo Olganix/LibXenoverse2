@@ -4,7 +4,9 @@
 #define LIBXENOVERSE_EMB_SIGNATURE    "#EMB"
 #define LIBXENOVERSE_EMB_EXTENSION    ".emb"
 
-namespace LibXenoverse {
+namespace LibXenoverse
+{
+
 	class EMBFile
 	{
 		protected:
@@ -23,29 +25,27 @@ namespace LibXenoverse {
 				index = 0;
 			}
 
+			char *getData() { return data; }
+			size_t getSize() { return data_size; }
 			void setName(string name_p) { name = name_p; }
 			string getName() { return name; }
+			void setIndex(size_t v) { index = v; }
+			size_t getIndex() { return index; }
 
 			void write(File *file);
 			void save(string filename);
-
-			size_t getSize() { return data_size; }
-			char *getData() { return data; }
-			void setIndex(size_t v) { index = v; }
-			size_t getIndex() { return index; }
 
 			EMBFile* clone(void);
 	};
 
 
-	class EMB {
+	class EMB
+	{
 		protected:
 			vector<EMBFile*> files;
 			string name;
 		public:
-			EMB()
-			{
-			}
+			EMB() { }
 
 			string getName() { return name; }
 			vector<EMBFile *> &getFiles() { return files; }

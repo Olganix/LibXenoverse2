@@ -83,8 +83,18 @@ void ESKOgre::buildBone(unsigned short b, Ogre::Skeleton *ogre_skeleton, Ogre::B
 	mBone->setManuallyControlled(false);
 
 	for (size_t i = 0; i < bones.size(); i++)
+	{
 		if (bones.at(i)->parent_index == b)
-			buildBone(i, ogre_skeleton, mBone);
+		{
+			
+			if (i < OGRE_MAX_NUM_BONES)
+			{
+				buildBone(i, ogre_skeleton, mBone);
+			}else{
+				Ogre::LogManager::getSingleton().logMessage("Warning: Bone "+ std::to_string(i) +" " + bones.at(i)->getName() + " is up to the limit of bone for Ogre ("+ std::to_string(OGRE_MAX_NUM_BONES) +". skipped.");
+			}
+		}
+	}
 }
 
 

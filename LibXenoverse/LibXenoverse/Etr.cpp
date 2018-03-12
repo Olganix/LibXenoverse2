@@ -470,6 +470,7 @@ bool Etr_Part::Load(const uint8_t *buf, size_t size, size_t offsetStartTextureUn
 				mListTextureUnit.push_back( listTextureUnit.at(indexTextureUnit) );
 			}else {
 				printf("Error : a TextureUnit (index %i from a Etr_part) is not found (adress matching). skipped.", j);
+				LibXenoverse::notifyError();
 			}
 		}
 	}
@@ -730,6 +731,7 @@ uint8_t* Etr::CreateFile(unsigned int *psize)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 	memset(buf, 0, filesize);				//fill by 0 to secure, and not having random memory.
@@ -2951,6 +2953,7 @@ void Etr::write_Coloration_Tag(string paramName, string paramType, string paramC
 		if (index >= limit)
 		{
 			printf("Error on tagID %i : overflow %i >= %i.\n", idTag, index, limit);
+			LibXenoverse::notifyError();
 			continue;
 		}
 
@@ -2958,7 +2961,10 @@ void Etr::write_Coloration_Tag(string paramName, string paramType, string paramC
 			int aa = 42;
 
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
-			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str() );
+		{
+			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
+			LibXenoverse::notifyError();
+		}
 
 		listBytesAllreadyTagged.at(index) = true;
 	}

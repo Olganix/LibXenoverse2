@@ -670,6 +670,7 @@ size_t EMO::GetNextObjSubPart(const std::string &content, size_t *pos, std::stri
 					{
 						LOG_DEBUG("%s: Next group found but part name had not been set, "
 							"I can't understand this .obj, faulting line: \"%s\"\n", FUNCNAME, line.c_str());
+						LibXenoverse::notifyError();
 					}
 
 					*pos = std::string::npos;
@@ -710,6 +711,7 @@ size_t EMO::GetNextObjSubPart(const std::string &content, size_t *pos, std::stri
 					if (show_error)
 					{
 						LOG_DEBUG("Part name had previously been set, I can't understand this .obj, faulting line: \"%s\"\n", line.c_str());
+						LibXenoverse::notifyError();
 					}
 
 					*pos = std::string::npos;
@@ -739,6 +741,7 @@ size_t EMO::GetNextObjSubPart(const std::string &content, size_t *pos, std::stri
 					if (show_error)
 					{
 						LOG_DEBUG("Cannot get name and cannot understand this .obj, faulting line: \"%s\"\n", line.c_str());
+						LibXenoverse::notifyError();
 					}
 
 					*pos = std::string::npos;
@@ -931,8 +934,8 @@ uint8_t *EMO::CreateFile(unsigned int *psize)
 	for (EMO_PartsGroup &pg : groups)
 	{
 		// Ignore these...
-		if (pg.name == "face" || pg.name == "edge")
-			continue;
+		//if (pg.name == "face" || pg.name == "edge")
+		//	continue;
 
 		uint16_t first_empty = 0xFFFF;
 
@@ -973,6 +976,7 @@ uint8_t *EMO::CreateFile(unsigned int *psize)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 
@@ -1288,6 +1292,7 @@ size_t EMO::InjectObj(const std::string &obj, bool do_uv, bool do_normal, bool s
 		{
 			LOG_DEBUG("Number of vertex in obj is different to the one used in the .emo, cannot proceed "
 				"(obj=%u, emo=%u)\n", vertex.size(), total_vertex);
+			LibXenoverse::notifyError();
 		}
 
 		return (size_t)-1;
@@ -1342,6 +1347,7 @@ size_t EMO::InjectObjBySubParts(const std::string &obj, bool do_uv, bool do_norm
 			if (show_error)
 			{
 				LOG_DEBUG(".obj specifies subpart \"%s\", but it doesn't exist on this .emo.\n", subpart_name.c_str());
+				LibXenoverse::notifyError();
 			}
 
 			if (count != 0)
@@ -1369,6 +1375,7 @@ size_t EMO::InjectObjBySubParts(const std::string &obj, bool do_uv, bool do_norm
 		if (show_error)
 		{
 			LOG_DEBUG("%s: unknown error.\n", FUNCNAME);
+			LibXenoverse::notifyError();
 		}
 
 		if (count != 0)
@@ -1547,6 +1554,8 @@ size_t EMO::CloneLinkedBones(const EMO &other, EMO_PartsGroup &group, EMO_Bone *
 
                     if (!other.BoneExists(b->name))
                     {
+						LibXenoverse::notifyError();
+
                         // This is a critical error
                         if (not_found)
                             *not_found = b;
@@ -1597,6 +1606,114 @@ size_t EMO::CloneLinkedBones(const EMO &other, EMO_PartsGroup &group, EMO_Bone *
 
 
 #ifdef FBX_SUPPORT
+
+
+
+
+void EMO::oldSaveFbx(string filename)	//test because of saintSeya work well with old emoTools fbx convertion
+{
+	string output = filename;
+
+	FbxManager *sdk_manager = FbxManager::Create();
+	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
+	sdk_manager->SetIOSettings(ios);
+
+	FbxScene *scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
+
+	if (!ExportFbx(scene, true, false))
+	{
+		printf("ExportFbx failed.\n");
+		return;
+	}
+
+	bool ascii = false;
+	bool y_up = true;
+	bool inches = false;
+
+	//static bool export_fbx_scene(FbxManager *sdk_manager, FbxScene *scene, const std::string &output, const FbxString &version, bool ascii, bool y_up, bool inches)
+	{
+		int format = sdk_manager->GetIOPluginRegistry()->GetNativeWriterFormat();
+
+		if (ascii)
+		{
+			int count = sdk_manager->GetIOPluginRegistry()->GetWriterFormatCount();
+
+			for (int i = 0; i < count; i++)
+			{
+				if (sdk_manager->GetIOPluginRegistry()->WriterIsFBX(i))
+				{
+					FbxString desc = sdk_manager->GetIOPluginRegistry()->GetWriterFormatDescription(i);
+					if (desc.Find("ascii") >= 0)
+					{
+						format = i;
+						break;
+					}
+				}
+			}
+		}
+
+		FbxExporter* exporter = FbxExporter::Create(sdk_manager, "");
+		bool ret = exporter->Initialize(output.c_str(), format, sdk_manager->GetIOSettings());
+
+		if (!ret)
+		{
+			printf("FbxExporter::Initialize error:: %s\n\n", exporter->GetStatus().GetErrorString());
+			LibXenoverse::notifyError();
+			return;
+		}
+
+		if (!y_up)
+			scene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eMax);
+
+		if (inches)
+			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::Inch);
+		else
+			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
+
+		//exporter->SetFileExportVersion(version);
+		exporter->Export(scene);
+		exporter->Destroy();
+	}
+
+
+	/*
+	string output_dir = output.substr(0, output.length() - 4) + "_exported";
+	LibXenoverse::EMO_BaseFile::CreatePath(output_dir, true);
+
+	for (const LibXenoverse::EMO_PartsGroup &pg : *emo)
+	{
+		for (const LibXenoverse::EMG &p : pg)
+		{
+			for (const LibXenoverse::EMG_SubPart &sp : p)
+			{
+				if (sp.IsEdge() && !true)
+					continue;
+
+				if (!sp.IsEdge() && !true)
+					continue;
+
+				printf("Exporting subpart \"%s\"\n", sp.GetMetaName().c_str());
+
+				scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
+				output = output_dir + "/" + sp.GetMetaName();
+
+				if (!emo->ExportFbx(sp.GetMetaName(), scene))
+				{
+					printf("ExportFbx failed on subpart \"%s\"\n", sp.GetMetaName().c_str());
+					return;
+				}
+
+				if (!export_fbx_scene(sdk_manager, scene, output, version, ascii, y_up, inches))
+					return;
+			}
+		}
+	}
+	*/
+
+	sdk_manager->Destroy();
+}
+
+
 
 bool EMO::ExportFbx(FbxScene *scene, bool normal_parts, bool edges) const
 {

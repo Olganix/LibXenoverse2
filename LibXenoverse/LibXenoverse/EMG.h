@@ -247,7 +247,7 @@ class EMG_SubPart
 	std::string meta_name;
 
 public:
-
+	EMG_SubPart() { strips = 0;  }
 	bool operator==(const EMG_SubPart &rhs) const;
 	inline bool operator!=(const EMG_SubPart &rhs) const { return !(*this == rhs); }
 	inline EMG_SubMesh &operator[](size_t n) { return submeshes[n]; }
@@ -421,8 +421,10 @@ public:
 	void Decompile(TiXmlNode *root, size_t polygon_count) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton *skl);
 
+	std::vector<uint16_t> getRealFaceIndex(bool strips = false);
+
 	void readEmdSubMesh(EMDSubmesh* emd, size_t textlist_index, size_t indexTriangle, EMO* emo);
-	void writeEmdSubMesh(EMDSubmesh* emd);
+	void writeEmdSubMesh(EMDSubmesh* emd, bool strips = false);
 };
 
 

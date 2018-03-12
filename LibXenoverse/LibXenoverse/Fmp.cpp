@@ -12,52 +12,6 @@ namespace LibXenoverse
 {
 
 
-std::string FloatToString(float value)
-{
-	char temp[32];
-	std::string str;
-
-	sprintf(temp, "%.9g", value);
-	str = temp;
-
-	if (str.find('.') == std::string::npos && str.find('e') == std::string::npos)
-		str = str + ".0";
-
-	return str;
-}
-
-
-
-// trim from start
-std::string &ltrim(std::string &s)
-{
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-	return s;
-}
-
-// trim from end
-std::string &rtrim(std::string &s)
-{
-	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-	return s;
-}
-
-// trim from both ends
-std::string &trim(std::string &s) { return ltrim(rtrim(s)); }
-
-float StringToFloat(string value)
-{
-	string tmp = trim(value);
-	
-	float fval = 0;
-	sscanf(tmp.c_str(), "%f", &fval);
-
-	return fval;
-}
-
-
-
-
 /*-------------------------------------------------------------------------------\
 |                             FmpFile				                             |
 \-------------------------------------------------------------------------------*/
@@ -2637,6 +2591,7 @@ uint8_t* FmpFile::CreateFile(unsigned int *psize)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 	memset(buf, 0, filesize);				//fill by 0 to secure, and not having random memory.
@@ -7583,6 +7538,7 @@ void FmpFile::write_Xml(TiXmlElement *parent, const uint8_t *buf, size_t size, s
 				if ((*nameOffset_tmp >= (uint32_t)size) || (*nameOffset_tmp <= start_Section5_HitBox))
 				{
 					printf("Error : overflow on HitBox name [offset=%s]. skipped all next hitbox from Section5.\n", UnsignedToString(start_Section5_HitBox, true).c_str());
+					LibXenoverse::notifyError();
 					break;						//we can't know witch size in bytes.
 				}
 				
@@ -8816,6 +8772,7 @@ void FmpFile::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t 
 		if (*nameOffset_tmp >= (uint32_t)size)
 		{
 			printf("Error : overflow on HitBox name. skipped all next hitbox from Unk5.\n");
+			LibXenoverse::notifyError();
 			break;						//we can't know witch size in bytes.
 		}
 		string name_Section5 = std::string((char *)GetOffsetPtr(buf, *nameOffset_tmp));
@@ -8876,6 +8833,7 @@ void FmpFile::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t 
 				if ((*nameOffset_tmp >= (uint32_t)size) || (*nameOffset_tmp <= offset))
 				{
 					printf("Error : overflow on HitBox name [offset=%s]. skipped all next hitbox from Section5.\n", UnsignedToString(offset, true).c_str());
+					LibXenoverse::notifyError();
 					break;						//we can't know witch size in bytes.
 				}
 
@@ -9242,6 +9200,7 @@ void FmpFile::write_Coloration_Tag(string paramName, string paramType, string pa
 		if (index >= limit)
 		{
 			printf("Error on tagID %i : overflow %i >= %i.\n", idTag, index, limit);
+			LibXenoverse::notifyError();
 			continue;
 		}
 
@@ -9249,7 +9208,10 @@ void FmpFile::write_Coloration_Tag(string paramName, string paramType, string pa
 			int aa = 42;
 
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
-			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str() );
+		{
+			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
+			LibXenoverse::notifyError();
+		}
 
 		listBytesAllreadyTagged.at(index) = true;
 	}

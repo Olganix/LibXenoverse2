@@ -19,7 +19,7 @@ namespace LibXenoverse {
 		HRESULT hr = D3DXAssembleShader(data, data_size, NULL, NULL, 0, &psBuffer, &errorBuffer);
 		if (hr != D3D_OK) {
 			printf("Failed compiling pixel shader %08X\n", hr);
-			getchar();
+			LibXenoverse::notifyError();
 			return NULL;
 		}
 

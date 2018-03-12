@@ -235,6 +235,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 		if (show_error)
 		{
 			LOG_DEBUG("Decompilation of file \"%s\" failed.\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		return false;
@@ -247,6 +248,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 			if (show_error)
 			{
 				LOG_DEBUG("Cannot create path for file \"%s\"\n", path.c_str());
+				LibXenoverse::notifyError();
 			}
 
 			return false;
@@ -259,6 +261,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 	if (!ret && show_error)
 	{
 		LOG_DEBUG("Cannot create/write file \"%s\"\n", path.c_str());
+		LibXenoverse::notifyError();
 	}
 
 	return ret;
@@ -275,10 +278,12 @@ bool EMO_BaseFile::CompileFromFile(const std::string &path, bool show_error, boo
 			if (doc.ErrorId() == TiXmlBase::TIXML_ERROR_OPENING_FILE)
 			{
 				printf("Cannot open file \"%s\"\n", path.c_str());
+				LibXenoverse::notifyError();
 			}
 			else
 			{
 				printf("Error parsing file \"%s\". This is what tinyxml has to say: %s. Row=%d, col=%d.\n", path.c_str(), doc.ErrorDesc(), doc.ErrorRow(), doc.ErrorCol());
+				LibXenoverse::notifyError();
 			}
 		}
 
@@ -290,6 +295,7 @@ bool EMO_BaseFile::CompileFromFile(const std::string &path, bool show_error, boo
 	if (!ret && show_error)
 	{
 		printf("Compilation of file \"%s\" failed.\n", path.c_str());
+		LibXenoverse::notifyError();
 	}
 
 	return ret;
@@ -347,6 +353,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 		if (show_error)
 		{
 			LOG_DEBUG("Cannot open file \"%s\" for reading.\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		return NULL;
@@ -362,6 +369,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error.", FUNCNAME);
+		LibXenoverse::notifyError();
 		fclose(f);
 		return NULL;
 	}
@@ -374,6 +382,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 		if (show_error)
 		{
 			LOG_DEBUG("Read failure on file \"%s\"\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		delete[] buf;
@@ -392,6 +401,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 		if (show_error)
 		{
 			LOG_DEBUG("Cannot open file \"%s\" for reading.\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		return NULL;
@@ -405,6 +415,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error.", FUNCNAME);
+		LibXenoverse::notifyError();
 		fclose(f);
 		return NULL;
 	}
@@ -417,6 +428,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 		if (show_error)
 		{
 			LOG_DEBUG("Read failure on file \"%s\"\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		delete[] buf;
@@ -435,6 +447,7 @@ size_t EMO_BaseFile::WriteFile(const std::string &path, const uint8_t *buf, size
 		if (show_error)
 		{
 			LOG_DEBUG("Cannot open for write/create file \"%s\"\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		return -1;
@@ -458,6 +471,7 @@ bool EMO_BaseFile::WriteFileBool(const std::string &path, const uint8_t *buf, si
 		if (show_error)
 		{
 			LOG_DEBUG("Couldn't write same amount of bytes as requestedto file \"%s\" (disk full?)\n", path.c_str());
+			LibXenoverse::notifyError();
 		}
 
 		return false;
@@ -865,6 +879,57 @@ uint32_t EMO_BaseFile::GetUnsigned(const std::string &str, uint32_t default_valu
 	else
 	{
 		if (sscanf(str.c_str(), "%u", &ret) != 1)
+		{
+			//LOG_DEBUG("sscanf failed on param \"%s\", offending string = \"%s\"\n. Setting value to 0.", param_name.c_str(), str.c_str());
+			return default_value;
+		}
+	}
+
+	return ret;
+}
+
+
+long long EMO_BaseFile::GetUnsigned64(const std::string &str, long long default_value)
+{
+	long long ret = 0;
+	size_t len = str.length();
+
+	if (len == 0)
+	{
+		//LOG_DEBUG("WARNING: length of integer string = 0 (param \"%s\"), setting value to 0.\n", param_name.c_str());
+		return default_value;
+	}
+
+	if (str[0] == '0')
+	{
+		if (len == 1)
+			return 0;
+
+		if (str[1] != 'x')
+		{
+			/*LOG_DEBUG("WARNING: Integer format error on \"%s\". "
+			"Value must be decimal values without any 0 on the left, or hexadecimal values with 0x prefix. "
+			"Octal values not allowed (offending_string = %s). "
+			"Setting value to 0.\n", param_name.c_str(), str.c_str());*/
+
+			return default_value;
+		}
+
+		if (len == 2)
+		{
+			//LOG_DEBUG("WARNING: nothing on the right of hexadecimal prefix (on param \"%s\"). Setting value to 0.\n", param_name.c_str());
+			return default_value;
+		}
+
+		if (sscanf(str.c_str() + 2, "%x", &ret) != 1)
+		{
+			//LOG_DEBUG("sscanf failed on param \"%s\", offending string = \"%s\"\n. Setting value to 0.", param_name.c_str(), str.c_str());
+			return default_value;
+		}
+	}
+	else
+	{
+		if (sscanf(str.c_str(), "%llu", &ret) != 1)
 		{
 			//LOG_DEBUG("sscanf failed on param \"%s\", offending string = \"%s\"\n. Setting value to 0.", param_name.c_str(), str.c_str());
 			return default_value;
@@ -1797,6 +1862,7 @@ uint8_t *EMO_BaseFile::Base64Decode(const std::string &data, size_t *ret_size)
 	if (!buf)
 	{
 		LOG_DEBUG("%s: Memory allocation error 0x%x\n", FUNCNAME, *ret_size);
+		LibXenoverse::notifyError();
 		return nullptr;
 	}
 
@@ -1851,6 +1917,7 @@ std::string EMO_BaseFile::GetAppData()
 	if (!appdata)
 	{
 		LOG_DEBUG("APPDATA doesn't exist in this system.\n");
+		LibXenoverse::notifyError();
 		throw std::runtime_error("APPDATA doesn't exist in this system.\n");
 	}
 

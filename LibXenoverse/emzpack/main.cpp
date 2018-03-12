@@ -1,38 +1,57 @@
 #include "LibXenoverse.h"
 
 int main(int argc, char** argv) {
-	if (argc < 2) {
-		printf("Usage: emzpack file\n");
-		getchar();
+	
+	printf("*******************************************************************\n\
+ This tool is for extract files from .emz files.\n\
+ Usage: 'emzpack.exe [options] file.emz' or 'emzpack.exe [options] folder'\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+
+	if (arguments.size() == 0)
+	{
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
 
-	string pack_name = ToString(argv[1]);
-	string folder = LibXenoverse::folderFromFilename(pack_name);
-	string name = LibXenoverse::nameFromFilenameNoExtension(pack_name, true);
+	string filename = arguments.at(0);
+	string extension = LibXenoverse::extensionFromFilename(filename, true);
+	string basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
+	string name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
 
-	if (pack_name.find(".emz") != string::npos) {
+	if (extension == "emz")
+	{
 		LibXenoverse::EMZ *emz_pack = new LibXenoverse::EMZ();
-		emz_pack->load(pack_name);
-		string new_extension = emz_pack->detectNewExtension();
-		string new_filename = folder + name + new_extension;
-		emz_pack->saveUncompressed(new_filename);
+		emz_pack->load(filename);
+		emz_pack->saveUncompressed(basefilename + emz_pack->detectNewExtension());
 		delete emz_pack;
-	}
-	else {
-		size_t data_size = 0;
-		char *data = LibXenoverse::getBytesFrom(pack_name, data_size);
 
-		if (data) {
+	}else{
+
+		size_t data_size = 0;
+		char *data = LibXenoverse::getBytesFrom(filename, data_size);
+
+		if (data)
+		{
 			LibXenoverse::EMZ *emz_pack = new LibXenoverse::EMZ();
 			emz_pack->setDataPtr((unsigned char *)data, data_size);
-			string new_filename = folder + name + ".emz";
-			emz_pack->save(new_filename);
+			emz_pack->save(basefilename + ".emz");
 			delete emz_pack;
+		}else {
+			printf("Error on loading %s", filename);
+			LibXenoverse::notifyError();
 		}
 	}
 
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

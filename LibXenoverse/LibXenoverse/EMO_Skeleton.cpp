@@ -724,7 +724,7 @@ uint16_t EMO_Skeleton::AppendBone(const EMO_Bone &bone)
     new_bone.child = nullptr;
     new_bone.sibling = nullptr;
     new_bone.emgIndex = 0xfff;
-    new_bone.index_4 = 0;
+    new_bone.index_4 = 0xfff;
 
     for (EMO_Bone &b : bones)
     {
@@ -829,6 +829,7 @@ uint16_t EMO_Skeleton::BoneToIndex(EMO_Bone *bone) const
 
     LOG_DEBUG("%s: We are about to crash or abort.\n", FUNCNAME);
     LOG_DEBUG("Cannot find bone \"%s\" in this skeleton\n", bone->name.c_str());
+	LibXenoverse::notifyError();
 
     //LOG_DEBUG("%s: coding error somewhere. This bone is not in this object (%s)\n", FUNCNAME, bone->name.c_str());
     throw std::runtime_error("Aborting");
@@ -939,6 +940,7 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 		if (!ik_data)
 		{
 			LOG_DEBUG("%s: Memory allocation error.\n", FUNCNAME);
+			LibXenoverse::notifyError();
 			return false;
 		}
 
@@ -959,6 +961,7 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 	if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)
 	{
 		LOG_DEBUG("%s: unk_24 not zero as expected.\n", FUNCNAME);
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -1486,6 +1489,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
         if (show_error)
         {
              LOG_DEBUG("Decompilation of file \"%s\" failed.\n", path.c_str());
+			 LibXenoverse::notifyError();
         }
 
         return false;
@@ -1498,6 +1502,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
             if (show_error)
             {
                 LOG_DEBUG("Cannot create path for file \"%s\"\n", path.c_str());
+				LibXenoverse::notifyError();
             }
 
             return false;
@@ -1510,6 +1515,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
     if (!ret && show_error)
     {
         LOG_DEBUG("Cannot create/write file \"%s\"\n", path.c_str());
+		LibXenoverse::notifyError();
     }
 
     return ret;
@@ -1723,6 +1729,7 @@ void EMO_Skeleton::writeEsk(ESK* esk)
 						if (listTreeNode.at(isFound)->mChildren.at(m) == listTreeNode.at(i))
 						{
 							printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", listTreeNode.at(i)->mBone->getName().c_str());
+							LibXenoverse::notifyWarning();
 							isFound = (size_t)-1;
 							break;
 						}
@@ -1777,6 +1784,7 @@ void EMO_Skeleton::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> 
 		if (emoBone_child == emoBone)				//I see a case witch the bone was its parent himself, and the child ...
 		{
 			printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+			LibXenoverse::notifyWarning();
 			return;
 		}
 
@@ -1786,6 +1794,7 @@ void EMO_Skeleton::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> 
 			if (emoBone_child == emoBone_tmp)
 			{
 				printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+				LibXenoverse::notifyWarning();
 				return;
 			}
 			emoBone_tmp = emoBone_tmp->parent;
@@ -1817,6 +1826,7 @@ void EMO_Skeleton::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> 
 				if (treeNode->mChildren.at(j) == listTreeNode.at(isFound))
 				{
 					printf("warning: There is a strange thing about hierarchy on %s. skipped for avoid infinite loops.\n", emoBone_child->GetName().c_str());
+					LibXenoverse::notifyWarning();
 					return;
 				}
 			}

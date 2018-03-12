@@ -50,7 +50,9 @@
 #include "Fmp.h"
 #include "Etr.h"
 #include "EMP.h"
+#include "Scd.h"
 #include "Spm.h"
+#include "Havok.h"
 
 
 using namespace std;
@@ -68,7 +70,29 @@ using namespace std;
 
 namespace LibXenoverse {
 	extern FILE *global_debugging_log;
-	
+		
+
+	//help for application preference conditions of ending
+	enum ApplicationEndWait
+	{
+		AEW_None = 0,
+		AEW_OnError,
+		AEW_OnWarning,
+		AEW_Always,
+	};
+
+	extern bool HAVE_WARNINGS;
+	extern bool HAVE_ERRORS;
+	extern ApplicationEndWait applicationEndWait;
+
+	void setWarningErrorsFalse();
+	void notifyWarning();
+	void notifyError();
+	void setApplicationEndWait(ApplicationEndWait aew);
+	bool haveToWait();
+	void waitOnEnd();
+
+	std::vector<string> initApplication(int argc, char** argv, ApplicationEndWait applicationEndWait = AEW_OnError);
 	void initializeDebuggingLog();
 	void flushDebuggingLog();
 	void closeDebuggingLog();

@@ -478,7 +478,7 @@ public:
 	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);
 	void write_Coloration_Tag(string paramName, string paramType, string paramComment, size_t startOffset, size_t size, string sectionName, TiXmlElement* parent, size_t idTag, size_t sectionIndex, size_t paramIndex, std::vector<bool> &listBytesAllreadyTagged, size_t sectionIndexInList = (size_t)-1, bool checkAllreadyTaggued = true);
 
-	void extractEmd(string filename, EMD* emd, EMM* emm);
+	void extractEmd(string filename, EMD* emd);
 	void replaceEmgFromEmd(string filename, EMD* emd);
 };
 

@@ -2,25 +2,47 @@
 
 int main(int argc, char** argv)
 {
-	if (argc < 2) {
-		printf("Usage: nskpack file.nsk or nskpack file.esk file0.emd file1.emd ...\n");
-		getchar();
+	printf("*******************************************************************\n\
+ This tool is for convert nsk <-> emd + esk.\n\
+ Usage: 'nskpack.exe [options] file.nsk' or 'nskpack.exe [options] file.esk file.emd file2.emd ...'\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
+	{
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
 
-	string pack_name = ToString(argv[1]);
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i <nbArg; i++)										//we need to have esk first.
+	{
+		if (LibXenoverse::extensionFromFilename(arguments.at(i), true) == "esk")
+		{
+			arguments.insert(arguments.begin(), arguments.at(i));
+			arguments.erase(arguments.begin() + i + 1);
+			break;
+		}
+	}
 
-	if (pack_name.find(".nsk") != string::npos)
+
+	string filename = arguments.at(0);
+	string extension = LibXenoverse::extensionFromFilename(filename, true);
+	string basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
+	string folder = LibXenoverse::folderFromFilename(filename);
+
+	if (extension == "nsk")
 	{
 		LibXenoverse::NSK *nsk_pack = new LibXenoverse::NSK();
-		nsk_pack->load(pack_name);
-
-		string name = LibXenoverse::nameFromFilenameNoExtension(pack_name, true);
-		string folder = LibXenoverse::folderFromFilename(pack_name);
-		
-		nsk_pack->extract(folder);
+		if(nsk_pack->load(filename))
+			nsk_pack->extract(folder);
 		delete nsk_pack;
 
 	}else {
@@ -29,19 +51,21 @@ int main(int argc, char** argv)
 
 		string parameter;
 		string extension;
-		for (int i = 1; i < argc; i++)
+		for (size_t i = 0; i < nbArg; i++)
 		{
-			parameter = ToString(argv[i]);
-			extension = LibXenoverse::extensionFromFilename(parameter);
+			extension = LibXenoverse::extensionFromFilename(arguments.at(i));
 
 			if (extension == "emd")
-				nsk_pack->addEmdFile(parameter);
-			if (extension == "esk")
-				nsk_pack->addEskFile(parameter);
+				nsk_pack->addEmdFile(arguments.at(i));
+			else if (extension == "esk")
+				nsk_pack->addEskFile(arguments.at(i));
 		}
 
-		nsk_pack->save(pack_name +".nsk");
+		nsk_pack->save(filename +".nsk");
 	}
 
+
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

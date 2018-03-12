@@ -9,6 +9,14 @@
 #endif
 
 
+#include <sstream>
+#include <iomanip>
+
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
+
 
 
 namespace LibXenoverse
@@ -16,6 +24,99 @@ namespace LibXenoverse
 	wstring_convert<codecvt<char16_t, char, mbstate_t>, char16_t> convert16;
 
 	FILE *global_debugging_log = NULL;
+	
+	bool HAVE_WARNINGS = false;
+	bool HAVE_ERRORS = false;
+	ApplicationEndWait applicationEndWait = AEW_OnError;
+
+
+
+	void setWarningErrorsFalse() { HAVE_WARNINGS = false; HAVE_ERRORS = false; }
+	void notifyWarning() { HAVE_WARNINGS = true; }
+	void notifyError() { HAVE_ERRORS = true; }
+	void setApplicationEndWait(ApplicationEndWait aew) { applicationEndWait = aew; }
+	bool haveToWait()
+	{
+		if (applicationEndWait == AEW_Always)
+			return true;
+		else if (applicationEndWait == AEW_None)
+			return false;
+		else if (applicationEndWait == AEW_OnError)
+			return HAVE_ERRORS;
+		else if (applicationEndWait == AEW_OnWarning)
+			return HAVE_WARNINGS;
+		return false;
+	}
+	void waitOnEnd() { if (haveToWait()) { printf("press Enter to continue ...\n");  getchar(); } }
+
+
+
+
+	std::vector<string> initApplication(int argc, char** argv, ApplicationEndWait applicationEndWait)
+	{
+		LibXenoverse::setWarningErrorsFalse();
+		LibXenoverse::setApplicationEndWait(applicationEndWait);
+		LibXenoverse::initializeDebuggingLog();
+
+		std::vector<string> arguments;
+		string str_tmp = "";
+		string str2_tmp = "";
+		for (int i = 1; i < argc; i++)									//detection of options, remove then from arguments list, plus take care of folder with spaces inside (use " ")
+		{
+			str_tmp = ToString(argv[i]);
+			if ((str2_tmp.length() == 0) && (str_tmp.length() == 0))
+				continue;
+
+			if (str_tmp == "-NoWait")
+			{
+				LibXenoverse::setApplicationEndWait(LibXenoverse::AEW_None);
+				continue;
+			}else if (str_tmp == "-AlwaysWait") {
+				LibXenoverse::setApplicationEndWait(LibXenoverse::AEW_Always);
+				continue;
+			}else if (str_tmp == "-WaitOnError") {
+				LibXenoverse::setApplicationEndWait(LibXenoverse::AEW_OnError);
+				continue;
+			}else if (str_tmp == "-WaitOnWarning") {
+				LibXenoverse::setApplicationEndWait(LibXenoverse::AEW_OnWarning);
+				continue;
+			}
+
+			if ((str2_tmp.length() == 0) && (str_tmp[0] == '"'))
+			{
+				if (str_tmp[str_tmp.length() - 1] != '"')
+				{
+					str2_tmp = str_tmp.substr(1);
+				}
+				else {
+					str2_tmp = str_tmp.substr(1, str_tmp.length() - 2);
+					arguments.push_back(str2_tmp);
+					str2_tmp = "";
+				}
+				continue;
+
+			}else if (str2_tmp.length() != 0) {
+
+				str2_tmp += " "+ str_tmp;
+
+				if (str_tmp[str_tmp.length() - 1] == '"')
+				{
+					arguments.push_back(str2_tmp.substr(0, str2_tmp.length() - 1));
+					str2_tmp = "";
+				}
+				continue;
+			}
+
+			arguments.push_back(str_tmp);
+		}
+		if (str2_tmp.length() != 0)					//put the last argument if they miss a " at the end
+			arguments.push_back(str2_tmp);
+
+		return arguments;
+	}
+
+
+
 
 	void initializeDebuggingLog()
 	{
@@ -537,6 +638,74 @@ namespace LibXenoverse
 		return ret;
 	}
 
+
+	
+
+
+
+	// trim from start
+	std::string &ltrim(std::string &s)
+	{
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+		return s;
+	}
+
+	// trim from end
+	std::string &rtrim(std::string &s)
+	{
+		s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+		return s;
+	}
+
+	// trim from both ends
+	std::string &trim(std::string &s) { return ltrim(rtrim(s)); }
+
+
+
+
+	std::string FloatToString(float value)
+	{
+		char temp[32];
+		std::string str;
+
+		sprintf(temp, "%.9g", value);
+		str = temp;
+
+		if (str.find('.') == std::string::npos && str.find('e') == std::string::npos)
+			str = str + ".0";
+
+		return str;
+	}
+
+	float StringToFloat(string value)
+	{
+		if (value == "+1.#INF")								//https://stackoverflow.com/questions/46694824/side-channel-resistant-math-functions-for-c
+		{
+			uint32_t tmp = 0x7f800000;
+			return *((float*)((uint32_t*)&tmp));
+		}else if (value == "-1.#INF"){
+			uint32_t tmp = 0xff800000;
+			return *((float*)((uint32_t*)&tmp));
+		}else if (value == "+1.#QNAN"){
+			uint32_t tmp = 0x7fC00000;
+			return *((float*)((uint32_t*)&tmp));
+		}else if (value == "-1.#QNAN"){
+			uint32_t tmp = 0xffC00000;
+			return *((float*)((uint32_t*)&tmp));
+		}else if (value == "-1.#IND") {
+			uint32_t tmp = 0xffc00000;
+			return *((float*)((uint32_t*)&tmp));
+		}
+
+		string tmp = trim(value);
+
+		float fval = 0;
+		sscanf(tmp.c_str(), "%f", &fval);
+
+		return fval;
+	}
+
+
 	bool File::compare(File *file) {
 		if (!file) return false;
 		if (getFileSize() != file->getFileSize()) return false;
@@ -623,6 +792,8 @@ namespace LibXenoverse
 		else {
 			name = "";
 		}
+
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
 		return name;
 	}

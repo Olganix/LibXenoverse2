@@ -24,6 +24,12 @@ std::string to_string_with_precision(const T a_value, const int n = 6)
 ESKBone::ESKBone(string name)
 {
 	this->name = name;
+	
+	parent_index = 65535;
+	child_index = 65535;
+	sibling_index = 65535;
+	index_4 = 0;
+	
 	//do the iddentity matrix by default for transform_matrix, to not used a strange matrix with random values.
 	transform_matrix[0] = 1; transform_matrix[1] = 0; transform_matrix[2] = 0; transform_matrix[3] = 0;
 	transform_matrix[4] = 0; transform_matrix[5] = 1; transform_matrix[6] = 0; transform_matrix[7] = 0;
@@ -32,7 +38,7 @@ ESKBone::ESKBone(string name)
 
 	skinning_matrix[0] = 0; skinning_matrix[1] = 0; skinning_matrix[2] = 0; skinning_matrix[3] = 1;		//pos
 	skinning_matrix[4] = 0; skinning_matrix[5] = 0; skinning_matrix[6] = 0; skinning_matrix[7] = 1;		//Orientation quaternion x y z w
-	skinning_matrix[8] = 1; skinning_matrix[9] = 1; skinning_matrix[10] = 1; skinning_matrix[11] = 1;	//scale
+	skinning_matrix[8] = 1; skinning_matrix[9] = 1; skinning_matrix[10] = 1; skinning_matrix[11] = 0;	//scale
 
 	this->haveTransformMatrix = false;
 	mVisible = true;

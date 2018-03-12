@@ -263,6 +263,8 @@ public:
 	void writeEmdEsk(EMD* emd, ESK* esk) { writeEsk(esk); writeEmd(emd);}
 
 #ifdef FBX_SUPPORT
+	void oldSaveFbx(string filename);
+
 	bool ExportFbx(FbxScene *scene, bool normal_parts, bool edges) const;
 	bool InjectFbx(FbxScene *scene, bool normal_parts, bool edges, bool use_fbx_tangent);
 

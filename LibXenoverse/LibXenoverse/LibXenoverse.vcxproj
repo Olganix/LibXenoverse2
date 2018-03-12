@@ -108,9 +108,11 @@
     <ClInclude Include="ESK.h" />
     <ClInclude Include="Etr.h" />
     <ClInclude Include="Fmp.h" />
+    <ClInclude Include="Havok.h" />
     <ClInclude Include="HLSLASM.h" />
     <ClInclude Include="IGGYTEX.h" />
     <ClInclude Include="NSK.h" />
+    <ClInclude Include="scd.h" />
     <ClInclude Include="SDS.h" />
     <ClInclude Include="spm.h" />
     <ClInclude Include="XenoFiles.h" />
@@ -157,10 +159,12 @@
     <ClCompile Include="ESKXml.cpp" />
     <ClCompile Include="Etr.cpp" />
     <ClCompile Include="Fmp.cpp" />
+    <ClCompile Include="Havok.cpp" />
     <ClCompile Include="HLSLASM.cpp" />
     <ClCompile Include="IGGYTEX.cpp" />
     <ClCompile Include="IGGYTEXFile.cpp" />
     <ClCompile Include="NSK.cpp" />
+    <ClCompile Include="scd.cpp" />
     <ClCompile Include="SDS.cpp" />
     <ClCompile Include="spm.cpp" />
     <ClCompile Include="XenoFiles.cpp" />

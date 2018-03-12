@@ -64,6 +64,12 @@
     <Filter Include="SPM">
       <UniqueIdentifier>{f6c370e9-8c64-4a45-976c-8e6797d99709}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Havok">
+      <UniqueIdentifier>{6bc47113-6233-4dbb-b3f5-50a053c14d7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SCD">
+      <UniqueIdentifier>{b712d7cc-95bc-4532-95df-92d8084d3b2f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyxml\tinystr.h">
@@ -152,6 +158,12 @@
     </ClInclude>
     <ClInclude Include="spm.h">
       <Filter>SPM</Filter>
+    </ClInclude>
+    <ClInclude Include="Havok.h">
+      <Filter>Havok</Filter>
+    </ClInclude>
+    <ClInclude Include="scd.h">
+      <Filter>SCD</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -301,6 +313,12 @@
     </ClCompile>
     <ClCompile Include="spm.cpp">
       <Filter>SPM</Filter>
+    </ClCompile>
+    <ClCompile Include="Havok.cpp">
+      <Filter>Havok</Filter>
+    </ClCompile>
+    <ClCompile Include="scd.cpp">
+      <Filter>SCD</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -105,7 +105,6 @@ size_t EANAnimation::write(File *file)
 
 	frame_index_size = ((frame_count > 256) ? 1 : 0);
 
-
 	unsigned int nodes_count = nodes.size();
 	unsigned int nodes_offset = 16;				//this header size
 	file->writeNull(2);
@@ -116,6 +115,9 @@ size_t EANAnimation::write(File *file)
 	file->writeInt32E(&nodes_offset);
 
 	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, frame_count : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, frame_count, nodes_count, nodes_offset);
+
+	for (size_t i = 0; i < nodes_count; i++)						//that will clean keyframes up to the limit, and also add keyframe for the last time (else there will have strange effect on animation or infinite loop  (case stage.ema))
+		nodes.at(i).cleanAnimationForDuration(frame_count);
 
 	size_t nodes_size = 0;
 	for (size_t i = 0; i < nodes_count; i++)
@@ -129,6 +131,37 @@ size_t EANAnimation::write(File *file)
 		nodes_size += nodes[i].write(file, frame_index_size, frame_float_size);
 	}
 	return (nodes_offset + nodes_count * 4 + nodes_size);
+}
+/*-------------------------------------------------------------------------------\
+|                             cut						                         |
+\-------------------------------------------------------------------------------*/
+void EANAnimation::cut(size_t indexKfStart, size_t indexKfEnd)
+{
+	if (frame_count == 0)
+		return;
+
+	if (indexKfStart == (size_t)-1)
+		indexKfStart = 0;
+	if (indexKfEnd == (size_t)-1)
+		indexKfEnd = frame_count - 1;
+
+	if (indexKfEnd < indexKfStart)
+	{
+		size_t tmp = indexKfEnd;
+		indexKfEnd = indexKfStart;
+		indexKfStart = tmp;
+	}
+
+	if (indexKfStart >= frame_count)
+		indexKfStart = frame_count -1;
+	if (indexKfEnd >= frame_count)
+		indexKfEnd = frame_count -1;
+
+	frame_count = (indexKfEnd - indexKfStart) + 1;
+
+	size_t nbNodes = nodes.size();
+	for (size_t i = 0; i < nbNodes; i++)
+		nodes.at(i).cut(indexKfStart, indexKfEnd);
 }
 /*-------------------------------------------------------------------------------\
 |                             getFilenameOriginList_str                          |
@@ -191,6 +224,77 @@ void EANAnimation::copy(EANAnimation &source, bool keepName)
 				nodes_dest.back().setBoneIndex(j);
 				isfound = true;
 				break;
+			}
+		}
+
+		if (!isfound)
+			printf("bone %s wasn't in source animation. skiped\n", name_src.c_str());
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             append				                             |
+\-------------------------------------------------------------------------------*/
+void EANAnimation::append(EANAnimation &source, bool keepName)
+{
+	if (!keepName)
+		this->name = source.name;
+
+	size_t startFrameForNew = this->frame_count + 1;
+	this->frame_count += source.frame_count;
+
+	ESK* skeleton_dest = this->parent->getSkeleton();
+	ESK* skeleton_src = source.parent->getSkeleton();
+
+	if ((!skeleton_dest) || (!skeleton_src))
+	{												//default erase, don't care about skeleton matching
+		printf("no skeleton informations, by default case erase all nodes. could have weird effect.\n");
+		this->nodes = source.nodes;
+		return;
+	}
+
+	std::vector<EANAnimationNode> &nodes_dest = this->nodes;
+	std::vector<EANAnimationNode> &nodes_src = source.nodes;
+
+	size_t nbBones_dest = skeleton_dest->getBones().size();
+	size_t nbBones_src = skeleton_src->getBones().size();
+	size_t nbNodes_src = nodes_src.size();
+	size_t nbNodes_dest = nodes_dest.size();
+	for (size_t i = 0; i < nbNodes_src; i++)
+	{
+		size_t index_src = nodes_src.at(i).getBoneIndex();
+		if (index_src >= nbBones_src)
+			continue;
+
+		string name_src = skeleton_src->getBones().at(index_src)->getName();
+
+		bool isfound = false;
+		for (size_t j = 0; j < nbNodes_dest; j++)
+		{
+			if (nodes_dest.at(j).getBoneIndex() == index_src)
+			{
+				printf("animation for bone %s was found in source animation. (append) copying\n", name_src.c_str());
+				nodes_dest.at(i).append(nodes_src.at(i), startFrameForNew);
+				isfound = true;
+				break;
+			}
+		}
+
+
+		if (!isfound)
+		{
+			for (size_t j = 0; j < nbBones_dest; j++)
+			{
+				if (name_src == skeleton_dest->getBones().at(j)->getName())
+				{
+					printf("animation for bone %s was found in source animation. (append) copying\n", name_src.c_str());
+					nodes_dest.push_back(nodes_src.at(i));
+					nodes_dest.back().setBoneIndex(j);
+
+					nodes_dest.at(i).delayTimeFrame(startFrameForNew);
+
+					isfound = true;
+					break;
+				}
 			}
 		}
 
@@ -408,7 +512,7 @@ void EANAnimation::addBoneAnimationFromAnotherEan(EANAnimation &ean_Anim_src, st
 /*-------------------------------------------------------------------------------\
 |                             addTPoseAnimation							         |
 \-------------------------------------------------------------------------------*/
-void EANAnimation::addTPoseAnimation(ESK* skeleton)
+void EANAnimation::addTPoseAnimation(ESK* skeleton, bool addCameraComponent)
 {
 	std::vector<ESKBone*> bones = skeleton->getBones();
 	size_t nbBones = bones.size();
@@ -416,7 +520,7 @@ void EANAnimation::addTPoseAnimation(ESK* skeleton)
 	{
 		nodes.push_back(EANAnimationNode());
 		nodes.back().setBoneIndex(i);
-		nodes.back().addTPoseAnimation();
+		nodes.back().addTPoseAnimation(addCameraComponent);
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -438,7 +542,7 @@ void EANAnimation::operator=(EANAnimation &source)
 /*-------------------------------------------------------------------------------\
 |                             importFBXAnimation	                             |
 \-------------------------------------------------------------------------------*/
-void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack, ESK* skeleton)
+void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack, ESK* skeleton, bool allowCamera)
 {
 	FbxAnimLayer* lAnimLayer = (FbxAnimLayer*)lAnimStack->GetMember(0);
 
@@ -446,7 +550,7 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 
 		
 
-	//Blender change AnimationName, so we need to clean. (SO Interdiction to use '|' in name)
+	//Blender change AnimationName, so we need to clean. (SO Interdiction to use '|' in name of Animations)
 	size_t lastPipe = this->name.find_last_of('|');
 	if (lastPipe != string::npos)
 		this->name = this->name.substr(lastPipe + 1);
@@ -472,12 +576,24 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 		FbxNode *lNode = scene->GetSrcObject<FbxNode>(lIndex);
 		if (!lNode)
 			continue;
-		printf("   Node found: %s\n", lNode->GetName());
+		printf("   Node found: %s", lNode->GetName());
 
 		FbxSkeleton* lSkeleton = lNode->GetSkeleton();
 		if (!lSkeleton)
-			continue;
-		LOG_DEBUG("    Skeleton found : %s\n", lSkeleton->GetName());
+		{
+			if ((!allowCamera) || (!lNode->GetCamera()))
+			{
+				printf("\n");
+				continue;
+			}
+		}
+		
+		if (lSkeleton)
+		{
+			LOG_DEBUG(" is Skeleton\n");
+		}else {
+			LOG_DEBUG(" is Camera\n");
+		}
 
 		//find the right index, by reading previous information from ean original file.
 		boneIndex = (size_t)-1;
@@ -494,7 +610,7 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 			continue;
 
 		EANAnimationNode anim_node;
-		size_t nbframe = anim_node.importFBXAnimationCurves(lNode, lAnimLayer, boneIndex);
+		size_t nbframe = anim_node.importFBXAnimationCurves(lNode, lAnimLayer, boneIndex, scene);
 		if (nbframe!=0)												//we don't need empty Node.
 			nodes.push_back(anim_node);
 

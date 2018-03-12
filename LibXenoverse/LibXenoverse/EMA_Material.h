@@ -96,10 +96,11 @@ protected:
 	size_t frame_count;
 	vector<EMA_Material_Material> materials;
 
-	uint32_t unk_08;					//from EMA
+	uint16_t type;
+	uint16_t frame_float_size;
 
 public:
-	EMA_Material_Animation(string name = "unknow") { this->name = name; frame_count = 0; unk_08 = 0; }
+	EMA_Material_Animation(string name = "unknow") { this->name = name; frame_count = 0; type = 0; frame_float_size = 0; }
 	virtual ~EMA_Material_Animation(void) { materials.clear(); }
 	
 	string	getName(void) { return name; }

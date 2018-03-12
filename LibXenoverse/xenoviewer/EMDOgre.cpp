@@ -125,9 +125,21 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 	}
 	
 
-	string ogre_mesh_name = mesh_name + "_" + submesh->getMaterialName();
-	Ogre::MeshPtr ogre_mesh = Ogre::MeshManager::getSingleton().createManual(ogre_mesh_name, XENOVIEWER_RESOURCE_GROUP);
+	string ogre_mesh_name = name + "_" + mesh_name + "_" + submesh->getMaterialName();
+	if (!Ogre::MeshManager::getSingleton().getByName(ogre_mesh_name).isNull())
+	{
+		size_t inc = 1;
+		while ((!Ogre::MeshManager::getSingleton().getByName(ogre_mesh_name).isNull()) && (inc<1000))
+			ogre_mesh_name = mesh_name + "_" + submesh->getMaterialName() + "__" + Ogre::StringConverter::toString(inc++);
 
+		if (inc >= 1000)
+		{
+			Ogre::LogManager::getSingleton().logMessage("Warning: " + ogre_mesh_name + " allready present (1000 instances). skipped.");
+			return;
+		}
+	}
+	Ogre::MeshPtr ogre_mesh = Ogre::MeshManager::getSingleton().createManual(ogre_mesh_name, XENOVIEWER_RESOURCE_GROUP);
+	submesh->uniqName = ogre_mesh_name;
 	
 
 
@@ -400,10 +412,14 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 				vba.vertexIndex = vertex_indices.at(j);
 				EMDVertex &vertex = submesh_vertices.at(vba.vertexIndex);
 
+
+
 				for (size_t k = 0; k < 4; k++)
 				{
-					unsigned char bone_index = vertex.blend[3 - k];
-					float bone_weight = vertex.blend_weight[k];
+					unsigned char bone_index = vertex.blend[k];
+
+					//hack to have the sum to 1.0
+					float bone_weight = ((k != 3) ? vertex.blend_weight[k] : (1.0 - (vertex.blend_weight[0] + vertex.blend_weight[1] + vertex.blend_weight[2])));					
 
 					if (boneToForceLink)										//Hack to do NodeAnimation (but it's skinning animation)
 					{
@@ -424,7 +440,8 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 						bone_weight = 0.0f;
 					}
 
-					if (bone_weight > 0.0f)
+
+					//if (bone_weight > 0.0f)
 					{
 						vba.boneIndex = bone_table.at(bone_index);
 						vba.weight = bone_weight;
@@ -479,16 +496,30 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 {
 	Ogre::MaterialManager* matMgr = Ogre::MaterialManager::getSingletonPtr();
 		
-	string meshName = mesh_name + "_" + submesh->getMaterialName();
+	string meshName = submesh->uniqName;
 	string materialName = name + "_" + submesh->getMaterialName();
 	Ogre::StringUtil::toLowerCase(materialName);
 
 	if (Ogre::MeshManager::getSingleton().getByName(meshName).isNull())
 		return;
 
-	Ogre::SceneNode* node =  model_node->createChildSceneNode(meshName);
+	string instanceName = meshName;
+	if (scene_manager->hasSceneNode(instanceName))
+	{
+		size_t inc = 1;
+		while ((scene_manager->hasSceneNode(instanceName)) && (inc<1000))
+			instanceName = meshName +"__"+ Ogre::StringConverter::toString(inc++);
 
-	Ogre::Entity* entity = scene_manager->createEntity(meshName);
+		if (inc >= 1000)
+		{
+			Ogre::LogManager::getSingleton().logMessage("Warning: "+ instanceName +" allready present (1000 instances). skipped.");
+			return;
+		}
+	}
+
+	Ogre::SceneNode* node =  model_node->createChildSceneNode(instanceName);
+
+	Ogre::Entity* entity = scene_manager->createEntity(instanceName, meshName);
 	node->attachObject(entity);
 
 	entity->setCastShadows(false);
@@ -732,7 +763,7 @@ void EMDOgre::setVisible(string materialName, bool enable)
 				if (submeshes.at(k)->getMaterialName() != materialName)
 					continue;
 
-				string meshName = meshes.at(j)->getName() + "_" + submeshes.at(k)->getMaterialName();
+				string meshName = submeshes.at(k)->uniqName;
 				
 				Ogre::SceneNode* node = scene_manager->getSceneNode(meshName);
 				node->setVisible(enable);

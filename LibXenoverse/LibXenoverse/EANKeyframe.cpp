@@ -29,6 +29,17 @@ EANKeyframe::EANKeyframe(EANKeyframe *source)
 	this->w = source->w;
 }
 /*-------------------------------------------------------------------------------\
+|                             EANKeyframe										 |
+\-------------------------------------------------------------------------------*/
+EANKeyframe::EANKeyframe(const EANKeyframe &source)
+{
+	this->frame = source.frame;
+	this->x = source.x;
+	this->y = source.y;
+	this->z = source.z;
+	this->w = source.w;
+}
+/*-------------------------------------------------------------------------------\
 |                             read												 |
 \-------------------------------------------------------------------------------*/
 void EANKeyframe::read(File *file, unsigned char keyframe_size)
@@ -39,13 +50,11 @@ void EANKeyframe::read(File *file, unsigned char keyframe_size)
 		file->readFloat16E(&y);
 		file->readFloat16E(&z);
 		file->readFloat16E(&w);
-	}else if (keyframe_size == 2) {
+	}else{
 		file->readFloat32E(&x);
 		file->readFloat32E(&y);
 		file->readFloat32E(&z);
 		file->readFloat32E(&w);
-	}else {
-		LOG_DEBUG("Unknown Keyframe Size: %d\n", keyframe_size);
 	}
 
 	//LOG_DEBUG("Keyframe of size %d (%d at %d): %f %f %f %f\n", keyframe_size, frame, file->getCurrentAddress() - 16, x, y, z, w);
@@ -129,14 +138,15 @@ void EANKeyframe::setXYZW(float x, float y, float z, float w)
 /*-------------------------------------------------------------------------------\
 |                             operator=											 |
 \-------------------------------------------------------------------------------*/
-void EANKeyframe::operator=(EANKeyframe &source)
+void EANKeyframe::operator=(EANKeyframe *source)
 {
-	this->frame = source.frame;
-	this->x = source.x;
-	this->y = source.y;
-	this->z = source.z;
-	this->w = source.w;
+	this->frame = source->frame;
+	this->x = source->x;
+	this->y = source->y;
+	this->z = source->z;
+	this->w = source->w;
 }
+
 
 
 }

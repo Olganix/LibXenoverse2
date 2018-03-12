@@ -3,61 +3,283 @@
 #include "LibXenoverse.h"
 
 
+
+
+
+
+bool importFbxCameraAnimation(std::vector<string> &arguments)
+{
+	string filename = "";
+	string extension = "";
+	string basefilename = "";
+
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		filename = arguments.at(i);
+		extension = LibXenoverse::extensionFromFilename(filename, true);
+		basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
+		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
+		string basefilename2 = basefilename.substr(0, basefilename.length() - (extension2.size() + 1));
+		string extension3 = LibXenoverse::extensionFromFilename(basefilename2, true);
+		string basefilename3 = basefilename2.substr(0, basefilename2.length() - (extension3.size() + 1));
+
+		if ((extension == "fbx") && (extension2 == "ean") && (extension3 == "cam"))
+		{
+			arguments.erase(arguments.begin() + i);
+			break;
+		}
+		filename = "";
+	}
+
+	if (!filename.size())
+		return false;
+
+
+
+
+
+
+	printf("------- Camera Animation detected\n");
+
+
+	FbxManager *sdk_manager = FbxManager::Create();								// Create FBX
+	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
+	ios->SetBoolProp(EXP_FBX_EMBEDDED, true);
+	sdk_manager->SetIOSettings(ios);
+
+	FbxImporter* lImporter = FbxImporter::Create(sdk_manager, "");				// Import FBX
+	bool lImportStatus = lImporter->Initialize(filename.c_str(), -1, sdk_manager->GetIOSettings());
+	if (!lImportStatus)
+	{
+		// Handle error
+		printf("Call to FbxImporter::Initialize() failed.\n");
+		printf("Error returned: %s\n\n", lImporter->GetStatus().GetErrorString());
+		LibXenoverse::notifyError();
+		return false;
+	}
+	FbxScene* lScene = FbxScene::Create(sdk_manager, "EMDFBXScene_camAnimation");
+	lImporter->Import(lScene);
+	int lFileMajor, lFileMinor, lFileRevision;
+	lImporter->GetFileVersion(lFileMajor, lFileMinor, lFileRevision);
+	lImporter->Destroy();
+
+	FbxAxisSystem fbxAxisSys = lScene->GetGlobalSettings().GetAxisSystem();
+	int dir = 1;
+	if (fbxAxisSys == FbxAxisSystem::eMayaZUp)			/*!< UpVector = ZAxis, FrontVector = -ParityOdd, CoordSystem = RightHanded */
+		printf("FbxAxisSystem::eMayaZUp\n");
+	else if (fbxAxisSys == FbxAxisSystem::eMayaYUp)		/*!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded */
+		printf("FbxAxisSystem::eMayaYUp\n");
+	else if (fbxAxisSys == FbxAxisSystem::eMax)			/*!< UpVector = ZAxis, FrontVector = -ParityOdd, CoordSystem = RightHanded */
+		printf("FbxAxisSystem::eMax\n");
+	else if (fbxAxisSys == FbxAxisSystem::eMotionBuilder)	/*!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded */
+		printf("FbxAxisSystem::eMotionBuilder\n");
+	else if (fbxAxisSys == FbxAxisSystem::eOpenGL)		/*!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded */
+		printf("FbxAxisSystem::eOpenGL\n");
+	else if (fbxAxisSys == FbxAxisSystem::eDirectX)		/*!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = LeftHanded */
+		printf("FbxAxisSystem::eDirectX\n");
+	else if (fbxAxisSys == FbxAxisSystem::eLightwave)	/*!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = LeftHanded */
+		printf("FbxAxisSystem::eLightwave\n");
+	else
+		printf("Unknow AxisSystem : up: %i, forward : %i, coordsyst: %s\n", fbxAxisSys.GetUpVector(dir), fbxAxisSys.GetFrontVector(dir), ((fbxAxisSys.GetCoorSystem() == FbxAxisSystem::eRightHanded) ? "Right" : "Left"));
+
+	if (fbxAxisSys != FbxAxisSystem::eOpenGL)
+	{
+		printf("try to convert fbxAxisSys in eOpenGL (UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded) \n");
+		FbxAxisSystem::OpenGL.ConvertScene(lScene);
+	}
+
+	FbxSystemUnit fbxSysUnit = lScene->GetGlobalSettings().GetSystemUnit();
+	string systemUnit = "cm";
+	if (fbxSysUnit == FbxSystemUnit::m)
+		systemUnit = "m";
+	else if (fbxSysUnit == FbxSystemUnit::dm)
+		systemUnit = "dm";
+	else if (fbxSysUnit == FbxSystemUnit::mm)
+		systemUnit = "mm";
+	else if (fbxSysUnit == FbxSystemUnit::km)
+		systemUnit = "km";
+	else if (fbxSysUnit == FbxSystemUnit::Inch)
+		systemUnit = "Inch";
+	else if (fbxSysUnit == FbxSystemUnit::Foot)
+		systemUnit = "Foot";
+	else if (fbxSysUnit == FbxSystemUnit::Mile)
+		systemUnit = "Mile";
+	else if (fbxSysUnit == FbxSystemUnit::Yard)
+		systemUnit = "Yard";
+
+	printf("systemUnit is : %s\n", systemUnit.c_str());
+
+	if (fbxSysUnit != FbxSystemUnit::m)
+	{
+		printf("try to convert systemUnit in meters\n");
+		FbxSystemUnit::m.ConvertScene(lScene);
+	}
+
+
+	FbxNode* fbxRootNode = lScene->GetRootNode();
+
+
+
+	printf("-------------- Listing FbxAnimations\n");
+	FbxAnimStack* lAnimStack = 0;
+	FbxAnimLayer* lAnimLayer = 0;
+	std::vector<FbxAnimStack *> list_AnimStack;
+
+	const int lAnimCount = lScene->GetSrcObjectCount<FbxAnimStack>();
+	for (int lIndex = 0; lIndex < lAnimCount; lIndex++)
+	{
+		lAnimStack = lScene->GetSrcObject<FbxAnimStack>(lIndex);
+		if ((!lAnimStack) || (lAnimStack->GetMemberCount() == 0))
+			continue;
+		//printf("FbxAnimStack found: %s\n", lAnimStack->GetName());
+
+		lAnimLayer = (FbxAnimLayer*)lAnimStack->GetMember(0);
+		if (!lAnimLayer)
+			continue;
+		printf("FbxAnimLayer found: %s\n", lAnimStack->GetName());
+
+		list_AnimStack.push_back(lAnimStack);
+	}
+
+	const int lNodeCount = lScene->GetSrcObjectCount<FbxNode>();
+	if ((list_AnimStack.size() == 0) || (lNodeCount == 0))
+	{
+		printf("Error: No Animation or Node detected in %s. skipped\n", filename.c_str());
+		LibXenoverse::notifyError();
+		return false;
+	}
+
+
+
+	
+
+	LibXenoverse::EAN* ean_anim = new LibXenoverse::EAN();
+	ean_anim->setType(0x401);										//special type for Camera Animations.
+	LibXenoverse::ESK* esk = new LibXenoverse::ESK();
+	esk->addBone(new LibXenoverse::ESKBone("Node"));
+	ean_anim->setSkeleton(esk);
+
+	//esk->addBone("CameraTarget");			//todo see if necessary
+
+
+	printf("Converting Animations\n");
+	ean_anim->importFBXAnimations(lScene, list_AnimStack);
+
+	ean_anim->removeAnimation("Tpose");
+	
+
+	ean_anim->save(filename + ".ean");
+	delete ean_anim;
+
+	lScene->Destroy();
+
+
+	printf("------- \n");
+	return true;
+}
+
+
+
+
+
+
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for convert a fbx file into files of Dbxv2.\n\
+ Usage: 'fbxemd.exe [options] file.fbx [originalFile.ean]'\n\
+ originalFile.ean is for keep order on animations, you better to use it if there is animations, but it's not a obligation anymore.\n\
+ IMPORTANT: Blender and 3dsmax miss some textures. SO YOU HAVE to check texture definitions in xml version of emd (80 percents chance there are wrong).\n\
+ IMPORTANT: from this version, xxx.cam.ean.fbx will be converted as a xxxxx.cam.ean, independently of others files.\n\
+ Options : '-noCompressedFlag', '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: fbxemd [options] file.fbx originalFile.ean(not erased, just to keep animations order for making animation) \n options:\n'-noCompressedFlag' .");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	printf("Important !!!! : fbx don't keep order (and userdatas didn't work after blender export). So you need to give original EAN file to have animation order. (note: it won't erase this file if different name of fbx file)\n");
-	printf("Converter FBX to Emd Started.\n");
+
+	bool cameraAnimationImported = importFbxCameraAnimation(arguments);
 
 
-
-	LibXenoverse::EAN *ean_anim = new LibXenoverse::EAN();
-	std::vector<string> listNameOriginalAnimation;			//saddly, it's must have some where a list of index of animations, so We have to keep animations orders. we will do that with original ean file. TODO : may be we could break this after look at bcs, bcm files.
-
-
-	//options
-	bool compressedFlag = true;
-	if (argc >= 3)
+	if (arguments.size() == 0)
 	{
-		size_t nbOptions = (size_t)(argc - 1);
-		for (size_t i = 1; i < nbOptions; ++i)
+		if (cameraAnimationImported)
 		{
-			if (ToString(argv[i]) == "-noCompressedFlag")
-			{
-				compressedFlag = false;
-				break;
-			}
+			LibXenoverse::waitOnEnd();
+			return 0;
 		}
+
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
+		return 1;
 	}
 
 	
-	//load original ean
-	if (argc >= 3)
+	//options
+	bool compressedFlag = true;
+
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
 	{
-		string eanFileName = "";
-		string tmp;
-		for (size_t i = 1; i < (size_t)argc; ++i)
+		if (arguments.at(i) == "-noCompressedFlag")
 		{
-			tmp = ToString(argv[i]);
-			if ((tmp.size() > 4) && (tmp.substr(tmp.length() - 4, 4) == ".ean"))
-			{
-				eanFileName = tmp;
-				break;
-			}
+			arguments.erase(arguments.begin() + i);
+			compressedFlag = false;
+			break;
 		}
+	}
+	
 
-		if (eanFileName.length() != 0)
+	nbArg = arguments.size();
+	for (size_t i = 0; i <nbArg; i++)										//we need to have ean first.
+	{
+		if (LibXenoverse::extensionFromFilename(arguments.at(i), true) == "ean")
 		{
-			printf("-------------- Load original Ean (for bones order). Please wait ...\n");
+			arguments.insert(arguments.begin(), arguments.at(i));
+			arguments.erase(arguments.begin() + i + 1);
+			break;
+		}
+	}
 
-			ean_anim->load(eanFileName);
 
+
+
+
+
+
+	printf("Converter FBX to Emd/Esk/Ean Started.\n");
+
+
+
+	
+	string filename = arguments.at(0);
+	string extension = LibXenoverse::extensionFromFilename(filename, true);
+
+
+
+	//load original ean to setup the name list of animations
+	LibXenoverse::EAN* ean_anim = new LibXenoverse::EAN();
+	std::vector<string> listNameOriginalAnimation;			//saddly, it's must have some where a list of index of animations, so We have to keep animations orders. we will do that with original ean file. TODO : may be we could break this after look at bcs, bcm files.
+
+	if (extension == "ean")
+	{
+		printf("-------------- Load original Ean (for bones order). Please wait ...\n");
+
+		if (ean_anim->load(filename))
+		{
 			//keep animation order for after
 			vector<LibXenoverse::EANAnimation> &animList = ean_anim->getAnimations();
 			size_t nbelements = animList.size();
@@ -66,44 +288,29 @@ int main(int argc, char** argv)
 
 			ean_anim->getAnimations().clear();
 		}
+
+		arguments.erase(arguments.begin());
 	}
 	
+
+
+
 
 	printf("-------------- Load Fbx. Please wait ...\n");
 
-	LibXenoverse::initializeDebuggingLog();
 
+	filename = arguments.at(0);
+	extension = LibXenoverse::extensionFromFilename(filename, true);
+	string folder = LibXenoverse::folderFromFilename(filename);
 
-
-	string fbx_filename = "";
-	
-	if (argc >= 2)
+	if (extension != "fbx")
 	{
-		string tmp;
-		for (size_t i = 1; i < (size_t)argc; ++i)
-		{
-			tmp = ToString(argv[i]);
-			if ((tmp.size() > 4) && (tmp.substr(tmp.length() - 4, 4) == ".fbx"))
-			{
-				fbx_filename = tmp;
-				break;
-			}
-		}
-
-		if (fbx_filename.length() == 0)
-		{
-			printf("error: faild to load fbx.\n");
-			getchar();
-			return 1;
-		}
+		printf("error: faild to load fbx.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
+		return 1;
 	}
 	
-	string extension = LibXenoverse::extensionFromFilename(fbx_filename);
-	string folder = LibXenoverse::folderFromFilename(fbx_filename);
-
-
-
-
 
 
 	// Create FBX
@@ -117,12 +324,14 @@ int main(int argc, char** argv)
 
 	// Import FBX
 	FbxImporter* lImporter = FbxImporter::Create(sdk_manager, "");
-	bool lImportStatus = lImporter->Initialize(fbx_filename.c_str(), -1, sdk_manager->GetIOSettings());
+	bool lImportStatus = lImporter->Initialize(filename.c_str(), -1, sdk_manager->GetIOSettings());
 	if (!lImportStatus)
 	{
 		// Handle error
 		printf("Call to FbxImporter::Initialize() failed.\n");
 		printf("Error returned: %s\n\n", lImporter->GetStatus().GetErrorString());
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return NULL;
 	}
 	FbxScene* lScene = FbxScene::Create(sdk_manager, "FBXEMDImport");
@@ -343,7 +552,7 @@ int main(int argc, char** argv)
 			
 			
 			
-			ean_anim->save(fbx_filename + ".ean");
+			ean_anim->save(filename + ".ean");
 			
 
 			// "RAD_BAS_BONE" -> "EXP_RAD_000"
@@ -364,7 +573,7 @@ int main(int argc, char** argv)
 				}
 			}
 
-			skeleton->save(fbx_filename + ".esk");
+			skeleton->save(filename + ".esk");
 
 			
 
@@ -376,15 +585,11 @@ int main(int argc, char** argv)
 
 		printf("-------------- NoAnimations, but try to have the skeleton.\n");
 
-		
 		if (ean_anim)
 			delete ean_anim;
 		
 		LibXenoverse::ESK esk = LibXenoverse::ESK();
-
 		esk.importFBXSkeleton(lScene);
-		
-
 
 		// "RAD_BAS_BONE" -> "EXP_RAD_000"
 		LibXenoverse::ESKBone* bone;
@@ -403,7 +608,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-		esk.save(fbx_filename + ".esk");
+		esk.save(filename + ".esk");
 	}
 
 
@@ -412,5 +617,10 @@ int main(int argc, char** argv)
 
 	printf("-------------- Destroying Fbx instance\n");
 	lScene->Destroy();
+
+
+
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

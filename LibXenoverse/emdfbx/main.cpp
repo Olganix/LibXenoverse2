@@ -2,16 +2,211 @@
 
 
 
+
+
+bool exportFbxCameraAnimation(std::vector<string> &arguments)
+{
+	string filename = "";
+	string extension = "";
+	string basefilename = "";
+
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		filename = arguments.at(i);
+		extension = LibXenoverse::extensionFromFilename(filename, true);
+		basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
+		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
+		
+		if ((extension == "ean") && (extension2 == "cam"))
+		{
+			arguments.erase(arguments.begin() + i);
+			break;
+		}
+		filename = "";
+	}
+
+	if (!filename.size())
+		return false;
+
+
+	printf("------- Camera Animation detected\n");
+
+
+	
+	FbxManager *sdk_manager = FbxManager::Create();							// Create FBX Manager
+	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
+	ios->SetBoolProp(EXP_FBX_EMBEDDED, true);
+	sdk_manager->SetIOSettings(ios);
+	FbxScene *scene = FbxScene::Create(sdk_manager, "EMDFBXScene_camAnimation");			// Create Scene
+
+	scene->GetGlobalSettings().SetCustomFrameRate(60.0);				//specify the frameRate, the number of image by second. (not working well in blender fbx importer. so, I had to modify default value into blender fbx importer).
+	
+	FbxTime::EProtocol protocol = FbxTime::GetGlobalTimeProtocol();
+	FbxTime::SetGlobalTimeProtocol(FbxTime::EProtocol::eDefaultProtocol);
+	protocol = FbxTime::GetGlobalTimeProtocol();
+
+	scene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eOpenGL);	//eOpenGL,			!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded
+	scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
+
+	FbxNode *lRootNode = scene->GetRootNode();
+
+	
+	LibXenoverse::EAN* animation = new LibXenoverse::EAN();
+	if (!animation->load(filename))
+	{
+		printf("Error on loading %s.\n", filename.c_str());
+		LibXenoverse::notifyError();
+		return false;
+	}
+
+	animation->addTPoseAnimation(true);
+
+
+	vector<LibXenoverse::ESK::FbxBonesInstance_DBxv> global_fbx_bones;
+	if (animation->getSkeleton())
+		animation->getSkeleton()->exportFBXBone(scene, global_fbx_bones);
+
+	FbxCamera* camera = FbxCamera::Create(scene, "Camera");
+	camera->ProjectionType = FbxCamera::EProjectionType::ePerspective;
+	camera->SetFormat(FbxCamera::eHD);
+	camera->FieldOfView = 40.0;
+	camera->SetNearPlane(0.1);							//to avoid to not see the character (or somethimng else)
+
+	if (global_fbx_bones.size())
+		global_fbx_bones.at(0).mNode->SetNodeAttribute(camera);
+
+
+
+	printf("Build FBX Animation\n");
+	vector<FbxAnimCurveNode *> global_fbx_animation;
+	if (animation)
+	{
+		LibXenoverse::EANAnimation* eanAnim;
+
+		FbxAnimStack* lAnimStack;
+		FbxAnimLayer* lAnimLayer;
+		std::vector<FbxAnimStack *> list_AnimStack;
+
+
+		size_t nbAnims = animation->getAnimations().size();
+		for (size_t j = 0; j < nbAnims; j++)													//we create only one stack and one layer by animation. each will animate all bones of all skeleton.
+		{
+			eanAnim = &(animation->getAnimations().at(j));
+
+			lAnimStack = FbxAnimStack::Create(scene, eanAnim->getName().c_str());
+			lAnimLayer = FbxAnimLayer::Create(scene, (eanAnim->getName() + "_Layer0").c_str());
+			lAnimStack->AddMember(lAnimLayer);
+
+			list_AnimStack.push_back(lAnimStack);
+		}
+
+
+		vector<FbxAnimCurveNode *> fbx_anim;
+		size_t nbBones = global_fbx_bones.size();
+		for (size_t j = 0; j<nbBones; j++)
+		{
+			fbx_anim = animation->exportFBXAnimations(scene, list_AnimStack, &global_fbx_bones.at(j));
+
+			for (size_t j = 0; j < fbx_anim.size(); j++)
+				global_fbx_animation.push_back(fbx_anim[j]);
+		}
+	}
+
+
+	printf("Export (Camera Animation) FBX\n");
+	{
+		int lFileFormat = sdk_manager->GetIOPluginRegistry()->GetNativeWriterFormat();
+		FbxExporter* lExporter = FbxExporter::Create(sdk_manager, "");
+		bool lExportStatus = lExporter->Initialize((filename + ".fbx").c_str(), lFileFormat, sdk_manager->GetIOSettings());
+		if (!lExportStatus)
+		{
+			printf("Call to FbxExporter::Initialize() failed.\n");
+			printf("Error returned: %s\n\n", lExporter->GetStatus().GetErrorString());
+			LibXenoverse::notifyError();
+			return false;
+		}
+
+		lExporter->Export(scene);												// Export scene
+		lExporter->Destroy();
+	}
+
+
+
+	printf("------- \n");
+	return true;
+}
+
+
+
+
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for convert the files of Dbxv2 into fbx for edition into Blender or 3dsmax.\n\
+ Usage: 'emdfbx.exe [options] file.ext file2.ext ... [output.fbx]'\n\
+ Files could be mesh (.emd), skeleton (.esk) or animation (.ean).\n\
+ IMPORTANT: from this version, xxx.cam.ean will be converted as a xxxxx.cam.ean.fbx, independently of others files.\n\
+ Options : '-NoTexture', '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ 'NoTexture' is for having lighter fbx and fast to build.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+	
+
+
+	if (arguments.size()==0)
 	{
-		printf("Usage: emdfbx model.emd skeleton.esk output.fbx\n       Can include multiple emd and esk files into one fbx.");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
+	bool cameraAnimationExported = exportFbxCameraAnimation(arguments);										//test for special case Camera Animation (create a special case);
+
+	if (arguments.size() == 0)
+	{
+		if (cameraAnimationExported)
+		{
+			LibXenoverse::waitOnEnd();
+			return 0;
+		}
+
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
+		return 1;
+	}
+
+
+	//options
+	bool wantNoTexture = false;
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		if (arguments.at(i) == "-NoTexture")
+		{
+			arguments.erase(arguments.begin() + i);
+			nbArg--;
+			wantNoTexture = true;
+			break;
+		}
+	}
+
+	if (arguments.size() == 0)
+	{
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
+		return 1;
+	}
+
+
+
+
 
 	printf("Notice: There is all bones declaration in Ean file. In an ESK file, there is less bones than in EAN files.\n");
 	printf("Converter Emd to FBX Started. please wait ...\n");
@@ -21,10 +216,10 @@ int main(int argc, char** argv)
 	vector<string> animation_filenames;
 	string export_filename = "";
 
-	for (int i = 1; i < argc; i++)
+	nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
 	{
-		string parameter = ToString(argv[i]);
-
+		string parameter = arguments.at(i);
 		string extension = LibXenoverse::extensionFromFilename(parameter, true);
 
 		if (extension == "emd")
@@ -227,6 +422,8 @@ int main(int argc, char** argv)
 
 
 
+
+
 	printf("Build FBX Animation\n");
 	vector<FbxAnimCurveNode *> global_fbx_animation;
 	if (allAnimations)
@@ -265,7 +462,7 @@ int main(int argc, char** argv)
 
 
 
-	printf("Build FBX geometrie\n");
+	printf("Build FBX geometry\n");
 	string path, node_name, baseFileName;
 	LibXenoverse::EMD* emd_model;
 	LibXenoverse::EMM* emmMaterial;
@@ -291,11 +488,13 @@ int main(int argc, char** argv)
 		if (!LibXenoverse::fileCheck(baseFileName + ".emm"))
 		{
 			printf("No EMM Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!", (baseFileName + ".emm").c_str());
+			LibXenoverse::notifyWarning();
 		}else {
 			emmMaterial = new LibXenoverse::EMM();
 			if (!emmMaterial->load(baseFileName + ".emm"))
 			{
 				printf("Invalid EMM Material Pack. Is  %s valid ? ", (baseFileName + ".emm").c_str());
+				LibXenoverse::notifyWarning();
 				delete emmMaterial;
 				emmMaterial = NULL;
 			}
@@ -303,47 +502,52 @@ int main(int argc, char** argv)
 
 		mListEmb.clear();
 		emb = NULL;
-		if (!LibXenoverse::fileCheck(baseFileName + ".emb"))
+		if (!wantNoTexture)
 		{
-			printf("No EMB Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!", (baseFileName + ".emb").c_str());
-		}
-		else {
-			emb = new LibXenoverse::EMB();
-			if (!emb->load(baseFileName + ".emb"))
+			if (!LibXenoverse::fileCheck(baseFileName + ".emb"))
 			{
-				printf("Invalid EMB Texture Pack. Is  %s valid ? ", (baseFileName + ".emb").c_str());
-				delete emb;
-				emb = NULL;
+				printf("No EMB Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!", (baseFileName + ".emb").c_str());
+				LibXenoverse::notifyWarning();
 			}else {
-				CreateDirectory(emb->getName().c_str(), NULL);
-				emb->extract(emb->getName() + "/");					//extract textures (to create fbx textures after)
+				emb = new LibXenoverse::EMB();
+				if (!emb->load(baseFileName + ".emb"))
+				{
+					printf("Invalid EMB Texture Pack. Is  %s valid ? ", (baseFileName + ".emb").c_str());
+					LibXenoverse::notifyWarning();
+					delete emb;
+					emb = NULL;
+				}else {
+					CreateDirectory(emb->getName().c_str(), NULL);
+					emb->extract(emb->getName() + "/");					//extract textures (to create fbx textures after)
+				}
+
+				if (emb)
+					mListEmb.push_back(emb);
 			}
 
-			if(emb)
-				mListEmb.push_back(emb);
-		}
 
-
-		if (!LibXenoverse::fileCheck(baseFileName + ".dyt.emb"))
-		{
-			printf("Warning : No EMB DYT Pack with the name %s found. we will try to use %s instead ", (baseFileName + ".dyt.emb").c_str(), (baseFileName + ".emb").c_str());
-			if(emb)
-				mListEmb.push_back(emb->clone());
-		}else{
-			emb = new LibXenoverse::EMB();
-			if (!emb->load(baseFileName + ".dyt.emb"))
+			if (!LibXenoverse::fileCheck(baseFileName + ".dyt.emb"))
 			{
-				printf("Invalid EMB DYT Texture Pack. Is  %s valid ? ", (baseFileName + ".dyt.emb").c_str());
-				delete emb;
-				emb = NULL;
-			}
-			else {
-				CreateDirectory(emb->getName().c_str(), NULL);
-				emb->extract(emb->getName() + "/");			//extract textures (to create fbx textures after)
-			}
+				printf("Warning : No EMB DYT Pack with the name %s found. we will try to use %s instead ", (baseFileName + ".dyt.emb").c_str(), (baseFileName + ".emb").c_str());
+				LibXenoverse::notifyWarning();
+				if (emb)
+					mListEmb.push_back(emb->clone());
+			}else {
+				emb = new LibXenoverse::EMB();
+				if (!emb->load(baseFileName + ".dyt.emb"))
+				{
+					printf("Invalid EMB DYT Texture Pack. Is  %s valid ? ", (baseFileName + ".dyt.emb").c_str());
+					LibXenoverse::notifyWarning();
+					delete emb;
+					emb = NULL;
+				}else {
+					CreateDirectory(emb->getName().c_str(), NULL);
+					emb->extract(emb->getName() + "/");			//extract textures (to create fbx textures after)
+				}
 
-			if (emb)
-				mListEmb.push_back(emb);
+				if (emb)
+					mListEmb.push_back(emb);
+			}
 		}
 
 
@@ -352,7 +556,7 @@ int main(int argc, char** argv)
 		
 
 		// Fbx part
-		emd_model->exportFBX(scene, global_fbx_bones, mListEmb, emmMaterial);
+		emd_model->exportFBX(scene, global_fbx_bones, mListEmb, emmMaterial, wantNoTexture);
 
 
 
@@ -382,6 +586,8 @@ int main(int argc, char** argv)
 		{
 			printf("Call to FbxExporter::Initialize() failed.\n");
 			printf("Error returned: %s\n\n", lExporter->GetStatus().GetErrorString());
+			LibXenoverse::notifyError();
+			LibXenoverse::waitOnEnd();
 			return 1;
 		}
 
@@ -389,7 +595,7 @@ int main(int argc, char** argv)
 		lExporter->Destroy();
 	}
 
-
-
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

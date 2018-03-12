@@ -16,6 +16,13 @@ std::vector<std::string> split(const std::string &text, char sep)
 	return tokens;
 }
 
+bool isNumber(const string& val)
+{
+	std::basic_stringstream<char, std::char_traits<char>, std::allocator<char> > str(val);
+	float tst;
+	str >> tst;
+	return !str.fail() && str.eof();
+}
 
 std::string readLine()
 {
@@ -52,18 +59,23 @@ int main(int argc, char** argv)
 
 	string help = "Commands: \n\
 		'Help' to see this list\n\
-		'Load <path\\filenameEanFile>' load a ean file\n\
+		'Load <path\\filenameEanFile> <file2.ean> ... ' load a ean file\n\
 		'Save <indexEan> <path\\filename>' save your modified ean file\n\
 		'GetEanFileList'\n\
 		'GetAnimList <Eanindex>'\n\
 		'Copy <indexEan> <indexAnimation>' copy on a sort of clipboard the specified animation.\n\
 		'Paste <indexEan> <indexAnimation>' it will erase the previous destination animation by the animation in clipboard. you could add animation by using an out of range index, but it's temporary, just for working on .\n\
+		'Append <EanIndex> <indexAnimation>' Add the animation copyed at the last of specified animation. Notice, it will add one more keyframe because it's willl don't erase the last keyframe.\n\
+		'Cut <EanIndex> <indexAnimation> <indexKeyFrame_Start or -1> <indexKeyFrame_End or -1> ' Cut the animation to keep the range. -1 to have default value.\n\
+		'FixedPositionComponent <EanIndex> <indexAnimation> <indexBone> <component 'X' 'Y' or 'Z'>' Use the value on the first keyframe to replace all other keyframe , for all the component of a animation of a bone.\n\
+		'MovePositionComponent <EanIndex> <indexAnimation> <indexBone> <component 'X' 'Y' or 'Z'> X.xxx' apply a movement on all the animation for a component of position, of tha bone on a animation.\n\
 		'Rename <indexEan> <indexAnimation> <newName>'\n\
 		'Erase <EanIndex> <AnimIndex> <AnimIndex_rangeEnd>' erase only Animation in AnimIndex. but if you use AnimIndex_rangeEnd, it will erase the range between the two animaIndex.\n\
 		'Insert <indexEan> <indexAnimation>' insert an animation before index of Animation specified.\n\n\
 		'GetBoneList <indexEan>'\n\
 		'AddBoneFilter <indexEan> <indexBone1> <indexBone2> <indexBone3> ...' by using the filter, when you paste, all the destination animation wiil be not erased, just only for bone specified in filter. Ex: if you just copy the tails animation but not the body animation, just add bone of tail in filter.\n\
 		'AddAllBoneInFilterFor <indexEan> <indexBone1_notIn> <indexBone2_notIn> <indexBone3_notIn> ...' fast version to add all of but not the specified index.\n\
+		'AddBoneFilterPreset <indexEan> <presetName>' add a preselected list of bone to the filter. Preset are : 'torso', 'leg_left', 'leg_right', 'arm_left', 'arm_right', 'head', 'tail'.\n\
 		'GetBoneFilter' list all bones in filter by eanfile\n\
 		'ResetBoneFilter' clear the filter\n\
 		'PasteWithBoneFilter <indexEan> <indexAnimation>'\n\
@@ -76,9 +88,11 @@ int main(int argc, char** argv)
 		'LoopAnimation <indexEan> <AnimIndex> <indexBone> X' Make X loop for a animation. indexBone = -1 for all bones\n\
 		'AddBoneOffsetScaleOnAnimationPosition <indexEan> <AnimIndex> <indexBone> <offsetToAdd_X> <offsetToAdd_Y> <offsetToAdd_Z> <scaleToMultiply_X> <scaleToMultiply_Y> <scaleToMultiply_Z>' (Experimental) Add a offset and multiply by a scale on a bone for a animation. Note : use -1 for AnimIndex to apply on all animations. Neutral Values are offsetToAdd: 0.0, scaleToMultiply: 1.0\n\
 		'MatchAnimationDuration <indexEAN_src> <indexEAN_toMatch> <indexAnimation_Start> <indexAnimation_End> ' the second Ean will have the same duration of the same Named animation from the Ean src. For a range of animations. Notice the range is about animations of the second Ean..\
-		'Quit'\n";
+		'Quit'\n\
+		Notice: all index for bones can be replace by it's name.\n";
 
-	printf((string("You could load many Ean File, get the animation list, copy an animation from a file to another with index. KEEP ORDER of animations if you want to use modified ean in game (need configurator).\nFor Paths, please avoid space.\n") + help +"\n").c_str());
+
+	printf((string("You could load many Ean File, get the animation list, copy an animation from a file to another with index. KEEP ORDER of animations if you want to use modified ean in game (need configurator).\n\"path with spaces\" is now allowed.\n") + help +"\n").c_str());
 
 
 	
@@ -90,63 +104,149 @@ int main(int argc, char** argv)
 	vector<size_t> mListBoneFilters_eanIndex;
 
 	string line = "";
+	std::vector<string> arguments;
+	std::vector<string> arg_tmp;
+	bool automaticLine = false;
 
-	while (line.substr(0, 4) != "Quit")
+	while ((arguments.size()==0) || (arguments.at(0) != "Quit"))
 	{
-		printf("So, what do you want ?\n");
-		line = readLine();
+		if (!automaticLine)								//it's a one time automatic command
+		{
+			printf("So, what do you want ?\n");
+			line = readLine();
+		}
+		automaticLine = false;
 
 
-		if (line.substr(0, 4) == "Quit")
+
+
+		//get full argument with take care of '"' to have filename with spaces.
+		arg_tmp = split(line, ' ');
+		size_t nbArg = arg_tmp.size();
+
+		arguments.clear();
+		string str_tmp = "";
+		string str2_tmp = "";
+		for (size_t i = 0; i < nbArg; i++)									//detection of options, remove then from arguments list, plus take care of folder with spaces inside (use " ")
+		{
+			str_tmp = arg_tmp.at(i);
+			if ((str2_tmp.length() == 0) && (str_tmp.length() == 0))
+				continue;
+			
+			if ((str2_tmp.length() == 0) && (str_tmp[0] == '"'))
+			{
+				if (str_tmp[str_tmp.length() - 1] != '"')
+				{
+					str2_tmp = str_tmp.substr(1);
+				}else {
+					str2_tmp = str_tmp.substr(1, str_tmp.length() - 2);
+					arguments.push_back(str2_tmp);
+					str2_tmp = "";
+				}
+				continue;
+
+			}else if (str2_tmp.length() != 0) {
+
+				str2_tmp += " "+ str_tmp;
+
+				if (str_tmp[str_tmp.length() - 1] == '"')
+				{
+					arguments.push_back(str2_tmp.substr(0, str2_tmp.length() - 1));
+					str2_tmp = "";
+				}
+				continue;
+			}
+
+			arguments.push_back(str_tmp);
+		}
+		if (str2_tmp.length() != 0)					//put the last argument if they miss a " at the end
+			arguments.push_back(str2_tmp);
+
+
+		if (arguments.size() == 0)
+			continue;
+
+
+
+
+
+
+
+
+
+
+
+		//begin to work on Each case.
+
+		string command = arguments.at(0);
+		arguments.erase(arguments.begin());
+		nbArg = arguments.size();
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		if (command == "Quit")
 		{
 			break;
-		}else if (line.substr(0, 4) == "Help"){
-			printf("%s",help.c_str());
 
-		}else if (line.substr(0, 4) == "Load"){
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Help"){
+			printf("\n\n%s\n",help.c_str());
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Load"){
 	
-			if (line.size() <= 5)
+
+			size_t inc = 0;
+			for (size_t i = 0; i < nbArg; i++)
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
+				string filename = arguments.at(i);
+				string extension = LibXenoverse::extensionFromFilename(filename, true);
+				if (extension != "ean")
+				{
+					printf("%s is not a ean file. Skipped.\n", filename.c_str());
+					continue;
+				}
 
-			LibXenoverse::EAN *eanFile = NULL;
-			string filename = line.substr(5);
-
-			try{
-				eanFile = new LibXenoverse::EAN();
-				eanFile->load(filename);
-				listEanFile.push_back(eanFile);
-				listFileName.push_back(filename);
+				LibXenoverse::EAN* ean = new LibXenoverse::EAN();
+				if (!ean->load(filename))
+				{
+					printf("faild to load %s. Skipped.\n", filename.c_str());
+					delete ean;
+					continue;
+				}
 				printf("Ean file loaded.\n");
-			} catch(...){
 
-				printf("Error on try to load %s\n", filename.c_str());
-				if (eanFile != NULL)
-					delete eanFile;
-			}
-
-		}else if (line.substr(0, 4) == "Save"){
-
-			if (line.size() <= 5)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
+				listEanFile.push_back(ean);
+				listFileName.push_back(filename);
+				inc++;
 			}
 			
-			std::vector<std::string> sv = split(line.substr(5), ' ');
-			size_t index = std::stoi(sv.at(0));
+			if (inc == 0)
+			{
+				printf("Not Enought or right arguments. try 'Help' command\n");
+				continue;
+			}
+
+
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Save"){
+
+			if (nbArg < 2)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t index = std::stoi(arguments.at(0));
+			string filename = arguments.at(1);
 
 			if (index < listEanFile.size())
 			{
-				string filename = listFileName.at(index);
-
-				if (sv.size()>1)
-					filename = sv.at(1);
-
 				listEanFile.at(index)->save(filename);
 				printf("Ean file saved at %s.\n", filename.c_str());
+
 			}else{
 				printf("index %i is not in ean file list.\n", index);
 			}
@@ -155,23 +255,23 @@ int main(int argc, char** argv)
 
 
 
-
-		}else if (line.substr(0, 14) == "GetEanFileList"){
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetEanFileList"){
 
 			size_t nbFile = listFileName.size();
 			for (size_t i = 0; i < nbFile; i++)
 				printf("%i : %s\n", i, listFileName.at(i).c_str());
 
-		}else if (line.substr(0, 11) == "GetAnimList"){
 
-			if (line.size() <= 12)
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetAnimList"){
+
+			if (nbArg == 0)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(12), ' ');
-			size_t index = std::stoi(sv.at(0));
+			size_t index = std::stoi(arguments.at(0));
 
 			if (index < listEanFile.size())
 			{
@@ -184,16 +284,18 @@ int main(int argc, char** argv)
 				printf("index %i is not in ean file list.\n", index);
 			}
 		
-		}else if (line.substr(0, 11) == "GetBoneList"){
 
-			if (line.size() <= 12)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetBoneList"){
+
+			if (nbArg == 0)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(12), ' ');
-			size_t index = std::stoi(sv.at(0));
+			size_t index = std::stoi(arguments.at(0));
 
 			if (index < listEanFile.size())
 			{
@@ -205,16 +307,17 @@ int main(int argc, char** argv)
 					size_t nbBone = bones.size();
 					for (size_t i = 0; i < nbBone; i++)
 						printf("%i : %s\n", i, bones.at(i)->getName().c_str());
-				}
-				else{
+				}else{
 					printf("No skeleton definition in this ean file\n");
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list.\n", index);
 			}
 
-		}else if (line.substr(0, 13) == "GetBoneFilter"){
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetBoneFilter"){
 
 			size_t nbEanFileFilter = mListBoneFilters.size();
 
@@ -222,35 +325,26 @@ int main(int argc, char** argv)
 			{
 				size_t nbBone = mListBoneFilters.at(i).size();
 				for (size_t j = 0; j < nbBone; j++)
-					printf("eanfile : %i  boneIndex : %i boneName %s\n", mListBoneFilters_eanIndex.at(i), mListBoneFilters.at(i).at(j), listEanFile.at(mListBoneFilters_eanIndex.at(i))->getSkeleton()->getBones().at(mListBoneFilters.at(i).at(j))->getName().c_str());
+					if(listEanFile.at(mListBoneFilters_eanIndex.at(i))->getSkeleton())
+						printf("eanfile : %i  boneIndex : %i boneName %s\n", mListBoneFilters_eanIndex.at(i), mListBoneFilters.at(i).at(j), listEanFile.at(mListBoneFilters_eanIndex.at(i))->getSkeleton()->getBones().at(mListBoneFilters.at(i).at(j))->getName().c_str());
 			}
 
 			if (nbEanFileFilter == 0)
 				printf("filter list is empty.\n");
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "CopyPasteRange_WithBoneFilter"){
 
-		}
-		else if (line.substr(0, 29) == "CopyPasteRange_WithBoneFilter"){
-
-			if (line.size() <= 30)
+			if (nbArg < 4)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(30), ' ');
-			
-			if (sv.size() <= 3)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile_src = std::stoi(sv.at(0));
-			size_t indexFile_dest = std::stoi(sv.at(1));
-			size_t indexAnim_start = std::stoi(sv.at(2));
-			size_t indexAnim_end = std::stoi(sv.at(3));
+			size_t indexFile_src   = std::stoi(arguments.at(0));
+			size_t indexFile_dest  = std::stoi(arguments.at(1));
+			size_t indexAnim_start = std::stoi(arguments.at(2));
+			size_t indexAnim_end   = std::stoi(arguments.at(3));
 
 			if (indexAnim_start > indexAnim_end)
 			{
@@ -325,29 +419,18 @@ int main(int argc, char** argv)
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "CopyPasteRange"){
 
-		}
-		else if (line.substr(0, 14) == "CopyPasteRange"){
-
-			if (line.size() <= 15)
+			if (nbArg < 4)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			
-			std::vector<std::string> sv = split(line.substr(15), ' ');
-
-			if (sv.size() <= 3)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			size_t indexFile_src = std::stoi(sv.at(0));
-			size_t indexFile_dest = std::stoi(sv.at(1));
-			size_t indexAnim_start = std::stoi(sv.at(2));
-			size_t indexAnim_end = std::stoi(sv.at(3));
+			size_t indexFile_src = std::stoi(arguments.at(0));
+			size_t indexFile_dest = std::stoi(arguments.at(1));
+			size_t indexAnim_start = std::stoi(arguments.at(2));
+			size_t indexAnim_end = std::stoi(arguments.at(3));
 
 			if (indexAnim_start > indexAnim_end)
 			{
@@ -410,26 +493,17 @@ int main(int argc, char** argv)
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Copy"){
 
-		}else if (line.substr(0, 4) == "Copy"){
-
-			if (line.size() <= 5)
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			
-			std::vector<std::string> sv = split(line.substr(5), ' ');
-			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
 			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
@@ -442,24 +516,20 @@ int main(int argc, char** argv)
 			}
 
 
-		}else if (line.substr(0, 19) == "PasteWithBoneFilter"){
 
-			if (line.size() <= 20)
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "PasteWithBoneFilter"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(20), ' ');
-
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 
 			if (indexFile < listEanFile.size()) 
 			{
@@ -501,25 +571,20 @@ int main(int argc, char** argv)
 			}
 
 
-		}else if (line.substr(0, 5) == "Paste"){
 
-
-			if (line.size() <= 6)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			std::vector<std::string> sv = split(line.substr(6), ' ');
+		
 			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
 			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Paste"){
+
+			if (nbArg < 2)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}			
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 
 			if (indexFile < listEanFile.size())
 			{
@@ -551,33 +616,278 @@ int main(int argc, char** argv)
 			}
 
 		
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Append") {
+
+			if (nbArg < 2)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+
+			if (indexFile < listEanFile.size())
+			{
+				if (mSavedAnimation)
+				{
+					LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
+
+					//if miss a animation, go to add one
+					if (indexAnim >= eanFile->getAnimations().size())
+					{
+						printf("indexAnim don't existe, animation will push back of the list (take care of index of animation for file working in game).\n");
+
+						indexAnim = eanFile->getAnimations().size();
+						eanFile->getAnimations().push_back(LibXenoverse::EANAnimation(mSavedAnimation, eanFile));
+					}else {
+						LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+						animationToChange.append(*mSavedAnimation);
+
+						printf("animation is changed by append a copy of another. we keep old name (Use rename if you want).\n");
+					}
+				}else {
+					printf("error : you must use Copy command first, to select the source.\n");
+				}
+			}else {
+				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+			}
+
+
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Cut") {
+
+			if (nbArg < 4)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			size_t indexKfStart = std::stoi(arguments.at(2));
+			size_t indexKfEnd = std::stoi(arguments.at(3));
+
+			if (indexFile < listEanFile.size())
+			{
+				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
+				if (indexAnim < eanFile->getAnimations().size())
+				{
+					LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+					animationToChange.cut(indexKfStart, indexKfEnd);
+
+					printf("animation is cutted.\n");
+				}else {
+					printf("indexAnim don't exist.\n");
+				}
+			}else {
+				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+			}
+
+
+
+
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "FixedPositionComponent") {
+
+			if (nbArg < 4)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			string boneRef = arguments.at(2);
+			string component = arguments.at(3);
+
+			if (indexFile < listEanFile.size())
+			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+				
+				if ((component == "X") || (component == "Y") || (component == "Z"))
+				{
+					LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
+
+					if (indexAnim < eanFile->getAnimations().size())
+					{
+						LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+						std::vector<LibXenoverse::EANAnimationNode> &nodes = animationToChange.getNodes();
+
+						bool isfound = false;
+						size_t nbBones = nodes.size();
+						for (size_t i = 0; i < nbBones; i++)
+						{
+							if (nodes.at(i).getBoneIndex() == indexBone)
+							{
+								std::vector<LibXenoverse::EANKeyframedAnimation> &anims = nodes.at(i).getKeyframed_animations();
+
+								bool isfound2 = false;
+								size_t nbAnim = anims.size();
+								for (size_t j = 0; j < nbAnim; j++)
+								{
+									if (anims.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION)
+									{
+										vector<LibXenoverse::EANKeyframe> &keyframes = anims.at(j).getKeyframes();
+
+										float value_ToFixe = ((keyframes.size() != 0) ? ((component =="X") ? keyframes.at(0).x : ((component == "Y") ? keyframes.at(0).y : keyframes.at(0).z)) : 0.0f);
+
+										size_t nbKf = keyframes.size();
+										for (size_t k = 0; k < nbKf; k++)
+										{
+											if (component == "X")
+												keyframes.at(k).x = value_ToFixe;
+											else if (component == "Y")
+												keyframes.at(k).y = value_ToFixe;
+											else
+												keyframes.at(k).z = value_ToFixe;
+										}
+										
+										printf("animation is fixed.\n");
+										isfound2 = true;
+										break;
+									}
+
+								}
+								if (!isfound2)
+									printf("no 'position' anima exist.\n");
+
+								isfound = true;
+								break;
+							}
+						}
+						if (!isfound)
+							printf("indexBone don't exist.\n");
+					}else {
+						printf("indexAnim don't exist.\n");
+					}
+				}else {
+					printf("component %s is not X Y or Z.\n", component);
+				}
+			}else {
+				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+			}
+
 		
 
-		}else if (line.substr(0, 15) == "ResetBoneFilter"){
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		} else if (command == "MovePositionComponent") {
+
+			if (nbArg < 5)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			string boneRef = arguments.at(2);
+			string component = arguments.at(3);
+			float translationValue = std::stof(arguments.at(4));
+
+			if (indexFile < listEanFile.size())
+			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+				
+				if ((component == "X") || (component == "Y") || (component == "Z"))
+				{
+					LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
+
+					if (indexAnim < eanFile->getAnimations().size())
+					{
+						LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+						std::vector<LibXenoverse::EANAnimationNode> &nodes = animationToChange.getNodes();
+
+						bool isfound = false;
+						size_t nbBones = nodes.size();
+						for (size_t i = 0; i < nbBones; i++)
+						{
+							if (nodes.at(i).getBoneIndex() == indexBone)
+							{
+								std::vector<LibXenoverse::EANKeyframedAnimation> &anims = nodes.at(i).getKeyframed_animations();
+
+								bool isfound2 = false;
+								size_t nbAnim = anims.size();
+								for (size_t j = 0; j < nbAnim; j++)
+								{
+									if (anims.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION)
+									{
+										vector<LibXenoverse::EANKeyframe> &keyframes = anims.at(j).getKeyframes();
+
+										float lastKeyframe = (float)((keyframes.size()!=0) ? keyframes.back().frame : 0);
+										float valueToAdd = 0.0f;
+
+										size_t nbKf = keyframes.size();
+										for (size_t k = 0; k < nbKf; k++)
+										{
+											valueToAdd = (translationValue * keyframes.at(k).frame) / lastKeyframe;
+											if (component == "X")
+												keyframes.at(k).x += valueToAdd;
+											else if (component == "Y")
+												keyframes.at(k).y += valueToAdd;
+											else
+												keyframes.at(k).z += valueToAdd;
+										}
+
+										printf("animation is updated for moving.\n");
+										isfound2 = true;
+										break;
+									}
+
+								}
+								if (!isfound2)
+									printf("no 'position' anima exist.\n");
+
+								isfound = true;
+								break;
+							}
+						}
+						if (!isfound)
+							printf("indexBone don't exist.\n");
+					}else {
+						printf("indexAnim don't exist.\n");
+					}
+				}else {
+					printf("component %s is not X Y or Z.\n", component);
+				}
+			}else {
+				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+			}
+
+			
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "ResetBoneFilter"){
 
 			mListBoneFilters.clear();
 			mListBoneFilters_eanIndex.clear();
 		
-			
-		}else if (line.substr(0, 13) == "AddBoneFilter"){
 
-			
-			if (line.size() <= 14)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "AddBoneFilter"){
+
+			if (nbArg < 1)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			arguments.erase(arguments.begin());
+
+			if (indexFile >= listEanFile.size())
+			{
+				printf("Error : Wrong indexfile.\n");
 				continue;
 			}
 
-			std::vector<std::string> sv = split(line.substr(14), ' ');
-			
-			if (sv.size() <= 0)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			
+
 			size_t nbEanFileFilter = mListBoneFilters.size();
 			size_t isfound = (size_t)-1;
 			for (size_t i = 0; i < nbEanFileFilter; i++)
@@ -588,7 +898,6 @@ int main(int argc, char** argv)
 					break;
 				}
 			}
-
 			if (isfound==(size_t)-1)
 			{
 				isfound = mListBoneFilters_eanIndex.size();
@@ -596,10 +905,13 @@ int main(int argc, char** argv)
 				mListBoneFilters.push_back(vector<size_t>());
 			}
 
-			size_t nbBoneArg = sv.size();
-			for (size_t j = 1; j < nbBoneArg; j++)
+			size_t nbBoneArg = arguments.size();
+			for (size_t j = 0; j < nbBoneArg; j++)
 			{
-				size_t indexBone = std::stoi(sv.at(j));
+				string boneRef = arguments.at(j);
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+				if (indexBone == (size_t)-1)
+					continue;
 
 				size_t nbBone = mListBoneFilters.at(isfound).size();
 				bool isfound_2 = false;
@@ -615,24 +927,30 @@ int main(int argc, char** argv)
 					mListBoneFilters.at(isfound).push_back(indexBone);
 			}
 
-		}
-		else if (line.substr(0, 21) == "AddAllBoneInFilterFor"){
 
-			if (line.size() <= 22)
+
+		
+			
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "AddAllBoneInFilterFor"){
+
+			if (nbArg < 1)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(22), ' ');
-			
-			if (sv.size() <= 0)
+			size_t indexFile = std::stoi(arguments.at(0));
+			arguments.erase(arguments.begin());
+
+
+			if (indexFile >= listEanFile.size())
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("Error : Wrong indexfile.\n");
 				continue;
 			}
 
-			size_t indexFile = std::stoi(sv.at(0));
 
 			size_t nbEanFileFilter = mListBoneFilters.size();
 			size_t isfound = (size_t)-1;
@@ -658,13 +976,17 @@ int main(int argc, char** argv)
 				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 
 				size_t  nbBone = eanFile->getSkeleton()->getBones().size();
-				size_t nbBoneArg = sv.size();
+				size_t nbBoneArg = arguments.size();
 				for (size_t k = 0; k < nbBone; k++)
 				{
 					bool isfound_index = false;
-					for (size_t j = 1; j < nbBoneArg; j++)
+					for (size_t j = 0; j < nbBoneArg; j++)
 					{
-						size_t indexBone = std::stoi(sv.at(j));
+						string boneRef = arguments.at(j);
+						size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+						if (indexBone == (size_t)-1)
+							continue;
+
 						if (indexBone == k)
 						{
 							isfound_index = true;
@@ -690,61 +1012,89 @@ int main(int argc, char** argv)
 				}
 			}
 
-		}else if (line.substr(0, 6) == "Rename"){
 
-			if (line.size() <= 7)
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "AddBoneFilterPreset") {
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(7), ' ');
+			string indexFile_str = arguments.at(0);
+			string presetName = arguments.at(1);
 			
-			if (sv.size() <= 2)
+			if (presetName == "torso")
 			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
+				line = "AddBoneFilter " + indexFile_str + " b_C_Base b_C_Pelvis g_C_Pelvis b_C_Spine1 b_C_Spine2 b_C_Chest";
+				automaticLine = true;
+			}else if (presetName == "leg_left") {
+				line = "AddBoneFilter " + indexFile_str + " b_L_Leg1 b_L_Leg2 b_L_Foot g_L_Foot b_L_Toe b_L_Knee b_L_LegHelper";
+				automaticLine = true;
+			}else if (presetName == "leg_right") {
+				line = "AddBoneFilter " + indexFile_str + " b_R_Leg1 b_R_Leg2 b_R_Foot g_R_Foot b_R_Toe b_R_Knee b_R_LegHelper";
+				automaticLine = true;
+			}else if (presetName == "arm_left") {
+				line = "AddBoneFilter " + indexFile_str + " b_L_Shoulder b_L_Arm1 b_L_Arm2 b_L_Hand h_L_Middle1 h_L_Middle2 h_L_Middle3 g_L_Hand h_L_Pinky1 h_L_Pinky2 h_L_Pinky3 h_L_Ring1 h_L_Ring2 h_L_Ring3 h_L_Index1 h_L_Index2 h_L_Index3 h_L_Thumb1 h_L_Thumb2 h_L_Thumb3 b_L_ArmRoll b_L_Elbow b_L_ArmHelper b_L_ArmorParts";
+				automaticLine = true;
+			}else if (presetName == "arm_right") {
+				line = "AddBoneFilter " + indexFile_str + " b_R_Shoulder b_R_Arm1 b_R_Elbow b_R_Arm2 b_R_Hand h_R_Middle1 h_R_Middle2 h_R_Middle3 g_R_Hand h_R_Pinky1 h_R_Pinky2 h_R_Pinky3 h_R_Ring1 h_R_Ring2 h_R_Ring3 h_R_Index1 h_R_Index2 h_R_Index3 h_R_Thumb1 h_R_Thumb2 h_R_Thumb3 b_R_ArmRoll b_R_ArmHelper b_R_ArmorParts";
+				automaticLine = true;
+			}else if (presetName == "head") {
+				line = "AddBoneFilter " + indexFile_str + " b_C_Neck1 b_C_Head g_C_Head f_C_FaceRoot f_L_EyeInnerCorner f_R_EyeCorner f_L_EyeSocket f_C_ToothTop f_C_Jaw f_L_MouthBottom f_C_MouthBottom f_R_MouthBottom f_C_Tongue1 f_C_Tongue2 f_C_Tongue3 f_C_Tongue4 f_C_ToothBottom f_L_EyeCorner f_L_EyeBrows1 f_L_EyeBrows2 f_L_EyeBrows3 f_L_EyeBrowsHair3 f_L_EyeBrowsHair2 f_L_EyeBrowsHair1 f_L_CheekTop f_R_Eye f_R_EyeIris f_L_Eye f_L_EyeIris f_C_JawHalf f_L_MouthCorners f_L_CheekBottom f_R_CheekBottom f_R_MouthCorners f_C_NoseTop f_C_MouthTop f_L_EyelidBottom f_L_EyelidTop f_R_CheekTop f_R_EyeInnerCorner f_R_EyeSocket f_R_EyelidBottom f_R_EyelidTop f_R_EyeBrows1 f_R_EyeBrows2 f_R_EyeBrows3 f_R_EyeBrowsHair3 f_R_EyeBrowsHair2 f_R_EyeBrowsHair1 f_R_MouthTop f_L_MouthTop";
+				automaticLine = true;
+			}else if (presetName == "tail") {
+				line = "AddBoneFilter " + indexFile_str + " X_T_TAIL1 X_T_TAIL2 X_T_TAIL3 X_T_TAIL4 X_T_TAIL5 X_T_TAIL6 X_T_TAIL7 X_T_TAIL8 X_T_TAIL9 X_T_TAIL10";
+				automaticLine = true;
+			}else {
+				printf("Unknow preset's name. try 'Help' command\n");
 			}
 
+			if (automaticLine)
+				printf("%s\n", line.c_str());
 
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
-			string newName = sv.at(2);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Rename"){
+
+			if (nbArg < 3)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			string newName = arguments.at(2);
+
+
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
-					LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
-					eanFile->getAnimations().at(indexAnim).setName(newName);
-					printf("Name changed.\n");
-			}
-			else{
+				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
+				eanFile->getAnimations().at(indexAnim).setName(newName);
+				printf("Name changed.\n");
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
-		}else if (line.substr(0, 5) == "Erase"){
 
-			
-			if (line.size() <= 6)
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Erase"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(6), ' ');
-			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
-
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 			size_t indexAnim_range_end = (size_t)-1;
-			if (sv.size()>2)
-				indexAnim_range_end = std::stoi(sv.at(2));
+			if (nbArg>2)
+				indexAnim_range_end = std::stoi(arguments.at(2));
+
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
@@ -767,25 +1117,20 @@ int main(int argc, char** argv)
 			}
 
 
-		}
-		else if (line.substr(0, 6) == "Insert"){
 
-			if (line.size() <= 7)
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Insert"){
+
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(7), ' ');
-			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+
+
 
 			if ((indexFile < listEanFile.size()) && (indexAnim <= listEanFile.at(indexFile)->getAnimations().size()))
 			{
@@ -801,12 +1146,10 @@ int main(int argc, char** argv)
 					}
 
 					printf("animation added.\n");
-				}
-				else{
+				}else{
 					printf("error : you must use Copy command first, to select the source.\n");
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
@@ -815,37 +1158,29 @@ int main(int argc, char** argv)
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "AddBoneOffsetScaleOnAnimationPosition"){
 
-		}else if (line.substr(0, 37) == "AddBoneOffsetScaleOnAnimationPosition"){
-
-			
-			if (line.size() <= 38)
+			if (nbArg < 9)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			
-			std::vector<std::string> sv = split(line.substr(38), ' ');
-			
-			if (sv.size() <= 8)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
-			size_t indexBone = std::stoi(sv.at(2));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			string boneRef = arguments.at(2);
+			float offsetToAdd_X = std::stof(arguments.at(3));
+			float offsetToAdd_Y = std::stof(arguments.at(4));
+			float offsetToAdd_Z = std::stof(arguments.at(5));
+			float scaletoMultiply_X = std::stof(arguments.at(6));
+			float scaletoMultiply_Y = std::stof(arguments.at(7));
+			float scaletoMultiply_Z = std::stof(arguments.at(8));
 
-			float offsetToAdd_X = std::stof(sv.at(3));
-			float offsetToAdd_Y = std::stof(sv.at(4));
-			float offsetToAdd_Z = std::stof(sv.at(5));
-			float scaletoMultiply_X = std::stof(sv.at(6));
-			float scaletoMultiply_Y = std::stof(sv.at(7));
-			float scaletoMultiply_Z = std::stof(sv.at(8));
 
 			if ((indexFile < listEanFile.size()) && ((indexAnim==-1)||(indexAnim < listEanFile.at(indexFile)->getAnimations().size())))
 			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+
 				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 				
 				vector<LibXenoverse::EANAnimation> &listAnimation = eanFile->getAnimations();
@@ -894,8 +1229,7 @@ int main(int argc, char** argv)
 
 				printf("Done.\n");
 
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
@@ -903,34 +1237,23 @@ int main(int argc, char** argv)
 
 
 		
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "GetDuration"){
 
-		}else if (line.substr(0, 11) == "GetDuration"){
-
-			if (line.size() <= 12)
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			
-			std::vector<std::string> sv = split(line.substr(12), ' ');
-			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
-
-			size_t indexBone = (size_t)-1;
-			if (sv.size()>2)
-				indexBone = std::stoi(sv.at(2));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
+			string boneRef = (nbArg>2) ? arguments.at(2)  : "";
 
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+
 				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 				LibXenoverse::EANAnimation *animation = &(eanFile->getAnimations().at(indexAnim));
 				
@@ -972,41 +1295,34 @@ int main(int argc, char** argv)
 					if (!isfound)
 						printf("animation %s don't have bone with index %i. Use GetBoneList command to look the bone present in this animation.\n", animation->getName().c_str(), indexBone);
 				}
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
+
+
+
+
 	
-		}
-		else if (line.substr(0, 11) == "SetDuration"){
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "SetDuration"){
 
-			if (line.size() <= 12)
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(12), ' ');
-			
-			if (sv.size() <= 1)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 
 			double duration = 2.0;
-			size_t indexBone = (size_t)-1;
-			if (sv.size() > 3)
+			string boneRef = "";
+			if (nbArg > 3)
 			{
-				indexBone = std::stoi(sv.at(2));
-				duration = std::stod(sv.at(3));
-			}
-			else if (sv.size() > 2){
-				duration = std::stod(sv.at(2));
+				boneRef = arguments.at(2);
+				duration = std::stod(arguments.at(3));
+			}else if (nbArg > 2){
+				duration = std::stod(arguments.at(2));
 			}
 
 			struct InterpolatedKey
@@ -1027,6 +1343,8 @@ int main(int argc, char** argv)
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+
 				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 				LibXenoverse::EANAnimation *animation = &(eanFile->getAnimations().at(indexAnim));
 
@@ -1040,8 +1358,7 @@ int main(int argc, char** argv)
 				{
 					original_Duration_inFrames = animation->getFrameCount();
 
-				}
-				else{
+				}else{
 
 					vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
 					size_t nbBones = listNodes.size();
@@ -1132,45 +1449,32 @@ int main(int argc, char** argv)
 
 				printf("Done.\n");
 
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
 
 
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "LoopAnimation"){
 
-		}
-		else if (line.substr(0, 13) == "LoopAnimation"){
-
-			
-			if (line.size() <= 14)
+			if (nbArg < 2)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-
-			std::vector<std::string> sv = split(line.substr(14), ' ');
-
-			if (sv.size() <= 3)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-
-			size_t indexFile = std::stoi(sv.at(0));
-			size_t indexAnim = std::stoi(sv.at(1));
+			size_t indexFile = std::stoi(arguments.at(0));
+			size_t indexAnim = std::stoi(arguments.at(1));
 
 			int nbLoops = 2;
-			size_t indexBone = (size_t)-1;
-			if (sv.size() > 3)
+			string boneRef = "";
+			if (nbArg > 3)
 			{
-				indexBone = std::stoi(sv.at(2));
-				nbLoops = std::stoi(sv.at(3));
-			}
-			else if (sv.size() > 2){
-				nbLoops = std::stoi(sv.at(2));
+				boneRef = arguments.at(2);
+				nbLoops = std::stoi(arguments.at(3));
+			}else if (nbArg > 2){
+				nbLoops = std::stoi(arguments.at(2));
 			}
 
 			if (nbLoops <= 1)
@@ -1182,6 +1486,8 @@ int main(int argc, char** argv)
 
 			if ((indexFile < listEanFile.size()) && (indexAnim < listEanFile.at(indexFile)->getAnimations().size()))
 			{
+				size_t indexBone = (isNumber(boneRef) ? std::stoi(boneRef) : ((listEanFile.at(indexFile)->getSkeleton()) ? listEanFile.at(indexFile)->getSkeleton()->getBoneIndex(boneRef) : (size_t)-1));
+				
 				LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 				LibXenoverse::EANAnimation *animation = &(eanFile->getAnimations().at(indexAnim));
 
@@ -1191,8 +1497,7 @@ int main(int argc, char** argv)
 				{
 					original_Duration_inFrames = animation->getFrameCount();
 
-				}
-				else{
+				}else{
 
 					vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
 					size_t nbBones = listNodes.size();
@@ -1280,36 +1585,26 @@ int main(int argc, char** argv)
 
 				printf("Done.\n");
 
-			}
-			else{
+			}else{
 				printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
 			}
 
 
 
-
-		}else if (line.substr(0, 22) == "MatchAnimationDuration"){
-
-			//'MatchAnimationDuration <indexEAN_src> <indexEAN_toMatch> <indexAnimation_Start> <indexAnimation_End> ' the second Ean will have the same duration of the same Named animation from the Ean src.For a range of animations.Notice the range is about animations of the second Ean.\
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "MatchAnimationDuration"){
 			
-			if (line.size() <= 23)
+			if (nbArg < 4)
 			{
-				printf("You miss argument. try 'Help' command\n");
+				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
+			size_t indexFile_src = std::stoi(arguments.at(0));
+			size_t indexFile_dest = std::stoi(arguments.at(1));
+			size_t indexAnim_start = std::stoi(arguments.at(2));
+			size_t indexAnim_end = std::stoi(arguments.at(3));
 
-			std::vector<std::string> sv = split(line.substr(23), ' ');
-			
-			if (sv.size() <= 3)
-			{
-				printf("You miss argument. try 'Help' command\n");
-				continue;
-			}
-			
-			size_t indexFile_src = std::stoi(sv.at(0));
-			size_t indexFile_dest = std::stoi(sv.at(1));
-			size_t indexAnim_start = std::stoi(sv.at(2));
-			size_t indexAnim_end = std::stoi(sv.at(3));
+
 
 			if (indexAnim_end < indexAnim_start)
 			{
@@ -1440,13 +1735,14 @@ int main(int argc, char** argv)
 				}
 				printf("Done.\n");
 
-			}
-			else{
+			}else{
 				printf("index %i or %i is not in ean file list or indexAnim %i or %i is not in list animations.\n", indexAnim_start, indexAnim_end, indexFile_src, indexFile_dest);
 			}
 
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
 		}else{
-			printf("Unknow command *%s*.\n Type 'Help' to see valid commands\n", line.c_str());
+			printf("Unknow command *%s*.\n Type 'Help' to see valid commands\n", command.c_str());
 		}
 	}
 	

@@ -477,6 +477,7 @@ bool EMDSubmesh::importFBX_OldMethode(FbxNode* fbxNode, FbxMesh *fbxMesh, int ma
 			if (index_tmp >= nbVertex)
 			{
 				printf("error: vertex index out of list. use 0.\n");
+				LibXenoverse::notifyError();
 				index_tmp = 0;
 			}
 				
@@ -549,7 +550,7 @@ bool EMDSubmesh::importFBX_OldMethode(FbxNode* fbxNode, FbxMesh *fbxMesh, int ma
 
 					if (isFound != (size_t)-1)
 					{
-						v_copy.blend[3 - k] = isFound;
+						v_copy.blend[k] = isFound;
 						v_copy.blend_weight[k] = (float)skin_bindings.at(k).first;
 					}
 				}
@@ -596,7 +597,10 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 
 	FbxMesh* fbxMesh = fbxNode->GetMesh();
 	if (fbxNode->GetMaterialCount() != 1)			//if we have only 1 or none material, no need of mapping for material index on each vertex. Else :
+	{
 		printf("Warning Mesh %s have many materialIndex (not good on EmdSubmesh definition). We considere as only one material %s.\n", name.c_str(), name.c_str());
+		LibXenoverse::notifyWarning();
+	}
 
 
 
@@ -1005,6 +1009,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 			if (index_tmp >= nbVertex)
 			{
 				printf("error: vertex index out of list. use 0.\n");
+				LibXenoverse::notifyError();
 				index_tmp = 0;
 			}
 
@@ -1075,7 +1080,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 
 					if (isFound != (size_t)-1)
 					{
-						v_copy.blend[3 - k] = isFound;
+						v_copy.blend[k] = isFound;
 						v_copy.blend_weight[k] = (float)skin_bindings.at(k).first;
 					}
 				}
@@ -1131,6 +1136,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					textIndex = std::stoi(texName);
 				}catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()) );
 			}
@@ -1153,6 +1159,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 				}
 				catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
@@ -1175,6 +1182,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 				}
 				catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
@@ -1197,6 +1205,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 				}
 				catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
@@ -1220,6 +1229,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 				}
 				catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
@@ -1242,6 +1252,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 				}
 				catch (...) {
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
+					LibXenoverse::notifyError();
 				}
 				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}

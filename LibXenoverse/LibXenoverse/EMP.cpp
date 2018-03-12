@@ -1846,6 +1846,7 @@ void EMP::write_Coloration_Tag(string paramName, string paramType, string paramC
 		if (index >= limit)
 		{
 			printf("Error on tagID %i : overflow %i >= %i.\n", idTag, index, limit);
+			LibXenoverse::notifyError();
 			continue;
 		}
 
@@ -1853,7 +1854,10 @@ void EMP::write_Coloration_Tag(string paramName, string paramType, string paramC
 			int aa = 42;
 
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
-			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str() );
+		{
+			printf("warning on tagID %i : the byte %i allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, index, (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
+			LibXenoverse::notifyError();
+		}
 
 		listBytesAllreadyTagged.at(index) = true;
 	}
@@ -1885,7 +1889,7 @@ void EMP::write_Coloration_Tag(string paramName, string paramType, string paramC
 /*-------------------------------------------------------------------------------\
 |                             extractEmd					                     |
 \-------------------------------------------------------------------------------*/
-void EMP::extractEmd(string filename, EMD* emd, EMM* emm)
+void EMP::extractEmd(string filename, EMD* emd)
 {
 	uint8_t *buf;
 	size_t size;
@@ -1981,9 +1985,6 @@ void EMP::extractEmd(string filename, EMD* emd, EMM* emm)
 				emdModel->meshes.push_back(emdMesh);
 
 				emd->models.push_back(emdModel);
-				
-				EMMMaterial* emmMat = new EMMMaterial(string(section1[0].name));
-				emm->materials.push_back(emmMat);
 
 				delete emg;
 			}

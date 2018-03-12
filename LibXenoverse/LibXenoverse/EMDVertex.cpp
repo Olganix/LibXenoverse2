@@ -131,20 +131,21 @@ void EMDVertex::read(File *file, uint16_t flags)
 	if (flags & EMD_VTX_FLAG_BLEND_WEIGHT)
 	{
 		for (size_t i = 0; i < 4; i++)
-			file->readUChar(&blend[i]);
+			file->readUChar(&blend[ ((!file->isBigEndian()) ? i : (3 - i)) ]);
 
 
 		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 		{
 			for (size_t i = 0; i < 3; i++)				//only 3 informations, because the last is a completion.
-				file->readFloat32E(&blend_weight[3 - i]);
+				file->readFloat32E(&blend_weight[ i ]);
 		}else {
 			for (size_t i = 0; i < 4; i++)
-				file->readFloat16E(&blend_weight[3 - i]);
+				file->readFloat16E(&blend_weight[ i ]);
 		}
 
+
 		//completion to assure addition of weight always do 1.0;
-		blend_weight[0] = 1.0f - blend_weight[3] - blend_weight[2] - blend_weight[1];
+		blend_weight[3] = 1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2]);
 
 		LOG_DEBUG("%d %d %d %d - %f %f %f %f\n", blend[0], blend[1], blend[2], blend[3], blend_weight[0], blend_weight[1], blend_weight[2], blend_weight[3]);
 	}
@@ -231,17 +232,17 @@ void EMDVertex::write(File *file, uint16_t flags)
 	if (flags & EMD_VTX_FLAG_BLEND_WEIGHT)
 	{
 		for (size_t i = 0; i < 4; i++)
-			file->writeUChar(&blend[i]);
+			file->writeUChar(&blend[ ((!file->isBigEndian()) ? i : (3 - i)) ]);
 
 
 		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 		{
 			for (size_t i = 0; i < 3; i++)				//only 3 informations, because the last is a completion.
-				file->writeFloat32E(&blend_weight[3 - i]);
+				file->writeFloat32E(&blend_weight[ i ]);
 		}
 		else {
 			for (size_t i = 0; i < 3; i++)
-				file->writeFloat16E(&blend_weight[3 - i]);
+				file->writeFloat16E(&blend_weight[ i ]);
 
 			file->writeInt16E(&nullValue);
 		}

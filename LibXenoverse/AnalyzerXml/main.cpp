@@ -414,14 +414,28 @@ public:
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for Analyze a serie of Xml (or of tags in Xml), by create a xml with all merge of Tag/Attributes/values where it keep unique values, order them, and keep a reference to a file for sample the case.\n\
+ Usage: 'Analyzer.exe [options] folder'\n\
+ For each value the result will be : XXXX=\"value1[fileIndex1,tag1,tag2;fileIndex1,tag1,tag3;fileIndex2; ...x NumberReference]|value2[...]|value3[...]|...\" where fileIndex is the one for the list of filename at the end.\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: 'Analyzer.exe folder ...'\n");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	string folder = ToString(argv[1]);
+
+	
+	string folder = arguments.at(0);
 	std::vector<string> listFilename;
 	
 	{
@@ -435,7 +449,6 @@ int main(int argc, char** argv)
 			{
 
 			}else {
-
 				string filename_abs_tmp = file.absolutePath().toStdString();
 				listFilename.push_back(string(filename_abs_tmp + "/" + filename_tmp));
 			}
@@ -446,6 +459,8 @@ int main(int argc, char** argv)
 	if (nbFiles == 0)
 	{
 		printf("no file found in folder.'\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 0;
 	}
 
@@ -474,6 +489,7 @@ int main(int argc, char** argv)
 			else
 				printf("Error parsing file \"%s\". This is what tinyxml has to say: %s. Row=%d, col=%d.\n", filename.c_str(), doc.ErrorDesc(), doc.ErrorRow(), doc.ErrorCol());
 
+			LibXenoverse::notifyError();
 			continue;
 		}
 
@@ -501,7 +517,8 @@ int main(int argc, char** argv)
 	analyzerDoc->SaveFile(xmlNode.mName);
 	delete analyzerDoc;
 	
-	printf("finished.\n");
 
+	printf("finished.\n");
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

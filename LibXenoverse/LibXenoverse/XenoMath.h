@@ -52,7 +52,8 @@ namespace LibXenoverse
 	|                             Math					                             |
 	\-------------------------------------------------------------------------------*/
 	float lerp(float src, float dest, float factor);
-
+	double quadraticBezier(double factor, double startPoint, double controlPoint, double endPoint);
+	double cubicBezier(double factor, double startPoint, double controlPoint1, double controlPoint2, double endPoint);
 
 
 
@@ -70,6 +71,8 @@ namespace LibXenoverse
 	FbxVector4 fromAngleAxis(const double& rfAngle, const FbxDouble3& rkAxis);			//from Ogre Quaternion::FromAngleAxis
 	FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan(FbxVector4 orient);
 	FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient);
+	void quadToRotationMatrix(FbxVector4 orient, FbxDouble3 &m0, FbxDouble3 &m1, FbxDouble3 &m2);		//from Ogre 
+	bool matrixToEulerAnglesZYX(FbxDouble3 m0, FbxDouble3 m1, FbxDouble3 m2, FbxDouble3 &YPR_angles);	//from Ogre 
 
 #endif
 

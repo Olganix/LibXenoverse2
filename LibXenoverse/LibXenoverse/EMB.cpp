@@ -1,4 +1,5 @@
 namespace LibXenoverse {
+
 	bool EMB::load(string filename) {
 		name = nameFromFilenameNoExtension(filename, true);
 

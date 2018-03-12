@@ -154,7 +154,7 @@ public:
 	ESKBone*	getBone(size_t index) { return ((index < bones.size()) ? bones.at(index) : NULL); }
 	size_t	getBoneIndex(const string &name);
 	ESKBone*	getBone(const string &name) { return getBone(getBoneIndex(name)); }
-
+	void	addBone(ESKBone* bone) { bones.push_back(bone); }
 
 	std::vector<size_t>	getListIndexOfChildBones(size_t index);
 
@@ -186,7 +186,7 @@ public:
 		}
 	};
 
-	void	importFBXSkeleton(FbxScene *scene);
+	void	importFBXSkeleton(FbxScene *scene, bool allowCamera = false);
 	void	exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentFbxNode = 0, unsigned short parentIndex = 0xFFFF);			//recursive
 #endif
 

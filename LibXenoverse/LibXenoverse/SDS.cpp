@@ -345,7 +345,10 @@ void SDSParameter::readXML(TiXmlElement *root)
 	}
 	
 	if (!isfound)
+	{
 		printf("Warning : Unknown Parameter type %x\n", type);
+		LibXenoverse::notifyWarning();
+	}
 }
 
 void SDSParameter::writeXML(TiXmlElement *root)

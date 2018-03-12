@@ -102,6 +102,7 @@ bool EMG_SubPart::InjectVertex(const std::vector<EMG_VertexCommon> &new_vertex, 
 	if (vertex.size() != new_vertex.size())
 	{
 		LOG_DEBUG("ERROR: When injecting, number of vertex must be the same than existing ones! (tried: %Iu, existing: %u), on subpart \"%s\"\n", new_vertex.size(), vertex.size(), meta_name.c_str());
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -603,6 +604,8 @@ bool EMG_SubPart::InjectObj(const std::string &obj, bool do_uv, bool do_normal, 
 \-------------------------------------------------------------------------------*/
 void EMG_SubPart::readEmdSubMesh(EMDSubmesh* emd)
 {
+	strips = 0;						//strips it's about a little compression on faces index list, with some backface. but we don't care when rebuild from emd (and now it's take care on the reverse operation)
+	
 	flags = emd->vertex_type_flag;
 
 	vectors[0] = emd->aabb_center_x;
@@ -635,8 +638,6 @@ void EMG_SubPart::readEmdSubMesh(EMDSubmesh* emd)
 		vertex.push_back(EMG_VertexData());
 		vertex.back().readEmdVertex(&emd->vertices.at(i));
 	}
-
-	//todo serach about what is uint16_t strips
 }
 /*-------------------------------------------------------------------------------\
 |                             writeEmdSubMesh		                             |
@@ -945,19 +946,17 @@ void EMG_SubPart::ExportSubMeshFbxSkin(const EMO_Skeleton &skl, const EMG_SubMes
 
 			float this_weight = 0.0f;
 
-			if (v.VertexUnion.flags & EMG_VTX_FLAG_BLEND_WEIGHT)
+			if ((v.VertexUnion.flags & EMG_VTX_FLAG_BLEND_WEIGHT) && (blend_weight))
 			{
 				blend_weight = v.VertexUnion.blend_weight;
 				blend = v.VertexUnion.blend;
 
 
-				if (j != 3)
-					this_weight = blend_weight[j];
-				else
-					this_weight = 1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2]);	//hack for having a sum(blend_weight) = 1.0 with the four, so rewrite the fourth
+				this_weight = ((j != 3) ? blend_weight[j] : (1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2])));	//hack for having a sum(blend_weight) = 1.0 with the four, so rewrite the fourth
 			}
 
-			if (this_weight > 0.0f)
+			//if (this_weight > 0.0f)
+			if(blend)
 			{
 				uint8_t linked_bone_index = blend[j];
 
@@ -1477,7 +1476,10 @@ bool EMG_SubPart::LoadFbxBlendData(EMO_Skeleton &skl, const std::vector<EMO_Bone
 
 		if (i < 3)
 			blend_weight[i] = (float)vertex_weights[i].first;
-
+		else if (i == 3)
+			blend_weight[3] = 1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2]);
+		else
+			blend_weight[i] = 0.0f;
 	}
 
 	return true;
@@ -1491,18 +1493,21 @@ bool EMG_SubPart::LoadFbxBlendWeights(FbxMesh *fbx_mesh, std::vector<std::vector
 	if (fbx_mesh->GetDeformerCount() == 0)
 	{
 		LOG_DEBUG("ERROR: deformer count is zero! (in submesh %s)\n", fbx_mesh->GetName());
+		LibXenoverse::notifyError();
 		return false;
 	}
 
 	if (fbx_mesh->GetDeformerCount() != 1)
 	{
 		LOG_DEBUG("WARNING: deformer count is different than 1 (in submesh %s)\n", fbx_mesh->GetName());
+		LibXenoverse::notifyWarning();
 	}
 
 	FbxDeformer* deformer = fbx_mesh->GetDeformer(0);
 	if (deformer->GetDeformerType() != FbxDeformer::eSkin)
 	{
 		LOG_DEBUG("Invalid deformer type.\n");
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -1600,7 +1605,10 @@ bool EMG_SubPart::InjectSubMeshFbx(EMO_Skeleton &skl, EMG_SubMesh &submesh, FbxN
 	if (IsEdge())
 	{
 		//if (vertex_size == sizeof(EMG_Vertex64))		//TODO 
+		//{
+		//	LibXenoverse::notifyError();
 		//	throw std::runtime_error("We weren't expecting an edge subpart with EMG_Vertex64 data! Report the emo file to eternity.\n");
+		//}
 		
 		// both 3ds max and fbx sdk mess the normals of edge parts, so we have to generate them in inverse form.
 		fbx_mesh->GenerateNormals(true, true, true);
@@ -1726,6 +1734,7 @@ bool EMG_SubPart::InjectFbx(EMO_Skeleton &skl, const std::vector<FbxNode *> fbx_
 	if (fbx_nodes.size() != submeshes.size())
 	{
 		LOG_DEBUG("%s: function usage error, number of fbx_meshes must be same as nuber of submeshes.\n", FUNCNAME);
+		LibXenoverse::notifyError();
 		return false;
 	}
 
@@ -1959,6 +1968,75 @@ bool EMG_SubMesh::IsEdge() const
 
 
 
+std::vector<uint16_t> EMG_SubMesh::getRealFaceIndex(bool strips)
+{
+	std::vector<uint16_t> realFaces;
+
+	if (!strips)
+	{
+		assert((faces.size() % 3) == 0);
+
+		size_t nbfaces = faces.size();
+		for (size_t i = 0; i < nbfaces; i++)
+			realFaces.push_back(faces.at(i));
+		
+		return realFaces;
+	}
+
+	bool backface = false;
+	int strip_size = 1;
+	uint16_t idx1 = 0xFFFF, idx2 = 0xFFFF;
+	size_t f_index = 0;
+
+	for (size_t i = 0; i < faces.size(); i++, strip_size++)
+	{
+		assert(f_index < faces.size());
+
+		uint16_t idx = faces[f_index];
+		f_index++;
+
+		if (idx == idx1)
+		{
+			backface = !backface;
+			idx1 = idx2;
+			idx2 = idx;
+			strip_size = 2;
+			continue;
+		}
+
+		if (idx == idx2)
+		{
+			backface = !backface;
+			strip_size = 1;
+			continue;
+		}
+
+		if (strip_size >= 3)
+		{
+			
+			if (backface)
+			{
+				realFaces.push_back(idx);
+				realFaces.push_back(idx2);
+				realFaces.push_back(idx1);
+			}
+			else
+			{
+				realFaces.push_back(idx1);
+				realFaces.push_back(idx2);
+				realFaces.push_back(idx);
+			}
+		}
+
+		backface = !backface;
+		idx1 = idx2;
+		idx2 = idx;
+	}
+
+	return realFaces;
+}
+
+
 
 /*-------------------------------------------------------------------------------\
 |                             readEmdSubMesh		                             |
@@ -2012,15 +2090,17 @@ void EMG_SubMesh::readEmdSubMesh(EMDSubmesh* emd, size_t textlist_index, size_t 
 /*-------------------------------------------------------------------------------\
 |                             writeEmdSubMesh		                             |
 \-------------------------------------------------------------------------------*/
-void EMG_SubMesh::writeEmdSubMesh(EMDSubmesh* emd)
+void EMG_SubMesh::writeEmdSubMesh(EMDSubmesh* emd, bool strips)
 {
 	emd->name = emm_material;
 
 	EMDTriangles triangle;
 
-	size_t nbFacesIndex = faces.size();
+	std::vector<uint16_t> realFaces = getRealFaceIndex(strips);
+
+	size_t nbFacesIndex = realFaces.size();
 	for (size_t i = 0; i < nbFacesIndex; i++)
-		triangle.faces.push_back(faces.at(i));
+		triangle.faces.push_back(realFaces.at(i));
 
 	size_t nbBones = linked_bones.size();
 	for (size_t i = 0; i < nbBones; i++)
@@ -2786,7 +2866,7 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 				//blend part
 				p_uint8_tmp = vertex_subpart;
 				for (size_t k = 0; k < 4; k++)
-					vd.VertexUnion.blend[k] = p_uint8_tmp[k];
+					vd.VertexUnion.blend[k] = p_uint8_tmp[ ((!big_endian) ? k : (3 - k)) ];
 
 				p_uint8_tmp += 4;
 
@@ -2799,8 +2879,8 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 						vd.VertexUnion.blend_weight[k] = val_float(float_tmp[k]);
 
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_BLEND_WEIGHT, true);
-				}
-				else{
+
+				}else{
 
 					//is about 4 x 1 x float16 in compressed version
 					p_uint16_tmp = (uint16_t*)p_uint8_tmp;
@@ -2810,25 +2890,6 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_BLEND_WEIGHT | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
 				}
 			}
-
-			/*
-			if (j < 10)
-			{
-			uint16_t test_u_16 = (vertex[19] << 8) + vertex[18];
-			uint32_t test_u_32 = half_to_float(test_u_16);
-			float test_u_f = *((float*)&test_u_32);
-
-			uint16_t u_16 = (vertex[21] << 8) + vertex[20];
-			uint32_t u_32 = half_to_float(u_16);
-			float u_f = *((float*)&u_32);
-
-			uint16_t v_16 = (vertex[23] << 8) + vertex[22];
-			uint32_t v_32 = half_to_float(v_16);
-			float v_f = *((float*)&v_32);
-
-			printf("vertex %d : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x => Pos :(%f, %f, %f)  N :(%f, %f, %f) Testu: %f Tu: %f Tv: %f\n", j, vertex[0], vertex[1], vertex[2], vertex[3], vertex[4], vertex[5], vertex[6], vertex[7], vertex[8], vertex[9], vertex[10], vertex[11], vertex[12], vertex[13], vertex[14], vertex[15], vertex[16], vertex[17], vertex[18], vertex[19], vertex[20], vertex[21], vertex[22], vertex[23], vertex[24], vertex[25], vertex[26], vertex[27], vertex[28], vertex[29], vertex[30], vertex[31], vertex[32], vertex[33], vertex[34], vertex[35], vertex[36], vertex[37], vertex[38], vertex[39], val_float(v->common.pos.x), val_float(v->common.pos.y), val_float(v->common.pos.z), val_float(v->common.norm.x), val_float(v->common.norm.y), val_float(v->common.norm.z), test_u_f, u_f, v_f);
-			}
-			*/
 
 			subpart.vertex.push_back(vd);
 			vertex += vertex_size;
@@ -2984,7 +3045,7 @@ unsigned int EMG::CreateVertex(uint8_t *buf)
 					//blend part
 					p_uint8_tmp = vertex_subpart;
 					for (size_t k = 0; k < 4; k++)
-						p_uint8_tmp[k] = vd.VertexUnion.blend[k];
+						p_uint8_tmp[k] = vd.VertexUnion.blend[ ((!big_endian) ? k : (3 - k)) ];
 
 					p_uint8_tmp += 4;
 
@@ -2997,8 +3058,8 @@ unsigned int EMG::CreateVertex(uint8_t *buf)
 							copy_float(float_tmp + k, vd.VertexUnion.blend_weight[k]);
 
 						vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_BLEND_WEIGHT, true);
-					}
-					else{
+
+					}else{
 
 						//is about 4 x 1 x float16 in compressed version
 						p_uint16_tmp = (uint16_t*)p_uint8_tmp;
@@ -3134,6 +3195,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 		if (show_error)
 		{
 			LOG_DEBUG("No geometry vertex in input file!\n");
+			LibXenoverse::notifyError();
 		}
 
 		return false;
@@ -3144,6 +3206,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 		if (show_error)
 		{
 			LOG_DEBUG("ERROR: Number of uv coordinates can't be greater than number of geometry vertex.\n");
+			LibXenoverse::notifyError();
 		}
 
 		return false;
@@ -3154,6 +3217,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 		if (show_error)
 		{
 			LOG_DEBUG("ERROR: Number of vertex normals can't be greater than number of geometry vertex.\n");
+			LibXenoverse::notifyError();
 		}
 
 		return false;
@@ -3187,18 +3251,21 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 						if (v_idx >= vertex.size())
 						{
 							LOG_DEBUG("ERROR: vertex index out of bounds (%u) at line \"%s\"\n", v_idx, line.c_str());
+							LibXenoverse::notifyError();
 							return false;
 						}
 
 						if (uv_idx >= *uv_count && *uv_count != 0)
 						{
 							LOG_DEBUG("ERROR: texture coordinate index out of bounds (%u) at line \"%s\"\n", uv_idx, line.c_str());
+							LibXenoverse::notifyError();
 							return false;
 						}
 
 						if (n_idx >= *n_count && *n_count != 0)
 						{
 							LOG_DEBUG("ERROR: vertex normal index out of bounds (%u) at line \"%s\"\n", n_idx, line.c_str());
+							LibXenoverse::notifyError();
 							return false;
 						}
 
@@ -3222,12 +3289,14 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 						if (count == 0)
 						{
 							LOG_DEBUG("WARNING: this line is being ignored: \"%s\"\n", line.c_str());
+							LibXenoverse::notifyWarning();
 							count = 3; // To skip warning
 							break;
 						}
 						else
 						{
 							LOG_DEBUG("WARNING: this line is being partially ignored: \"%s\"\n", line.c_str());
+							LibXenoverse::notifyWarning();
 							count = 3; // To skip warning
 							break;
 						}
@@ -3261,6 +3330,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 				if (count < 3)
 				{
 					LOG_DEBUG("WARNING: it was expected 3 groups or more, at line \"%s\"\n", line.c_str());
+					LibXenoverse::notifyWarning();
 				}
 				else if (count > 3)
 				{
@@ -3425,7 +3495,7 @@ void EMG::writeEmdMesh(EMDMesh* emd, string name)
 
 
 			//info venant de EMG_SubMesh
-			subpart.submeshes.at(j).writeEmdSubMesh(submesh);
+			subpart.submeshes.at(j).writeEmdSubMesh(submesh, subpart.GetStrips());
 
 
 			if (submesh->aabb_min_x < emd->aabb_min_x) emd->aabb_min_x = submesh->aabb_min_x;

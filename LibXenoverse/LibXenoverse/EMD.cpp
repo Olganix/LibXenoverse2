@@ -55,7 +55,7 @@ void EMD::save(string filename, bool big_endian)
 	File file(filename, LIBXENOVERSE_FILE_WRITE_BINARY);
 	if (file.valid())
 	{
-		save(&file);
+		save(&file, big_endian);
 		file.close();
 	}
 }

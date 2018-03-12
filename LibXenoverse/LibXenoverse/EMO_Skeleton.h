@@ -15,7 +15,7 @@ namespace LibXenoverse
 
 #ifdef _MSC_VER
 #ifndef FBX_SUPPORT
-//#define FBX_SUPPORT
+ #define FBX_SUPPORT
 #endif
 #endif
 

@@ -151,6 +151,7 @@ class EMDSubmesh
 	friend class EMG_SubPart;
 	friend class EMG_SubMesh;
 	friend class FMP_Hitbox;
+	friend class Havok;
 
 protected:
 	string name;									//it's also the materialName
@@ -174,8 +175,8 @@ protected:
 	float aabb_max_z;
 	float aabb_max_w;
 
-	
-
+public:
+	string uniqName;									//for instance
 	
 
 public:
@@ -205,8 +206,8 @@ public:
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
 	bool	importFBX_OldMethode(FbxNode* fbxNode, FbxMesh* fbxMesh, int material_index, FbxAMatrix transform_matrix, string material_names, vector<vector<pair<double, FbxNode *>>> &control_points_skin_bindings, bool compressedFlag = true);
-	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0);
-	FbxSurfaceMaterial*	exportFBXMaterial(FbxScene *scene, string material_name, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0);
+	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
+	FbxSurfaceMaterial*	exportFBXMaterial(FbxScene *scene, string material_name, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
 	FbxTexture* getTexture(FbxSurfaceMaterial * mat, const char* typeMap);
 #endif
 };
@@ -221,6 +222,7 @@ class EMDMesh
 	friend class EMG;
 	friend class EMP;
 	friend class FMP_Hitbox;
+	friend class Havok;
 
 protected:
 	string name;
@@ -264,7 +266,7 @@ public:
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
 	void	importFBX_OldMethode(FbxNode* fbxNode, bool compressedFlag = true);
-	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0);
+	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
 #endif
 };
 
@@ -278,6 +280,7 @@ class EMDModel
 	friend class EMO_PartsGroup;
 	friend class EMP;
 	friend class FMP_Hitbox;
+	friend class Havok;
 
 protected:
 	string name;
@@ -304,7 +307,7 @@ public:
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
-	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode *parentNode, size_t indexModel, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0);
+	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode *parentNode, size_t indexModel, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
 #endif
 };
 
@@ -317,6 +320,7 @@ class EMD
 	friend class EMO;
 	friend class EMP;
 	friend class FMP_Hitbox;
+	friend class Havok;
 
 protected:
 	string name;
@@ -339,6 +343,7 @@ public:
 	void	setVertexScale(float scale);
 	vector<string>	getBonesNames(void);
 	void	replaceBonesNames(const string &oldName, const string &newName);
+	size_t	getNumberModel() { return models.size(); }
 
 	bool	loadXml(string filename);
 	void	saveXml(string filename);
@@ -347,7 +352,7 @@ public:
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode *fbxNode, bool compressedFlag = true);
-	void	exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0);
+	void	exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
 #endif
 };
 

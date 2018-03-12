@@ -75,26 +75,30 @@ void recursiveChangeEmpTagName(TiXmlElement* parent, TiXmlElement* rootNode)
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	printf("*******************************************************************\n\
+ This tool is for convert some files of Dbxv2 into a Xml version, and reverse\n\
+ Usage: 'XenoXmlConverter.exe [options] file.ext file2.ext ...'\n\
+ Files formats supported : emd, esk, ean, emm, map, hkx, nsk, emo, mat.ema, ema(debug, no Rebuild), etr, aur, sds, spm(debug, fullRebuild), scd(debug, fullRebuild).\n\
+ Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
+ Notice: \"path With Spaces\" allowed now. \n\
+*******************************************************************\n");
+
+	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
+
+	if (arguments.size() == 0)
 	{
-		printf("Usage: 'XenoXmlConverter.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support sds, emm , emd , esk, ean, mat.ema, nsk, aur, emo files");
-		getchar();
+		printf("Error not enougth arguments.\n");
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 
-	LibXenoverse::initializeDebuggingLog();
 
-	bool endWaitEnable = true;
-	for (int i = 1; i < argc; i++)
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
 	{
-		string filename = ToString(argv[i]);
-
-		if (filename == "-noEndWait")
-		{
-			endWaitEnable = false;
-			continue;
-		}
-
+		string filename = arguments.at(i);
 		string extension = LibXenoverse::extensionFromFilename(filename, true);
 		string basefilename = filename.substr(0, filename.length() - (extension.size() + 1)) ;
 		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
@@ -102,7 +106,7 @@ int main(int argc, char** argv)
 		string extension3 = LibXenoverse::extensionFromFilename(basefilename2, true);
 		string basefilename3 = basefilename2.substr(0, basefilename2.length() - (extension3.size() + 1));
 
-	
+		printf("Process on %s. Please Wait...\n", filename.c_str());
 
 		/////////////////////////////////////////////////////////////
 		if (extension == "sds")
@@ -122,14 +126,6 @@ int main(int argc, char** argv)
 
 		/////////////////////////////////////////////////////////////
 		}else if (extension == "emm") {		// .emm  .ptcl.emm  .trc.emm  .tbind.emm  .pbind.emm
-			
-			if((extension2 == "tbind") || (extension2 == "pbind"))
-			{
-				printf("Error: .tbind.emm and .pbind.emm are not really like .emm file (there a EMB and a unknow EMP ETR flags. So skip. Sorry.\n");
-				getchar();
-				continue;
-			}
-
 			LibXenoverse::EMM* emm = new LibXenoverse::EMM();
 			if (emm->load(filename))
 				emm->saveXML(filename + ".xml");
@@ -148,6 +144,7 @@ int main(int argc, char** argv)
 
 		/////////////////////////////////////////////////////////////
 		}else if (extension == "emd") {
+
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
 			if(emd->load(filename))
 				emd->saveXml(filename + ".xml");
@@ -179,7 +176,7 @@ int main(int argc, char** argv)
 
 
 		/////////////////////////////////////////////////////////////
-		}else if (extension.substr(extension.length()-3) == "ean") {		//.ean, .fce.ean, .cam.ena
+		}else if (extension == "ean") {		//.ean, .fce.ean, .cam.ena
 			LibXenoverse::EAN* ean = new LibXenoverse::EAN();
 			if (ean->load(filename))
 				ean->saveXml(filename + ".xml");
@@ -194,21 +191,20 @@ int main(int argc, char** argv)
 
 
 		/////////////////////////////////////////////////////////////
-		}
-		else if (extension == "emo") {										//.emo
+		}else if (extension == "emo") {										//.emo
 			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
 			if (emo->load(filename))
 				emo->DecompileToFile(filename + ".xml");
 			delete emo;
 
-		}
-		else if ((extension == "xml") && (extension2 == "emo")) {
+		}else if ((extension == "xml") && (extension2 == "emo")) {
 
 			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
 			if (emo->load(filename))
 				emo->SaveToFile(basefilename2 + ".emo");
 			delete emo;
 
+			
 
 		/////////////////////////////////////////////////////////////
 		}else if ((extension == "ema") && (extension2 == "mat")) {		//mat.ema
@@ -217,6 +213,11 @@ int main(int argc, char** argv)
 				ema->saveXml(filename + ".xml");
 			delete ema;
 
+			LibXenoverse::EMA* ema_tmp = new LibXenoverse::EMA();				//test Todo comment
+			if (ema_tmp->LoadFromFile(filename))
+				ema_tmp->DecompileToFile(basefilename +"_.test_ema.xml");		
+			delete ema_tmp;
+
 		}else if ((extension == "xml") && (extension2 == "ema") && (extension3 == "mat")) {
 
 			LibXenoverse::EMA_Material* ema = new LibXenoverse::EMA_Material();
@@ -224,7 +225,15 @@ int main(int argc, char** argv)
 				ema->save(basefilename2 + ".ema");
 			delete ema;
 
+			
 
+		}else if ((extension == "ema") && (extension2 != "mat")) {		//ema
+			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
+			if (ema->LoadFromFile(filename))
+				ema->DecompileToFile(filename + ".xml");		//test
+			delete ema;
+
+			
 
 		/////////////////////////////////////////////////////////////
 		}else if (extension == "nsk") {
@@ -241,7 +250,7 @@ int main(int argc, char** argv)
 			delete nsk;
 
 
-
+			
 		/////////////////////////////////////////////////////////////
 		}else if (extension == "aur") {
 			LibXenoverse::AUR* aur = new LibXenoverse::AUR();
@@ -258,7 +267,7 @@ int main(int argc, char** argv)
 
 
 
-
+			
 		///////////////////////////////////////////////////////////// 
 		}else if (extension == "etr") {
 			LibXenoverse::Etr* etr = new LibXenoverse::Etr();
@@ -275,7 +284,7 @@ int main(int argc, char** argv)
 
 
 
-
+			
 
 		/////////////////////////////////////////////////////////////  For Tests/debug
 		}else if (extension == "map") {
@@ -284,10 +293,7 @@ int main(int argc, char** argv)
 			if (fmp->load(filename))
 			{
 				//fmp->SaveToFile(filename + "_modified.map");			//test Todo remove
-
 				fmp->saveXml(filename + ".xml");
-				
-				//fmp->save_Xml(filename);								//test Xml version debug.
 			}
 			delete fmp;
 
@@ -300,7 +306,7 @@ int main(int argc, char** argv)
 			delete fmp;
 
 
-
+			
 		}else if (extension == "spm") {
 
 			LibXenoverse::Spm* spm = new LibXenoverse::Spm();
@@ -314,14 +320,48 @@ int main(int argc, char** argv)
 			spm->load(filename);						//also Save from Xml
 
 			delete spm;
-		}
 
+
+
+
+		}else if (extension == "scd") {
+
+			LibXenoverse::Scd* scd = new LibXenoverse::Scd();
+			scd->save_Xml(filename);								//test Xml version debug.
+			delete scd;
+
+		}else if ((extension == "xml") && (extension2 == "scd")) {
+
+			LibXenoverse::Scd* scd = new LibXenoverse::Scd();
+			scd->originefilename = basefilename2 + ".scd";
+			scd->load(filename);						//also Save from Xml
+			delete scd;
+
+
+			
+
+		}else if (extension == "hkx") {
+
+			LibXenoverse::Havok* havok = new LibXenoverse::Havok();
+			if (havok->load(filename))
+				havok->saveXml(filename + ".xml");
+			delete havok;
+
+		}else if ((extension == "xml") && (extension2 == "hkx")) {
+
+			LibXenoverse::Havok* havok = new LibXenoverse::Havok();
+			if(havok->load(filename))
+				havok->SaveToFile(basefilename2 + ".hkx");
+			delete havok;
+
+
+		}else {
+			printf("Error on arguments.\n");
+			LibXenoverse::notifyError();
+		}
 	}
 
 	printf("finished.\n");
-	if(endWaitEnable)
-		getchar();
-
-
+	LibXenoverse::waitOnEnd();
 	return 0;
 }

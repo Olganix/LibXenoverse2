@@ -36,6 +36,14 @@ namespace LibXenoverse {
 	void endianSwap(unsigned int& x);
 	void endianSwap(int& x);
 
+
+	std::string &ltrim(std::string &s);			//trim from start
+	std::string &rtrim(std::string &s);			// trim from end
+	std::string &trim(std::string &s);			// trim from both ends
+
+	std::string FloatToString(float value);
+	float StringToFloat(string value);
+
 	template <class internT, class externT, class stateT>
 	struct codecvt : std::codecvt<internT, externT, stateT>
 	{
@@ -45,23 +53,25 @@ namespace LibXenoverse {
 	extern wstring_convert<codecvt<char16_t, char, mbstate_t>, char16_t> convert16;
 
 	class File {
-		protected:
-			FILE *file_ptr;
-			string name;
-			string path;
-			size_t global_offset;
+	protected:
+		FILE *file_ptr;
+		string name;
+		string path;
+		size_t global_offset;
 
-			unsigned char *comparison_bytes;
-			unsigned char *comparison_bytes_min;
-			unsigned char *comparison_bytes_max;
-			size_t comparison_size;
+		unsigned char *comparison_bytes;
+		unsigned char *comparison_bytes_min;
+		unsigned char *comparison_bytes_max;
+		size_t comparison_size;
 
-			char signature[8];
-			bool big_endian;
-		public:
-			File(string filename, string mode);
-			void writeHeader(string new_signature, bool is_big_endian);
-			bool readHeader(string verify_signature, int endianness=-1);
+		char signature[8];
+		bool big_endian;
+	public:
+		File(string filename, string mode);
+		void writeHeader(string new_signature, bool is_big_endian);
+		bool readHeader(string verify_signature, int endianness = -1);
+
+		bool isBigEndian() const {return big_endian;}
 
 			void setGlobalOffset(size_t v) {
 				global_offset = v;

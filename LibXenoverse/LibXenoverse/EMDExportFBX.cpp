@@ -18,7 +18,7 @@ namespace LibXenoverse
 /*-------------------------------------------------------------------------------\
 |                             exportFBX											 |
 \-------------------------------------------------------------------------------*/
-void EMD::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial)
+void EMD::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
 	scene->GetRootNode()->AddChild(node);
@@ -31,12 +31,12 @@ void EMD::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &gl
 
 	size_t nbModels = models.size();
 	for (size_t i = 0; i < nbModels; i++)
-		models.at(i)->exportFBX(scene, global_fbx_bones, node, i, listTexturePackEMB, emmMaterial);
+		models.at(i)->exportFBX(scene, global_fbx_bones, node, i, listTexturePackEMB, emmMaterial, wantNoTexture);
 }
 /*-------------------------------------------------------------------------------\
 |                             exportFBX											 |
 \-------------------------------------------------------------------------------*/
-void EMDModel::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, size_t indexModel, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial)
+void EMDModel::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, size_t indexModel, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
@@ -47,12 +47,12 @@ void EMDModel::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv
 
 	size_t nbMesh = meshes.size();
 	for (size_t i = 0; i < nbMesh; i++)
-		meshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial);
+		meshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture);
 }
 /*-------------------------------------------------------------------------------\
 |                             exportFBX											 |
 \-------------------------------------------------------------------------------*/
-void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial)
+void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
@@ -63,12 +63,12 @@ void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv>
 
 	size_t nbSubMesh = submeshes.size();
 	for (size_t i = 0; i < nbSubMesh; i++)
-		submeshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial);
+		submeshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture);
 }
 /*-------------------------------------------------------------------------------\
 |                             EMDSubmesh										 |
 \-------------------------------------------------------------------------------*/
-void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial)
+void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
@@ -90,7 +90,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 	FbxGeometryElementMaterial* lMaterialElement = fbxMesh->CreateElementMaterial();			//add a material use.
 	lMaterialElement->SetMappingMode(FbxGeometryElement::eByPolygon);
 	lMaterialElement->SetReferenceMode(FbxGeometryElement::eIndexToDirect);
-	FbxSurfaceMaterial*	fxbMaterial = exportFBXMaterial(scene, name, listTexturePackEMB, emmMaterial);	//in submesh , name is also materialName
+	FbxSurfaceMaterial*	fxbMaterial = exportFBXMaterial(scene, name, listTexturePackEMB, emmMaterial, wantNoTexture);	//in submesh , name is also materialName
 	node->AddMaterial(fxbMaterial);
 
 
@@ -263,6 +263,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 		}
 
 
+
 		
 
 		size_t bone_index;
@@ -296,22 +297,73 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 			{
 				EMDVertex &v = vertices.at(faces.at(j + k));
 
+				
+
+				/*
 				//version witch work well with Blender, but there is weird things on Unity. that strange. fbx -> blender -> fbx solve this for Unity (but you loose material).
 				for (size_t m = 0; m < 4; m++)								//check the 4 bone influences.
+				//for (int m = 3; m >= 0; m--)				//test from check difference between fbx from emdfbx and the cleaned version from blender reexport.
 				{
-					if (v.blend_weight[m] <= 0.0f)
-						continue;
+					//if (v.blend_weight[m] <= 0.0f)
+					//	continue;
 					
-					bone_index = v.blend[3 - m];
+					bone_index = v.blend[m];
 					if(bone_index >= triangle_shortBoneListCluster.size())
 					{
 						printf("Invalid Bone Index %d compared to Bone FBX Index Map size %d. just skip.\n", bone_index, triangle_shortBoneListCluster.size());
 						continue;
 					}
 
-					triangle_shortBoneListCluster.at(bone_index)->AddControlPointIndex(faces.at(j + k), v.blend_weight[m]);
+					float blend_weight = ((m != 3) ? v.blend_weight[m] : (1.0f - (v.blend_weight[0] + v.blend_weight[1] + v.blend_weight[2])));
+
+					triangle_shortBoneListCluster.at(bone_index)->AddControlPointIndex(faces.at(j + k), blend_weight);
 				}
+				*/
 				
+				
+				
+				//test version better for 3dsmax, but still trouble on unity
+				std::vector<size_t> blendIndiceUnique;
+				std::vector<float> blendweightlinked;
+				for (size_t m = 0; m < 4; m++)				//check the 4 bones influences.
+				{
+					bone_index = v.blend[m];
+					if (bone_index >= triangle_shortBoneListCluster.size())
+					{
+						printf("Invalid Bone Index %d compared to Bone FBX Index Map size %d. just skip.\n", bone_index, triangle_shortBoneListCluster.size());
+						continue;
+					}
+
+					if( (bone_index == 15)&&(name=="hand"))
+						int aa = 42;
+
+					float blend_weight = ((m != 3) ? v.blend_weight[m] : (1.0f - (v.blend_weight[0] + v.blend_weight[1] + v.blend_weight[2])));					
+
+					if ((blend_weight < 0.0) || (blend_weight > 1.0))
+						int aa = 42;
+
+					bool isfound_tmp = false;
+					size_t nbIndex_tmp = blendIndiceUnique.size();
+					for (size_t n = 0; n < nbIndex_tmp; n++)
+					{
+						if (blendIndiceUnique.at(n) == bone_index)
+						{
+							isfound_tmp = true;
+							blendweightlinked.at(n) += blend_weight;
+							break;
+						}
+					}
+					if (!isfound_tmp)
+					{
+						blendIndiceUnique.push_back(bone_index);
+						blendweightlinked.push_back(blend_weight);
+					}
+				}
+
+				size_t nbIndex_tmp = blendIndiceUnique.size();
+				for (size_t n = 0; n < nbIndex_tmp; n++)
+					triangle_shortBoneListCluster.at(blendIndiceUnique.at(n))->AddControlPointIndex(faces.at(j + k), blendweightlinked.at(n));
+				////////////
 			}
 
 		}
@@ -376,11 +428,11 @@ void CustomTextureProp(FbxScene *scene, FbxSurfaceMaterial* lMaterial, FbxBindin
 /*-------------------------------------------------------------------------------\
 |                             exportFBXMaterial									 |
 \-------------------------------------------------------------------------------*/
-FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string material_name, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial)
+FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string material_name, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	
 	
-	if (false)						//case with a basic material, with no texture.
+	if (wantNoTexture)						//case with a basic material, with no texture.
 	{
 		printf("Some problem of loading into blender a fbx using fbxMaterial with shader, may oblige to use classical material with only diffuse map. for material %s\n", material_name.c_str());
 

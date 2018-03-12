@@ -79,6 +79,29 @@ float lerp(float src, float dest, float factor)
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             quadraticBezier		                             |
+\-------------------------------------------------------------------------------*/
+//
+//interpolations with one control point. 
+//from http ://altdevblog.com/2011/05/17/understanding-the-fourier-transform_mov/
+//
+double quadraticBezier(double factor, double startPoint, double controlPoint, double endPoint)
+{
+	return ( pow( 1.0 - factor, 2.0) * startPoint + 2.0 * (1.0 - factor) * factor * controlPoint + pow(factor, 2.0) * endPoint);
+}
+/*-------------------------------------------------------------------------------\
+|                             cubicBezier										 |
+\-------------------------------------------------------------------------------*/
+double cubicBezier(double factor, double startPoint, double controlPoint1, double controlPoint2, double endPoint)
+{
+	return pow(1.0 - factor, 3.0) * startPoint + 3.0 * pow(1.0 - factor, 2.0) * factor * controlPoint1 + 3.0 * (1.0 - factor) * pow(factor, 2.0) * controlPoint2 + pow(factor, 3.0) * endPoint;
+}
+
+
+
+
+
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 
@@ -183,7 +206,7 @@ FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan(FbxVector4 orient)
 
 /*-------------------------------------------------------------------------------\
 |                giveAngleOrientationForThisOrientationTaitBryan_XYZ             |
-\-------------------------------------------------------------------------------*/
+\-------------------------------------------------------------------------------*
 FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient)				//same version, but with this order of rotation, the yaw is on the diqs display by pitch rotation.
 {
 	FbxDouble3 q(0, 0, 0);
@@ -191,9 +214,9 @@ FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient
 	FbxDouble3 dir = quatMulVec3(orient, FbxDouble3(1, 0, 0));
 
 	//1) calcul pitch. for that, we ahve to find the rotation axis for yaw, witch is the normal of the disq of pitch rotation.
-	if ((dir[0] == 0.0) && ((dir[1] == 1.0) || (dir[1] == -1.0)) && (dir[2] == 0.0))
+	if ((abs(dir[0]) < 0.000001) && (abs(abs(dir[1]) - 1.0) < 0.000001) && (abs(dir[2]) < 0.000001))
 	{
-		q[1] = ((dir[1] == -1.0) ? -90.0 : 90.0);
+		q[1] = ((dir[1] < 0) ? -90.0 : 90.0);
 	}else {
 		FbxDouble3 normalDisq = crossProduct( crossProduct(dir, FbxDouble3(0,1,0)), dir);
 		q[1] = FbxACos(normalDisq[1]) * FBXSDK_180_DIV_PI;				//scalar produc with (0,1,0);
@@ -228,6 +251,98 @@ FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient
 
 	return q;
 }
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                giveAngleOrientationForThisOrientationTaitBryan_XYZ             |
+\-------------------------------------------------------------------------------*/
+FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient)				//same version, but with this order of rotation, the yaw is on the diqs display by pitch rotation.
+{
+	//convert into a matrix3x3
+	FbxDouble3 m0, m1, m2;
+	quadToRotationMatrix(orient, m0, m1, m2);
+	
+	//convert matrix3x3 into EulerAngle
+	FbxDouble3 q(0, 0, 0);
+	matrixToEulerAnglesZYX(m0, m1, m2, q);
+	
+	return q;
+}
+
+
+
+/*-------------------------------------------------------------------------------\
+|                quadToRotationMatrix											 |
+\-------------------------------------------------------------------------------*/
+void quadToRotationMatrix(FbxVector4 orient, FbxDouble3 &m0, FbxDouble3 &m1, FbxDouble3 &m2)
+{
+	double fTx = orient[0] + orient[0];
+	double fTy = orient[1] + orient[1];
+	double fTz = orient[2] + orient[2];
+	double fTwx = fTx * orient[3];
+	double fTwy = fTy * orient[3];
+	double fTwz = fTz * orient[3];
+	double fTxx = fTx * orient[0];
+	double fTxy = fTy * orient[0];
+	double fTxz = fTz * orient[0];
+	double fTyy = fTy * orient[1];
+	double fTyz = fTz * orient[1];
+	double fTzz = fTz * orient[2];
+
+	m0[0] = 1.0 - (fTyy + fTzz);
+	m0[1] = fTxy - fTwz;
+	m0[2] = fTxz + fTwy;
+	m1[0] = fTxy + fTwz;
+	m1[1] = 1.0 - (fTxx + fTzz);
+	m1[2] = fTyz - fTwx;
+	m2[0] = fTxz - fTwy;
+	m2[1] = fTyz + fTwx;
+	m2[2] = 1.0 - (fTxx + fTyy);
+}
+
+
+
+bool matrixToEulerAnglesZYX(FbxDouble3 m0, FbxDouble3 m1, FbxDouble3 m2, FbxDouble3 &YPR_angles)
+{
+	// rot =  cy*cz           cz*sx*sy-cx*sz  cx*cz*sy+sx*sz
+	//        cy*sz           cx*cz+sx*sy*sz -cz*sx+cx*sy*sz
+	//       -sy              cy*sx           cx*cy
+
+	YPR_angles[1] = FbxASin(-m2[0] ) * FBXSDK_180_DIV_PI;
+	if (YPR_angles[1] < 90.0)
+	{
+		if (YPR_angles[1] > -90.0)
+		{
+			YPR_angles[0] = FbxATan(m1[0], m0[0]) * FBXSDK_180_DIV_PI;
+			YPR_angles[2] = FbxATan(m2[1], m2[2]) * FBXSDK_180_DIV_PI;
+			return true;
+		}else{
+			// WARNING.  Not a unique solution.
+			double fRmY = FbxATan(-m0[1], m0[2]) * FBXSDK_180_DIV_PI;
+			YPR_angles[2] = 0.0;  // any angle works
+			YPR_angles[0] = YPR_angles[2] - fRmY;
+			return false;
+		}
+	}else{
+		// WARNING.  Not a unique solution.
+		double fRpY = FbxATan(-m0[1], m0[2]);
+		YPR_angles[2] = 0.0;  // any angle works
+		YPR_angles[0] = fRpY - YPR_angles[2];
+		return false;
+	}
+}
+
+
+
+//-----------------------------------------------------------------------
+
+
+
+
 
 
 #endif

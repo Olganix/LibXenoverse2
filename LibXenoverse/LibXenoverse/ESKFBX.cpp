@@ -10,7 +10,7 @@ namespace LibXenoverse
 /*-------------------------------------------------------------------------------\
 |                             importFBXSkeleton									 |
 \-------------------------------------------------------------------------------*/
-void ESK::importFBXSkeleton(FbxScene *scene)
+void ESK::importFBXSkeleton(FbxScene *scene, bool allowCamera)
 {
 	bones.clear();
 	EskTreeNode* rootNode = getTreeOrganisation();
@@ -57,8 +57,12 @@ void ESK::importFBXSkeleton(FbxScene *scene)
 				}
 			}
 
-			if(!isRootSkeleton)
-				continue;
+			if (!isRootSkeleton)
+			{
+				//a last try to Camera case.
+				if ((!allowCamera) || (!lNode->GetCamera()))
+					continue;
+			}
 		}
 
 		name = lNode->GetName();
@@ -68,6 +72,7 @@ void ESK::importFBXSkeleton(FbxScene *scene)
 		if (rootNode->getBoneWithName(name))
 		{
 			printf("error: this bone allready into hierarchie. skipped\n");
+			LibXenoverse::notifyError();
 			continue;
 		}
 
@@ -86,7 +91,8 @@ void ESK::importFBXSkeleton(FbxScene *scene)
 			}else {
 				std::vector<std::vector<size_t>> aa;
 				rootNode->addTree(new EskTreeNode(bone, bones.size() - 1, rootNode), false, bones.size(), aa, bones, false);
-				printf("error: parent not found (%s), put on rootNode\n", boneParent->GetName());
+				printf("Warning: parent not found (%s), put on rootNode\n", boneParent->GetName());
+				LibXenoverse::notifyWarning();
 			}
 		}else {
 			std::vector<std::vector<size_t>> aa;

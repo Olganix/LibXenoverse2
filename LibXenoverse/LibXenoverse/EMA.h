@@ -40,7 +40,8 @@ typedef struct
 	uint16_t duration; // 0
 	uint16_t cmd_count; // 2
 	uint32_t value_count; // 4
-	uint32_t unk_08; // 8
+	uint16_t type; // 8
+	uint16_t frame_float_size; // 0xA
 	uint32_t name_offset; // 0xC
 	uint32_t values_offset; // 0x10
 	uint32_t cmd_offsets[1]; // 0x14
@@ -108,8 +109,8 @@ private:
 
 	
 public:
-	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent);
-	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame);
+	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration);
+	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed);
 
 
 	inline EMO_Bone *GetBone() { return bone; }
@@ -174,7 +175,14 @@ private:
 	std::vector<float> values;
 	std::vector<EmaCommand> commands;
 
-	uint32_t unk_08;
+	uint16_t type;						// 0: object animations (.ema, .obj.ema, .fce.ema, .menu.ema, .bba.ema (saint seya attack, may be for enemy))
+										// 1: camera animation (.cam.ema)
+										// 3: material animation (.mat.ema, .matbas.ema)
+										// 0x102: for light (.light.ema)
+
+	uint16_t frame_float_size;			//choose if it's 16 or 32 bytes for floats.
+
+	size_t debugValuesOffset;
 
 public:
 
@@ -257,6 +265,12 @@ private:
 	std::vector<EmaAnimation> animations;
 	uint16_t unk_08;
 	uint16_t unk_12;
+
+	//Debug/work:
+	std::vector<std::vector<std::vector<string>>> listTagColors;	// by Section, param, and font/background.
+	size_t lastSection;
+
+
 
 	void Copy(const EMA &other);
 
@@ -410,6 +424,12 @@ public:
 
 	inline std::vector<EmaAnimation>::const_iterator begin() const { return animations.begin(); }
 	inline std::vector<EmaAnimation>::const_iterator end() const { return animations.end(); }
+
+
+	void save_Coloration(string filename, bool show_error = false);		//create a file for wxHexEditor, for add tag and color on section of the file.
+	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);
+	void write_Coloration_Skeleton(TiXmlElement *parent, const uint8_t *buf, size_t size, size_t startOffset_Skeleton, std::vector<bool> &listBytesAllreadyTagged);
+	void write_Coloration_Tag(string paramName, string paramType, string paramComment, size_t startOffset, size_t size, string sectionName, TiXmlElement* parent, size_t idTag, size_t sectionIndex, size_t paramIndex, std::vector<bool> &listBytesAllreadyTagged, size_t sectionIndexInList = (size_t)-1, bool checkAllreadyTaggued = true);
 };
 
 
