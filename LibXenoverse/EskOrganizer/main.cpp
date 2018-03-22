@@ -231,6 +231,7 @@ int main(int argc, char** argv)
 					eanOrEskFile->mEan = new LibXenoverse::EAN();
 					if (eanOrEskFile->mEan->load(filename))
 					{
+						listEskFile.push_back(eanOrEskFile);
 						eanOrEskFile->mEsk = eanOrEskFile->mEan->getSkeleton();
 						printf("Ean Loaded\n");
 					}else {

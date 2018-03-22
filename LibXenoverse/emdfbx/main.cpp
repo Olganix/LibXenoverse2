@@ -4,7 +4,7 @@
 
 
 
-bool exportFbxCameraAnimation(std::vector<string> &arguments)
+bool exportFbxCameraAnimation(std::vector<string> &arguments, bool exportAscii = false)
 {
 	string filename = "";
 	string extension = "";
@@ -59,8 +59,6 @@ bool exportFbxCameraAnimation(std::vector<string> &arguments)
 		LibXenoverse::notifyError();
 		return false;
 	}
-
-	animation->addTPoseAnimation(true);
 
 
 	vector<LibXenoverse::ESK::FbxBonesInstance_DBxv> global_fbx_bones;
@@ -126,9 +124,23 @@ bool exportFbxCameraAnimation(std::vector<string> &arguments)
 			LibXenoverse::notifyError();
 			return false;
 		}
-
 		lExporter->Export(scene);												// Export scene
 		lExporter->Destroy();
+
+
+
+		if(exportAscii)												//test to have the Ascci version, that could help.
+		{
+			int lFileFormat_Ascii = sdk_manager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX ascii (*.fbx)");
+			
+			FbxExporter* lExporter = FbxExporter::Create(sdk_manager, "");
+			bool lExportStatus = lExporter->Initialize((filename + "_Ascii.fbx").c_str(), lFileFormat_Ascii, sdk_manager->GetIOSettings());
+			if (lExportStatus)
+			{
+				lExporter->Export(scene);												// Export scene
+				lExporter->Destroy();
+			}
+		}
 	}
 
 
@@ -147,8 +159,9 @@ int main(int argc, char** argv)
  Usage: 'emdfbx.exe [options] file.ext file2.ext ... [output.fbx]'\n\
  Files could be mesh (.emd), skeleton (.esk) or animation (.ean).\n\
  IMPORTANT: from this version, xxx.cam.ean will be converted as a xxxxx.cam.ean.fbx, independently of others files.\n\
- Options : '-NoTexture', '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
+ Options : '-NoTexture', '-ExportAscii', '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
  'NoTexture' is for having lighter fbx and fast to build.\n\
+ 'ExportAscii' is for also export a ascii verion of the fbx, it's for debug informations.\n\
  Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
  Notice: \"path With Spaces\" allowed now. \n\
 *******************************************************************\n");
@@ -165,8 +178,34 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	bool cameraAnimationExported = exportFbxCameraAnimation(arguments);										//test for special case Camera Animation (create a special case);
+	//options
+	bool wantNoTexture = false;
+	bool exportAscii = false;															//help to debug
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		if (arguments.at(i) == "-NoTexture")
+		{
+			arguments.erase(arguments.begin() + i);
+			nbArg--;
+			i--;
+			wantNoTexture = true;
+			continue;
+		}
 
+		if (arguments.at(i) == "-ExportAscii")
+		{
+			arguments.erase(arguments.begin() + i);
+			nbArg--;
+			i--;
+			exportAscii = true;
+			continue;
+		}
+	}
+
+
+	bool cameraAnimationExported = exportFbxCameraAnimation(arguments, exportAscii);										//test for special case Camera Animation (create a special case);
+	
 	if (arguments.size() == 0)
 	{
 		if (cameraAnimationExported)
@@ -180,31 +219,6 @@ int main(int argc, char** argv)
 		LibXenoverse::waitOnEnd();
 		return 1;
 	}
-
-
-	//options
-	bool wantNoTexture = false;
-	size_t nbArg = arguments.size();
-	for (size_t i = 0; i < nbArg; i++)
-	{
-		if (arguments.at(i) == "-NoTexture")
-		{
-			arguments.erase(arguments.begin() + i);
-			nbArg--;
-			wantNoTexture = true;
-			break;
-		}
-	}
-
-	if (arguments.size() == 0)
-	{
-		printf("Error not enougth arguments.\n");
-		LibXenoverse::notifyError();
-		LibXenoverse::waitOnEnd();
-		return 1;
-	}
-
-
 
 
 
@@ -258,6 +272,7 @@ int main(int argc, char** argv)
 	FbxManager *sdk_manager = FbxManager::Create();
 	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
 	ios->SetBoolProp(EXP_FBX_EMBEDDED, true);
+	//ios->SetBoolProp(EXP_ASCIIFBX, true);										//test to have debug on fbx. Todo comment
 	sdk_manager->SetIOSettings(ios);
 
 
@@ -590,9 +605,22 @@ int main(int argc, char** argv)
 			LibXenoverse::waitOnEnd();
 			return 1;
 		}
-
 		lExporter->Export(scene);												// Export scene
 		lExporter->Destroy();
+
+
+		if (exportAscii)												//test to have the Ascci version, that could help.
+		{
+			int lFileFormat_Ascii = sdk_manager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX ascii (*.fbx)");
+
+			FbxExporter* lExporter = FbxExporter::Create(sdk_manager, "");
+			bool lExportStatus = lExporter->Initialize((export_filename.substr(0, export_filename.length()-4) + "_Ascii.fbx").c_str(), lFileFormat_Ascii, sdk_manager->GetIOSettings());
+			if (lExportStatus)
+			{
+				lExporter->Export(scene);												// Export scene
+				lExporter->Destroy();
+			}
+		}
 	}
 
 	printf("finished.\n");

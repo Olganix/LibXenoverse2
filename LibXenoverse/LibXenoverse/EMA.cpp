@@ -40,8 +40,8 @@ void EMA::writeEAN(EAN* ean)
 	for (size_t i = 0; i < nbElements; i++)
 	{
 		ean->animations.push_back(EANAnimation());
-		animations.at(i).writeEANAnimation(&ean->animations.back(), skeleton);
 		ean->animations.back().setParent(ean);
+		animations.at(i).writeEANAnimation(&ean->animations.back(), skeleton);
 	}
 }
 
@@ -184,7 +184,8 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 	ean->name = name;
 	ean->frame_count = duration;
 	ean->frame_index_size = 0;
-	ean->getParent()->setType(type | 0x400);
+	if(ean->getParent())
+		ean->getParent()->setType(type | 0x400);
 	ean->frame_float_size = (unsigned char)frame_float_size;
 	
 

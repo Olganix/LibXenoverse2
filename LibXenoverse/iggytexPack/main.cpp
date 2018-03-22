@@ -56,17 +56,13 @@ int main(int argc, char** argv)
 		}
 		delete iggytext_pack;
 
-	}else if(extension == "") {
+	}else{
 		LibXenoverse::IGGYTEX *iggytext_pack = new LibXenoverse::IGGYTEX();
 		iggytext_pack->addFolder(filename + "/");
 		iggytext_pack->save(filename + (renameExt_iggyted ? ".iggyted" : ".iggytex"), iggytext_pack->detectFilenameMode());
 		delete iggytext_pack;
 
-	}else {
-		printf("Error on arguments.\n");
-		LibXenoverse::notifyError();
 	}
-
 
 	printf("finished.\n");
 	LibXenoverse::waitOnEnd();

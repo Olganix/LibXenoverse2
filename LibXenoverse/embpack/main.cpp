@@ -37,16 +37,13 @@ int main(int argc, char** argv)
 		}
 		delete emb_pack;
 		
-	}else if (extension == ""){
+	}else{
 
 		LibXenoverse::EMB *emb_pack = new LibXenoverse::EMB();
 		emb_pack->addFolder(filename + "/");
 		emb_pack->save(filename + ".emb", emb_pack->detectFilenameMode());
 		delete emb_pack;
 
-	}else {
-		printf("Error on arguments.\n");
-		LibXenoverse::notifyError();
 	}
 
 	printf("finished.\n");

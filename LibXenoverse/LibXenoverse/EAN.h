@@ -272,7 +272,7 @@ public:
 	void	importFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_AnimStack);
 	vector<FbxAnimCurveNode *>  exportFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_AnimStack, ESK::FbxBonesInstance_DBxv* fbxBoneInst);
 
-	FbxAnimCurveNode *createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimation *animation, EANAnimationNode* anim_node, FbxAnimStack *lAnimStack, FbxAnimLayer* lAnimLayer, FbxScene *scene);
+	FbxAnimCurveNode *createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimation *animation, EANAnimationNode* anim_node, FbxAnimStack *lAnimStack, FbxAnimLayer* lAnimLayer, FbxScene *scene, vector<FbxAnimCurveNode *> &fbx_anims);
 #endif
 };
 

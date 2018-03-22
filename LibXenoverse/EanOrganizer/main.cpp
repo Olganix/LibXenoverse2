@@ -79,8 +79,8 @@ int main(int argc, char** argv)
 		'GetBoneFilter' list all bones in filter by eanfile\n\
 		'ResetBoneFilter' clear the filter\n\
 		'PasteWithBoneFilter <indexEan> <indexAnimation>'\n\
-		'CopyPasteRange <indexEan_Src> <indexEan_Dest> <indexAnimation_Start> <indexAnimation_End>' fast version of Copy and Paste, on a range of animations\n\
-		'CopyPasteRange_WithBoneFilter <indexEan_Src> <indexEan_Dest> <indexAnimation_Start> <indexAnimation_End>' fast version of Copy and Paste, on a range of animations\n\
+		'CopyPasteRange <indexEan_Src> <indexEan_Dest> <indexAnimation_Start> <indexAnimation_End> [indexAnimation_DestionationStart]' fast version of Copy and Paste, on a range of animations. indexAnimation_DestionationStart is a index for start the paste on destination. (that will add new aniamtion if up to number of animations of destination).\n\
+		'CopyPasteRange_WithBoneFilter <indexEan_Src> <indexEan_Dest> <indexAnimation_Start> <indexAnimation_End>  [indexAnimation_DestionationStart]' same for only bones in filter.\n\
 		'GetDuration <indexEan> <AnimIndex>' Get the duration of a animation in seconds\n\
 		'SetDuration <indexEan> <AnimIndex> X.xxx' Set the duration of a animation in second (float)\n\
 		'GetDuration <indexEan> <AnimIndex> <indexBone>' Get the duration of a animation for a bone\n\
@@ -353,9 +353,15 @@ int main(int argc, char** argv)
 				indexAnim_start = tmp;
 			}
 
-			for (size_t m = indexAnim_start; m <= indexAnim_end; m++)
+			size_t indexAnimation_DestionationStart = indexAnim_start;
+			if (nbArg >= 4)
+				indexAnimation_DestionationStart = std::stoi(arguments.at(4));
+
+
+			size_t nbAnimToCopy = indexAnim_end - indexAnim_start;
+			for (size_t m = 0; m <= nbAnimToCopy; m++)
 			{
-				size_t indexAnim = m;
+				size_t indexAnim = indexAnim_start + m;
 				size_t indexFile = indexFile_src;
 
 				printf("****** copy paste for the indexAnim %i ******\n", indexAnim);
@@ -371,6 +377,7 @@ int main(int argc, char** argv)
 					continue;
 				}
 
+				size_t indexAnim_dest = indexAnimation_DestionationStart + m;
 				indexFile = indexFile_dest;
 				if (indexFile < listEanFile.size())
 				{
@@ -389,17 +396,16 @@ int main(int argc, char** argv)
 						}
 
 						//if miss a animation, go to add one
-						if (indexAnim >= eanFile->getAnimations().size())
+						if (indexAnim_dest >= eanFile->getAnimations().size())
 						{
-							printf("indexAnim don't existe, animation will push back of the list (take care of index of animation for file working in game).\n");
+							printf("indexAnim %i don't existe, animation will push back of the list (take care of index of animation for file working in game).\n", indexAnim_dest);
 
-							indexAnim = eanFile->getAnimations().size();
+							indexAnim_dest = eanFile->getAnimations().size();
 							eanFile->getAnimations().push_back(LibXenoverse::EANAnimation(mSavedAnimation, listBoneFilterNames, eanFile));
 
-						}
-						else{
+						}else{
 
-							LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+							LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim_dest);
 							animationToChange.copy(*mSavedAnimation, listBoneFilterNames);
 							printf("animation is change by copy of another. we keep old name (Use rename if you want).\n");
 						}
@@ -409,7 +415,7 @@ int main(int argc, char** argv)
 					}
 				}
 				else{
-					printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+					printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim_dest);
 				}
 
 			}
@@ -432,6 +438,7 @@ int main(int argc, char** argv)
 			size_t indexAnim_start = std::stoi(arguments.at(2));
 			size_t indexAnim_end = std::stoi(arguments.at(3));
 
+			
 			if (indexAnim_start > indexAnim_end)
 			{
 				size_t tmp = indexAnim_end;
@@ -439,9 +446,14 @@ int main(int argc, char** argv)
 				indexAnim_start = tmp;
 			}
 
-			for (size_t m = indexAnim_start; m <= indexAnim_end; m++)
+			size_t indexAnimation_DestionationStart = indexAnim_start;
+			if (nbArg >= 4)
+				indexAnimation_DestionationStart = std::stoi(arguments.at(4));
+
+			size_t nbAnimToCopy = indexAnim_end - indexAnim_start;
+			for (size_t m = 0; m <= nbAnimToCopy; m++)
 			{
-				size_t indexAnim = m;
+				size_t indexAnim = indexAnim_start + m;
 				size_t indexFile = indexFile_src;
 
 				printf("****** copy paste for the indexAnim %i ******\n", indexAnim);
@@ -457,7 +469,7 @@ int main(int argc, char** argv)
 					continue;
 				}
 
-
+				size_t indexAnim_dest = indexAnimation_DestionationStart + m;
 				indexFile = indexFile_dest;
 
 				if (indexFile < listEanFile.size())
@@ -467,15 +479,14 @@ int main(int argc, char** argv)
 						LibXenoverse::EAN *eanFile = listEanFile.at(indexFile);
 
 						//if miss a animation, go to add one
-						if (indexAnim >= eanFile->getAnimations().size())
+						if (indexAnim_dest >= eanFile->getAnimations().size())
 						{
-							printf("indexAnim don't existe, animation will push back of the list (take care of index of animation for file working in game).\n");
+							printf("indexAnim %i don't existe, animation will push back of the list (take care of index of animation for file working in game).\n", indexAnim_dest);
 
-							indexAnim = eanFile->getAnimations().size();
+							indexAnim_dest = eanFile->getAnimations().size();
 							eanFile->getAnimations().push_back(LibXenoverse::EANAnimation(mSavedAnimation, eanFile));
-						}
-						else{
-							LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim);
+						}else{
+							LibXenoverse::EANAnimation &animationToChange = eanFile->getAnimations().at(indexAnim_dest);
 							animationToChange.copy(*mSavedAnimation);
 
 							printf("animation is change by copy of another. we keep old name (Use rename if you want).\n");
@@ -486,7 +497,7 @@ int main(int argc, char** argv)
 					}
 				}
 				else{
-					printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim);
+					printf("index %i is not in ean file list or indexAnim %i is not in list animations.\n", indexFile, indexAnim_dest);
 				}
 
 			}
