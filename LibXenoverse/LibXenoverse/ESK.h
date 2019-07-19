@@ -12,6 +12,35 @@ class ESKBone;
 
 
 
+class Esk_IK_Relation											//Inverse Kinematic.
+{
+public:
+	struct IKR_Bone
+	{
+		ESKBone* bone;
+		float value;
+
+		IKR_Bone(ESKBone* bone = 0, float value = 0.0f) {this->bone = bone; this->value = value;}
+	};
+
+	std::vector<IKR_Bone> mListBones;
+
+	Esk_IK_Relation() {};
+	~Esk_IK_Relation() {};
+};
+
+
+class Esk_IK_Group												//group of inverse Kinematic.
+{
+public:
+	std::vector<Esk_IK_Relation> mListIK;
+
+	Esk_IK_Group() {};
+	~Esk_IK_Group() {};
+};
+
+
+
 class EskTreeNode												//to easely look and manipulate bones
 {
 public:
@@ -61,6 +90,10 @@ public:
 	float skinning_matrix[12];
 	
 	std::vector<string> mListFilenameOrigin;
+	size_t unk_extraInfo_0;							//with bone_extraInfo_offset
+	size_t unk_extraInfo_1;
+	size_t unk_extraInfo_2;
+	size_t unk_extraInfo_3;
 	
 
 	ESKBone(string name = "");
@@ -93,13 +126,11 @@ public:
 	string	getTransformMatrixDebug(void);
 
 	
-	EskTreeNode*	importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBone*> &bones, EskTreeNode* treeParentNode);
-	TiXmlElement*	exportXml(EskTreeNode* EskTreeNode);
+	EskTreeNode*	importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBone*> &bones, EskTreeNode* treeParentNode, bool haveExtraBytesOnEachBone);
+	TiXmlElement*	exportXml(EskTreeNode* EskTreeNode, bool haveExtraBytesOnEachBone);
 			
 	static	void	displayMatrix4x4(double* transformMatrix);
 	static	void	transpose4x4(double* transformMatrix);
-	static	void	transpose4x4_onlyPos(double* transformMatrix);
-	static	void	makeTransform4x4_specialPostranform(double* posOrientScaleMatrix, double* resultTransformMatrix);	//posOrientScaleMatrix is 3x4, orient is a quaternion informations, resultTransformMatrix is 4x4
 	static	void	makeTransform4x4(double* posOrientScaleMatrix, double* resultTransformMatrix);	//posOrientScaleMatrix is 3x4, orient is a quaternion informations, resultTransformMatrix is 4x4
 	static	void	decomposition4x4(double* transformMatrix, double* resultPosOrientScaleMatrix); //posOrientScaleMatrix is 3x4, orient is a quaternion informations, TransformMatrix is 4x4
 	static	void	inverse4x4(double* transformMatrix, double* inversedTransformMatrix);
@@ -120,12 +151,12 @@ class ESK
 protected:
 	string name;
 	unsigned short flag;
-	unsigned int unknown_offset_0;
-	unsigned int unknown_offset_1;
 	unsigned int unknown_offset_2;
 	unsigned int unknown_offset_3;
-	bool mHave128unknownBytes;
+	bool mHaveExtraBytesOnEachBone;						//case of unknown_offset_1 != 0, only camera animation don't have this.
+
 	vector<ESKBone*> bones;
+	std::vector<Esk_IK_Group> listInverseKinematic;
 
 public:
 			
@@ -139,6 +170,7 @@ public:
 
 	void	read(File *file);
 	unsigned int	getWriteSize(bool withTransformMatrix = true);					//size of byte to record skeleton with write function.
+	size_t	calculIksize();
 	void	write(File *file, bool withTransformMatrix = true);
 
 	void	merge(ESK *esk);
@@ -158,7 +190,7 @@ public:
 
 	std::vector<size_t>	getListIndexOfChildBones(size_t index);
 
-	EskTreeNode*	getTreeOrganisation(size_t index = (size_t)-1, EskTreeNode* parent = nullptr);
+	EskTreeNode*	getTreeOrganisation(size_t index = (size_t)-1, EskTreeNode* parent = nullptr, std::vector<bool>* listAllReadyUsed = 0);
 	std::vector<std::vector<size_t>>	setTreeOrganisation(EskTreeNode* treeBone);
 
 	std::vector<std::vector<size_t>>	remove(size_t index, bool recursive = true);

@@ -93,7 +93,7 @@ void texCoord2_vs(	float4 position : POSITION,
 }
 ////////////////////////////////////////////////////////////////////////////////
 void texCoord2_ps( float4 sPosition   : SV_Position,
-            float2 texCoord2 : TEXCOORD1,
+            float2 texCoord2 : TEXCOORD0,
             out float4 color     : SV_Target
           )
 {
@@ -102,6 +102,59 @@ void texCoord2_ps( float4 sPosition   : SV_Position,
 }
 
 
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+void texCoord_neg_ps( float4 sPosition   : SV_Position,
+                      float2 texCoord : TEXCOORD0,
+                      out float4 color     : SV_Target
+                    )
+{
+  color.xyz = float3(-texCoord,0);
+  color.w = 1;
+}
+////////////////////////////////////////////////////////////////////////////////
+void texCoord2_neg_ps( float4 sPosition   : SV_Position,
+                        float2 texCoord2 : TEXCOORD0,
+                        out float4 color     : SV_Target
+                      )
+{
+  color.xyz = float3(-texCoord2,0);
+  color.w = 1;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////        //look at between -5 and 5 repetitions (to not have a negative version also)
+void texCoord_rep_ps( float4 sPosition   : SV_Position,
+                      float2 texCoord : TEXCOORD0,
+                      out float4 color     : SV_Target
+                    )
+{
+  float2 intPart = floor(texCoord);
+  float2 floatPart = texCoord - intPart; 
+  
+  intPart = (max(min(intPart, -5), 5) + 5) / 10.0;                              // => [0,1] for 10 repetition, half negative
+  
+  color.xyz = float3(floatPart, saturate(intPart.x + intPart.y));
+  color.w = 1;
+}
+////////////////////////////////////////////////////////////////////////////////
+void texCoord2_rep_ps( float4 sPosition   : SV_Position,
+                        float2 texCoord2 : TEXCOORD0,
+                        out float4 color     : SV_Target
+                      )
+{
+  float2 intPart = floor(texCoord2);
+  float2 floatPart = texCoord2 - intPart; 
+  
+  intPart = (max(min(intPart, -5), 5) + 5) / 10.0;                              // => [0,1] for 10 repetition, half negative
+  
+  color.xyz = float3(floatPart, saturate(intPart.x + intPart.y));
+  color.w = 1;
+}
 
 
 
@@ -185,7 +238,7 @@ void testOpacity_ps( 	float4 sPosition   : SV_Position,
 
 
 
-
+/*
 ////////////////////////////////////////////////////////////////////////////////
 //version test to try to understand sauzer sword display
 void test_vs(	float4 position : POSITION,
@@ -410,5 +463,43 @@ void test_ps( 	float4 sPosition   : SV_Position,
 	//mov o1.w, r1.w
 	//oColor1 = float4( ( ( g_bOutputGlareMRT_PS != 0 ) ?  ((oColor * g_GlareCoeff_VS - g_vTone_PS.w) * g_vTone_PS.xyz) : 0.0) , a0);
 }
+*/
+
+
+
+/*
+
+//////// Classique composition : 
+
+//diffuse
+color_ambient = materialAmbient * globalAmbient;
+
+//diffuse
+P = worldPosition;
+N = worldNormal;                                                                // you could change N with N_details from normalmap
+L = normalize(worldLightPos - P);                                               //light position relative to vertex position.
+color_diffuse = max(dot(L,N), 0) * lightColor;
+
+//specular
+V = normalize(worldCameraPos - P);
+H = normalize(L + V);
+color_specular = max(dot(H, N), 0) * lightColor;                                //some engine have lightSpecularColor
+
+//Gloss
+R = reflect(-V, N);
+color_gloss = max(dot(R, L), 0) * lighrColor;
+
+final_color = color_ambient + color_diffuse + saturate(color_specular + color_gloss);
+
+R.z = -R.z;                                                                     
+color_env = texCUBEbias(envirronnement_map, float3(R.xy, -R.z));      // -R.z depend of api implementation
+
+oColor = (1.0 - color_env.a) * final_color + color_env.a * color_env;           //pre-multiplied (alpha composition better than lerp)
+
+*/
+
+
+
+
 
 

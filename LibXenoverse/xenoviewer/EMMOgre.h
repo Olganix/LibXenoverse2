@@ -60,6 +60,7 @@ public:
 	void	setShaderParameter(string name, Ogre::Vector4 value);
 	std::vector<EmmMaterialCreated> &getCreatedMaterials() { return created_materials; }
 	string	getCreatedMaterialName(string materialName);
+	EmmMaterialCreated* getEmmMaterialCreated(string materialName);
 
 	void setTexturePack(EMBOgre *v) { texture_pack = v; }
 	void setDYTTexturePack(EMBOgre *v) { texture_dyt_pack = v; }

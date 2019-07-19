@@ -1434,6 +1434,9 @@ void EMO::writeEmd(EMD* emd)
 void EMO::readEsk(ESK* esk)
 {
 	name = esk->name;
+	unk_38[0] = *(float*)(&(esk->unknown_offset_2));
+	unk_38[1] = *(float*)(&(esk->unknown_offset_3));
+	
 
 	EskTreeNode* rootNode = esk->getTreeOrganisation();
 
@@ -1490,6 +1493,47 @@ void EMO::readEsk(ESK* esk)
 		}
 	}
 
+
+
+
+
+	//Ik datas
+	listInverseKinematic.clear();
+	size_t nbBones_all = bones.size();
+	size_t nbGroup = esk->listInverseKinematic.size();
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Esk_IK_Group &group = esk->listInverseKinematic.at(i);
+		listInverseKinematic.push_back(Emo_IK_Group());
+
+		size_t nbIk = group.mListIK.size();
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			Esk_IK_Relation &ik = group.mListIK.at(j);
+			listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
+			Emo_IK_Relation &ik_b = listInverseKinematic.back().mListIK.back();
+
+			size_t nbBones = ik.mListBones.size();
+			for (size_t k = 0; k < nbBones; k++)
+			{
+				ESKBone* bone = ik.mListBones.at(k).bone;
+				EMO_Bone* bone_b = 0;
+
+				for (size_t m = 0; m < nbBones_all; m++)
+				{
+					if (bones.at(m).name == bone->getName())
+					{
+						bone_b = &bones.at(m);
+						break;
+					}
+				}
+				if (!bone_b)
+					continue;
+
+				ik_b.mListBones.push_back(Emo_IK_Relation::IKR_Bone(bone_b, ik.mListBones.at(k).value));
+			}
+		}
+	}
 }
 
 

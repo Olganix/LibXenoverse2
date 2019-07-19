@@ -109,7 +109,7 @@ private:
 
 	
 public:
-	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration);
+	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation = false);
 	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed);
 
 
@@ -186,7 +186,7 @@ private:
 
 public:
 
-	void	readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton);
+	void	readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton, bool forceOrientationInterpolation = false);
 	void	writeEANAnimation(EANAnimation* ean, ESK* esk);
 
 
@@ -293,7 +293,7 @@ public:
 
 	
 
-	void	readEAN(EAN* ean);
+	void	readEAN(EAN* ean, bool forceOrientationInterpolation = false);
 	void	readEsk(ESK* esk);
 	void	writeEAN(EAN* ean);
 	

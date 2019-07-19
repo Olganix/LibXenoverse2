@@ -419,7 +419,8 @@ public:
 
 
 
-			mIsNumber = isNumber(arg);
+
+			mIsNumber = ((isNumber(arg)) || ((mName.length()>2)&&(mName.substr(0,2)=="0x")) );
 			if (mIsNumber)
 				return;
 

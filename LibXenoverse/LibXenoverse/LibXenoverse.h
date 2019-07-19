@@ -53,6 +53,7 @@
 #include "Scd.h"
 #include "Spm.h"
 #include "Havok.h"
+#include "Obl.h"
 
 
 using namespace std;
@@ -91,6 +92,8 @@ namespace LibXenoverse {
 	void setApplicationEndWait(ApplicationEndWait aew);
 	bool haveToWait();
 	void waitOnEnd();
+
+	string fillStringNumberLeft(string value, size_t numberCharacter);
 
 	std::vector<string> initApplication(int argc, char** argv, ApplicationEndWait applicationEndWait = AEW_OnError);
 	void initializeDebuggingLog();

@@ -79,29 +79,54 @@ struct MatrixData
 } PACKED;
 static_assert(sizeof(MatrixData) == 0x40, "Incorrect structure size.");
 
-struct IKEntry
-{
-	uint16_t unk_00; // 0
-	uint16_t entry_size; // 2
-	uint8_t unk_03; // 4
-	uint8_t unk_04; // 5
-	uint16_t unk_06; // 6
-	uint16_t unk_08[4]; // 8
-	uint32_t unk_10[2]; // 0x10
-} PACKED;
-static_assert(sizeof(IKEntry) == 0x18, "Incorrect structure size.");
-
-
 
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
 
 
-
+class EMO_Bone;
 class EMO_Skeleton;
 class EMO;
 class BoneSorter;
+
+
+
+/********************************************************************************************
+*									EMO_Bone												*
+********************************************************************************************/
+class Emo_IK_Relation											//Inverse Kinematic.
+{
+public:
+	struct IKR_Bone
+	{
+		EMO_Bone* bone;
+		float value;
+
+		IKR_Bone(EMO_Bone* bone = 0, float value = 0.0f) { this->bone = bone; this->value = value; }
+	};
+
+	std::vector<IKR_Bone> mListBones;
+
+	Emo_IK_Relation() {};
+	~Emo_IK_Relation() {};
+
+	bool operator==(const Emo_IK_Relation &other) const { size_t nbIk = mListBones.size(); if (other.mListBones.size() != nbIk) { return false; }  for (size_t i = 0; i < nbIk; i++)  {  if ((mListBones.at(i).bone != other.mListBones.at(i).bone)|| (mListBones.at(i).value != other.mListBones.at(i).value)) { return false; }  }  return true; }
+	bool operator!=(const Emo_IK_Relation &other) const { return !(*this == other); }
+};
+
+
+class Emo_IK_Group												//group of inverse Kinematic.
+{
+public:
+	std::vector<Emo_IK_Relation> mListIK;
+
+	Emo_IK_Group() {};
+	~Emo_IK_Group() {};
+
+	bool operator==(const Emo_IK_Group &other) const { size_t nbIk = mListIK.size(); if (other.mListIK.size() != nbIk) { return false; } for (size_t i = 0; i < nbIk; i++) { if (mListIK.at(i) != other.mListIK.at(i)) { return false; } } return true; }
+	bool operator!=(const Emo_IK_Group &other) const {return !(*this == other); }
+};
 
 
 
@@ -121,7 +146,7 @@ private:
 	EMO_Bone *child = nullptr;
 	EMO_Bone *sibling = nullptr;
 	unsigned short emgIndex = 0xffff;				//only for Emo file (0xFFFF for other)
-	unsigned short index_4 = 0;
+	unsigned short index_4 = 0xffff;
 
 	float matrix1[16];								//apparently, it's the relative matrix, relative to parent.
 	float matrix2[16];								//apparently, it's the absolute matrix Transform.
@@ -252,21 +277,20 @@ class EMO_Skeleton : public EMO_BaseFile
 friend class EmgFile;
 friend class SubPart;
 friend class BoneSorter;
+friend class EMO;
+friend class EMA;
 
 private:
-
-	uint8_t *ik_data;
-	size_t ik_size;
-
 	uint16_t unk_02;
 	uint16_t unk_06;
 
 	uint32_t unk_10[2];
 	uint16_t unk_34[2];
 	float unk_38[2];
+
 protected:
 	std::vector<EMO_Bone> bones;
-
+	std::vector<Emo_IK_Group> listInverseKinematic;
 
 	
 
@@ -275,47 +299,16 @@ protected:
 public:
 	EMO_Skeleton(void);
 	EMO_Skeleton(uint8_t *buf, unsigned int size);
-	EMO_Skeleton(const EMO_Skeleton &other)
-	{
-		Copy(other);
-	}
-
+	EMO_Skeleton(const EMO_Skeleton &other) { Copy(other); }
 	virtual ~EMO_Skeleton();
 
 
 	inline uint16_t GetNumBones() const { return bones.size(); }
 	uint16_t BoneToIndex(EMO_Bone *bone) const;
 	std::vector<EMO_Bone> &GetBones() { return bones; }
-	inline EMO_Bone *GetBone(uint16_t idx)
-	{
-		if (idx >= bones.size())
-			return nullptr;
-
-		return &bones[idx];
-	}
-
-	inline EMO_Bone *GetBone(const std::string &name)
-	{
-		for (EMO_Bone &b : bones)
-		{
-			if (b.name == name)
-				return &b;
-		}
-
-		return nullptr;
-	}
-
-	inline const EMO_Bone *GetBone(const std::string &name) const
-	{
-		for (const EMO_Bone &b : bones)
-		{
-			if (b.name == name)
-				return &b;
-		}
-
-		return nullptr;
-	}
-
+	inline EMO_Bone *GetBone(uint16_t idx);
+	inline EMO_Bone *GetBone(const std::string &name);
+	inline const EMO_Bone *GetBone(const std::string &name) const;
 	inline bool BoneExists(const std::string &name) const { return (GetBone(name) != nullptr); }
 
 	uint16_t AppendBone(const EMO_Bone &bone);
@@ -326,10 +319,12 @@ public:
 	virtual bool Load(const uint8_t *buf, unsigned int size) override;
 	virtual uint8_t *CreateFile(unsigned int *psize) override;
 	virtual uint8_t *CreateFile(unsigned int *psize, std::vector<string> listEMG);
+	unsigned int CalculateFileSize() const;
+	size_t	calculIksize() const;
+
 
 	void Decompile(TiXmlNode *root) const;
 	virtual TiXmlDocument *Decompile() const override;
-
 	bool Compile(const TiXmlElement *root);
 	virtual bool Compile(TiXmlDocument *doc, bool big_endian = false) override;
 
@@ -343,15 +338,7 @@ public:
 	static uint16_t FindBone(const std::vector<EMO_Bone *> &bones, EMO_Bone *bone, bool assert_if_not_found);
 	virtual void RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr);
 
-
-
-	size_t CalculateIKSize(const uint8_t *ik_data, uint16_t count);
-	uint16_t CalculateIKCount(const uint8_t *ik_data, size_t size);
-
-	void TranslateIKData(uint8_t *dst, const uint8_t *src, size_t size, bool import);
-
-	unsigned int CalculateFileSize() const;
-
+	
 
 	void writeEsk(ESK* esk);										//need read esk before emd, because of pointer
 	void writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode);

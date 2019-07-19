@@ -1400,6 +1400,18 @@ bool Havok::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!rootNode)
 	{
+		/*
+		//second test for version "hk_2014.1.0-r1"
+		rootNode = EMO_BaseFile::FindRoot(&handle, "hktagfile");
+		if (rootNode)
+		{
+			string str = "";
+			rootNode->QueryStringAttribute("sdkversion", &str);
+			if(str == "hk_2014.1.0-r1")
+				return import_Xml_v2014_01_00_r1(rootNode);
+		}
+		*/
+
 		LOG_DEBUG("Cannot find\"Havok\" in xml.\n");
 		return false;
 	}
@@ -1782,6 +1794,561 @@ bool Havok_TagItem::importXml(TiXmlElement* node)
 	return true;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/*-------------------------------------------------------------------------------\
+|                             import_Xml_v2014_01_00_r1                          |
+\-------------------------------------------------------------------------------*
+bool Havok::import_Xml_v2014_01_00_r1(TiXmlElement* rootNode)
+{
+	Reset();
+
+
+	//////////////////////////////  read Types Xml part to make Havok_TagType, Havok_TagMember, ...
+	TiXmlElement* node_Types = rootNode->FirstChildElement("class");
+	if (!node_Types)
+	{
+		printf("Cannot find\"class\" in xml.\n");
+		return false;
+	}
+	TiXmlElement* node_Data = rootNode->FirstChildElement("object");
+	if (!node_Data)
+	{
+		printf("Cannot find\"object\" in xml.\n");
+		return false;
+	}
+	
+	string str;
+	string str_type;
+
+	listType.push_back(new Havok_TagType(0, "None"));
+	std::vector<string> listMemberTypeNames;
+
+	for (TiXmlElement* node = rootNode->FirstChildElement("class"); node; node = node->NextSiblingElement("class"))
+	{
+		Havok_TagType* type = new Havok_TagType(listType.size());
+		listType.push_back(type);
+		
+		str = "";
+		node->QueryStringAttribute("name", &str);
+		type->name = str;
+
+		if (node->Attribute("version"))
+		{
+			type->flags = type->flags | TagFlag::TF_Version;
+			node->QueryUnsignedAttribute("version", &type->version);
+		}
+
+		type->subTypeFlags = type->subTypeFlags | TagSubType::TST_Class;
+
+
+		//a first preparation
+		for (TiXmlElement* node_member = node->FirstChildElement("member"); node_member; node_member = node_member->NextSiblingElement("member"))
+		{
+			type->flags = type->flags | TagFlag::TF_Members;
+
+			str = "";
+			node_member->QueryStringAttribute("type", &str);
+
+			bool isfound = false;
+			for (size_t i = 0; i < listMemberTypeNames.size(); i++)
+			{
+				if (listMemberTypeNames.at(i)==str)
+				{
+					isfound = true;
+					break;
+				}
+			}
+			if (!isfound)
+				listMemberTypeNames.push_back(str);
+		}
+
+	}
+
+	//second time to have parent
+	size_t nbTypes = listType.size();
+	size_t inc = 1;
+	for (TiXmlElement* node = rootNode->FirstChildElement("class"); node; node = node->NextSiblingElement("class"))
+	{
+		Havok_TagType* type = listType.at(inc++);
+
+		if (node->Attribute("parent"))
+		{
+			str = "";
+			node->QueryStringAttribute("parent", &str);
+			if (str == type->name)
+				continue;
+
+			type->parent = searchForType(str);
+		}
+	}
+
+
+
+	//before take care of members for build array pointer, ... types, we wil add common types that could simplify/remove some search of type after.
+	size_t nbElements = listMemberTypeNames.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		str = listMemberTypeNames.at(i);
+
+		
+
+		if (str == "int")
+		{
+
+			if (!searchForType("int"))						//because could be added by another, because of heritage
+				listType.push_back(new Havok_TagType(listType.size(), "int", 0, TF_ByteSize | TF_SubType, 33284, 0, 0, 4, 4));
+
+		}else if ((str == "real") || (str == "hkReal") || (str == "float")) {
+
+			Havok_TagType* type = searchForType("float");
+			if (!type)
+			{
+				type = new Havok_TagType(listType.size(), "float", 0, TF_ByteSize | TF_SubType, 1525253, 0, 0, 4, 4);
+				listType.push_back(type);
+			}
+			if (!searchForType("hkReal"))
+				listType.push_back(new Havok_TagType(listType.size(), "hkReal", type, 0, 0, 0, 0, 0, 0));
+
+		}else if ((str == "byte") || (str == "unsigned int")) {
+
+			if (!searchForType("unsigned int"))
+				listType.push_back(new Havok_TagType(listType.size(), "unsigned int", 0, TF_ByteSize | TF_SubType, 32772, 0, 0, 4, 4));
+
+		}else if ((str == "vec4") || (str == "hkVector4")) {
+
+			Havok_TagType* type = searchForType("float");
+			if (!type)
+			{
+				type = new Havok_TagType(listType.size(), "float", 0, TF_ByteSize | TF_SubType, 1525253, 0, 0, 4, 4);
+				listType.push_back(type);
+			}
+			Havok_TagType* type_b = searchForType("hkVector4f");
+			if (!type_b)
+			{
+				type_b = new Havok_TagType(listType.size(), "hkVector4f", 0, TF_ByteSize | TF_Pointer | TF_SubType, 1064, type, 0, 16, 16);
+				listType.push_back(type_b);
+			}
+			Havok_TagType* type_c = searchForType("hkVector4");
+			if (!type_c)
+			{
+				type_c = new Havok_TagType(listType.size(), "hkVector4", type_b, 0, 0, 0, 0, 0, 0);
+				listType.push_back(type_c);
+			}
+			type_b->pointer = type_c;
+
+
+		}else if (str == "string") {
+
+			Havok_TagType* type = searchForType("char");
+			if (!type)
+			{
+				type = new Havok_TagType(listType.size(), "char", 0, TF_ByteSize | TF_SubType, 8196, 0, 0, 1, 1);
+				listType.push_back(type);
+			}
+			if (!searchForType("string"))
+				listType.push_back(new Havok_TagType(listType.size(), "string", 0, TF_ByteSize | TF_SubType, TST_String, type, 0, 4, 4));
+
+
+
+		}else if (str == "vec12") {
+
+
+			Havok_TagType* type = searchForType("float");
+			if (!type)
+			{
+				type = new Havok_TagType(listType.size(), "float", 0, TF_ByteSize | TF_SubType, 1525253, 0, 0, 4, 4);
+				listType.push_back(type);
+			}
+			if (!searchForType("vec12"))
+				listType.push_back(new Havok_TagType(listType.size(), "vec12", 0, TF_ByteSize | TF_SubType, TST_String, type, 0, 48, 16));
+
+		}else if (str == "vec16") {
+
+			Havok_TagType* type = searchForType("float");
+			if (!type)
+			{
+				type = new Havok_TagType(listType.size(), "float", 0, TF_ByteSize | TF_SubType, 1525253, 0, 0, 4, 4);
+				listType.push_back(type);
+			}
+			if (!searchForType("vec16"))
+				listType.push_back(new Havok_TagType(listType.size(), "vec16", 0, TF_ByteSize | TF_SubType, TST_String, type, 0, 64, 16));
+		}
+	}
+		
+	// add the commmon from version 2015
+	if (!searchForType("int"))
+		listType.push_back(new Havok_TagType(listType.size(), "int", 0, TF_ByteSize | TF_SubType, 33284, 0, 0, 4, 4));
+	if (!searchForType("unsigned int"))						//because could be added by another, because of heritage
+		listType.push_back(new Havok_TagType(listType.size(), "unsigned int", 0, TF_ByteSize | TF_SubType, 32772, 0, 0, 4, 4));
+	if (!searchForType("hkUint32"))						//because could be added by another, because of heritage
+		listType.push_back(new Havok_TagType(listType.size(), "hkUint32", 0, 0, 0, searchForType("unsigned int"), 0, 0, 0));
+	if (!searchForType("char"))
+		listType.push_back(new Havok_TagType(listType.size(), "char", 0, TF_ByteSize | TF_SubType, 8196, 0, 0, 1, 1));
+	if (!searchForType("unsigned char"))
+		listType.push_back(new Havok_TagType(listType.size(), "unsigned char", 0, TF_ByteSize | TF_SubType, 8196, 0, 0, 1, 1));
+	if (!searchForType("hkUint8"))
+		listType.push_back(new Havok_TagType(listType.size(), "hkUint8", searchForType("unsigned char"), 0, 0, 0, 0, 0, 0));
+
+	if (!searchForType("unsigned long long"))
+		listType.push_back(new Havok_TagType(listType.size(), "unsigned long long", 0, TF_ByteSize | TF_SubType, 65540, 0, 0, 8, 4));
+	if (!searchForType("hkUint64"))
+		listType.push_back(new Havok_TagType(listType.size(), "hkUint64", searchForType("unsigned long long"), 0, 0, 0, 0, 0, 0));
+
+	if (!searchForType("unsigned short"))
+		listType.push_back(new Havok_TagType(listType.size(), "unsigned short", 0, TF_ByteSize | TF_SubType, 16388, 0, 0, 2, 2));
+	if (!searchForType("hkUint16"))
+		listType.push_back(new Havok_TagType(listType.size(), "hkUint16", searchForType("unsigned short"), 0, 0, 0, 0, 0, 0));
+
+		
+	
+
+
+	//now we have type class and common types, we can take care of memebers, and also add type array, pointer, tuple, ....
+	inc = 1;
+	for (TiXmlElement* node = rootNode->FirstChildElement("class"); node; node = node->NextSiblingElement("class"))
+	{
+		Havok_TagType* type = listType.at(inc++);
+
+		for (TiXmlElement* node_member = node->FirstChildElement("member"); node_member; node_member = node_member->NextSiblingElement("member"))
+		{
+			type->flags = type->flags | TagFlag::TF_Members;
+
+			Havok_TagMember* member = new Havok_TagMember();
+			type->members.push_back(member);
+
+			str = "";
+			node_member->QueryStringAttribute("name", &str);
+			member->name = str;
+
+
+			str_type = "";
+			bool isArray = false;
+			size_t tupleCount = 0;
+
+			node_member->QueryStringAttribute("type", &str_type);
+			node_member->QueryBoolAttribute("array", &isArray);
+			if (!isArray)
+				node_member->QueryUnsignedAttribute("count", &tupleCount);
+
+			if( (str_type == "void")|| (str_type == "None"))
+			{
+				member->flags = member->flags | TagSubType::TST_Void;
+				member->type = listType.at(0);							//None.
+
+			}else if (str_type == "ref"){
+				member->flags = member->flags | TagSubType::TST_Pointer;
+
+				str = "";
+				node_member->QueryStringAttribute("class", &str);
+
+				Havok_TagType* targetType = searchForType(str);
+				if (targetType)
+				{
+					//we must create a type witch is referenced as a pointer for the target class/type
+					member->type = searchForType("T*", targetType);						//first, we search if it's doesn't allready exist.
+
+					if (!member->type)													//else create it.
+					{
+						Havok_TagType* type_tmp = new Havok_TagType(listType.size(), "T*", 0, TF_ByteSize | TF_Pointer |TF_SubType, 6, targetType, 0, 4, 4);
+						listType.push_back(type_tmp);
+						member->type = type_tmp;
+
+						type_tmp->listTemplate.push_back(new Havok_TagTemplate("tT", targetType->id));
+						type_tmp->listTemplate.back()->value_ptr = targetType;
+					}
+				}
+
+			}else if (str_type == "string") {
+				member->flags = member->flags | TagSubType::TST_String;
+
+				//a string it's a item, with a unknow number of element unsigned char
+				member->type = searchForType("string");
+				if (!member->type)
+				{
+					Havok_TagType* targetType = searchForType("unsigned char");							//but there is subtype to search
+					member->type = new Havok_TagType(listType.size(), "string", 0, 0, TST_Array, targetType, 0, 0, 1);
+					listType.push_back(member->type);
+				}
+
+			}else if (str_type == "struct") {
+				member->flags = member->flags | TagSubType::TST_Class;
+
+				str = "";
+				node_member->QueryStringAttribute("class", &str);
+
+				member->type = searchForType(str);
+			}else{
+
+				if (str_type == "real")
+					str_type = "hkReal";
+				else if (str_type == "byte")
+					str_type = "unsigned int";
+				else if (str_type == "vec4")
+					str_type = "hkVector4";
+
+				member->type = searchForType(str_type);
+				member->flags = member->flags | ((member->type) ? member->type->superType()->subTypeFlags : TagSubType::TST_Invalid);
+			}
+
+
+
+			if (str_type == "isArray")
+			{
+				member->flags = member->flags | TagSubType::TST_Array;
+
+
+				Havok_TagType* targetType = member->type;
+				if (targetType)
+				{
+					//we must create a type witch is referenced as a pointer for the target class/type
+					member->type = searchForType("hkArray", targetType);						//first, we search if it's doesn't allready exist.
+
+					if (!member->type)													//else create it.
+					{
+						Havok_TagType* type_tmp = new Havok_TagType(listType.size(), "hkArray", 0, TF_ByteSize | TF_Pointer | TF_SubType | TF_Members, 8, targetType, 0, 12, 4);
+						listType.push_back(type_tmp);
+						member->type = type_tmp;
+
+						member->type->listTemplate.push_back(new Havok_TagTemplate("tT", targetType->id));
+						member->type->listTemplate.back()->value_ptr = targetType;
+						member->type->listTemplate.push_back(new Havok_TagTemplate("tAllocator", 31));
+						member->type->listTemplate.back()->value_ptr = targetType;
+
+
+
+						Havok_TagType* type_tmp_b = new Havok_TagType(listType.size(), "T*", 0, TF_ByteSize | TF_Pointer | TF_SubType, 6, targetType, 0, 4, 4);
+						listType.push_back(type_tmp);
+						type_tmp->listTemplate.push_back(new Havok_TagTemplate("tT", targetType->id));
+						type_tmp->listTemplate.back()->value_ptr = targetType;
+						Havok_TagMember* member_tmp = new Havok_TagMember("m_data", 34, 0, type_tmp_b);
+						member->type->members.push_back(member_tmp);
+
+						type_tmp_b = searchForType("int");
+						member_tmp = new Havok_TagMember("m_size", 34, 4, type_tmp_b);
+						member->type->members.push_back(member_tmp);
+						member_tmp = new Havok_TagMember("m_capacityAndFlags", 34, 8, type_tmp_b);
+						member->type->members.push_back(member_tmp);
+					}
+				}
+			}
+
+			if (tupleCount != 0)
+			{
+				member->flags = member->flags | TagSubType::TST_Tuple;
+
+
+				Havok_TagType* targetType = member->type;
+				if (targetType)
+				{
+					member->type = searchForType("T[N]", targetType);
+
+					if (!member->type)													//else create it.
+					{
+						//strange sometime there is 1064 (=0x428, for hkUint32) instead of 808 (=0x328, for hkUint8), but there isn't 0x100 or 0x400, and also 0x200 is for IsSigned , witch is not the case of hkUint8.
+						Havok_TagType* type_tmp = new Havok_TagType(listType.size(), "T[N]", 0, TF_ByteSize | TF_Pointer | TF_SubType, 808, targetType, 0, targetType->byteSize * tupleCount, targetType->alignment);
+						listType.push_back(type_tmp);
+						member->type = type_tmp;
+
+						member->type->listTemplate.push_back(new Havok_TagTemplate("tT", targetType->id));
+						member->type->listTemplate.back()->value_ptr = targetType;
+						member->type->listTemplate.push_back(new Havok_TagTemplate("vN", tupleCount));
+					}
+				}
+			}
+
+
+
+		}
+	}
+
+
+	//look at for byteSize and offsets for class, and also get some alignement from 2015 version.
+	for (size_t i = 1; i < nbTypes + 1; i++)									//only the class
+		calculateByteSizeAndAlignmentOfClass(listType.at(i));
+
+
+
+
+	
+	//////////////////////////////  read Data Xml part to make Havok_TagObject, and fill items
+	listItem.push_back(new Havok_TagItem(0, listType.at(0)));				//None
+
+	std::vector<Havok_TagObject*> linkObj;
+	std::vector<size_t> linkIndex;
+
+	std::vector<Havok_TagObject*> listFirstObject;
+	Havok_TagType* lastType = 0;
+	inc = 1;
+	for (TiXmlElement* node = rootNode->FirstChildElement("object"); node; node = node->NextSiblingElement("object"))
+	{
+		str = "";
+		node->QueryStringAttribute("name", &str);
+		
+		Havok_TagType* type = searchForType(str);
+
+		if (type != lastType)
+			listItem.push_back(new Havok_TagItem(0, type));
+
+
+		Havok_TagObject* obj = objectImportXml_v2014_01_00_r1(node, linkObj, linkIndex, listItem.back());
+		listItem.back()->value.push_back(obj);
+		listItem.back()->count++;
+		obj->attachement = listItem.back();
+
+		if (!rootObject)
+			rootObject = obj;
+
+		listFirstObject.push_back(obj);
+	}
+	
+
+	//linkObj, linkIndex for pointers (designed by a Index)
+	size_t nbLink = linkObj.size();
+	for (size_t i = 0; i < nbLink; i++)
+		linkObj.at(i)->objectPointer = listFirstObject.at(linkIndex.at(i));
+
+	return (rootObject != 0);
+}
+/*-------------------------------------------------------------------------------\
+|                             objectImportXml_v2014_01_00_r1                     |
+\-------------------------------------------------------------------------------*
+Havok_TagObject* Havok::objectImportXml_v2014_01_00_r1(TiXmlElement* node, std::vector<Havok_TagObject*> &linkObj, std::vector<size_t> &linkIndex, Havok_TagItem* parentAttachement)
+{
+	string str = "";
+	node->QueryStringAttribute("type", &str);
+
+
+	Havok_TagType* type = searchForType(str);
+	if (!type)
+	{
+		printf("warning: type %s not found. it's not normal. skipped", str.c_str());
+		return 0;
+	}
+	Havok_TagType* supertype = type->superType();
+
+
+	Havok_TagObject* obj = new Havok_TagObject();
+	obj->attachement = parentAttachement;
+	obj->type = type;
+
+
+	bool isPtr = false;
+	bool isParentPtr = false;
+
+
+
+
+	if (supertype->subType() == Havok::TST_Bool)
+	{
+		obj->b_value = (string(node->GetText()) == "true");
+
+	}else if (supertype->subType() == Havok::TST_Int) {
+
+		obj->i_value = (supertype->subTypeFlags & Havok::TST_Int64) ? EMO_BaseFile::GetUnsigned64(node->GetText(), 0) : EMO_BaseFile::GetUnsigned(node->GetText(), 0);
+
+	}else if (supertype->subType() == Havok::TST_Float) {
+
+		obj->f_value = StringToFloat(node->GetText());
+
+	}else if (supertype->subType() == Havok::TST_String) {
+		
+		obj->s_value = string(node->GetText());
+
+		size_t nbCharac = obj->s_value.length();
+		for (size_t i = 0;i<nbCharac;i++)
+		{
+			Havok_TagObject* obj_tmp = new Havok_TagObject(searchForType("char"));
+			obj_tmp->i_value = obj->s_value.at(i);
+
+			obj->listObjectString.push_back(obj_tmp);
+		}
+
+		Havok_TagObject* obj_tmp = new Havok_TagObject(searchForType("char"));				//"\0"				//Todo search if it's necessary , but I didn't have concret example.
+		obj_tmp->i_value = 0;
+		obj->listObjectString.push_back(obj_tmp);
+
+
+	}else if (supertype->subType() == Havok::TST_Pointer) {
+
+		linkObj.push_back(obj);															// pointer could referenced a Object witch don't exist yet. So we have to do this after.
+		linkIndex.push_back( std::stoi(string(node->GetText()).substr(1)) );
+
+	}else if (supertype->subType() == Havok::TST_Class) {
+
+		for (TiXmlElement* node_tmp = node->FirstChildElement(); node_tmp; node_tmp = node_tmp->NextSiblingElement())
+			obj->listObjectClass.push_back(objectImportXml_v2014_01_00_r1(node_tmp, linkObj, linkIndex, parentAttachement));
+
+		isParentPtr = true;
+
+	}else if (supertype->subType() == Havok::TST_Array) {
+
+		for (TiXmlElement* node_tmp = node->FirstChildElement(); node_tmp; node_tmp = node_tmp->NextSiblingElement())
+			obj->listObjectArray.push_back(objectImportXml_v2014_01_00_r1(node_tmp, linkObj, linkIndex, parentAttachement));
+
+	}else if (supertype->subType() == Havok::TST_Tuple) {
+
+		for (TiXmlElement* node_tmp = node->FirstChildElement(); node_tmp; node_tmp = node_tmp->NextSiblingElement())
+			obj->listObjectTuple.push_back(objectImportXml_v2014_01_00_r1(node_tmp, linkObj, linkIndex, parentAttachement));
+
+	}else {
+		printf("unknow superType->subType() : %s", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+	}
+
+
+	if ((obj->attachement) && (obj->attachement != parentAttachement))
+		obj->attachement->isPtr = isPtr;
+
+
+	return obj;
+}
+/*-------------------------------------------------------------------------------\
+|                             searchForType				                          |
+\-------------------------------------------------------------------------------*/
+Havok_TagType* Havok::searchForType(string name, Havok_TagType* pointer)
+{
+	size_t nbTypes = listType.size();
+	for (size_t i = 0; i < nbTypes; i++)
+	{
+		if (listType.at(i)->name == name)
+		{
+			if ((pointer) && (listType.at(i)->pointer != pointer))
+				continue;
+
+			return listType.at(i);
+		}
+	}
+	return 0;
+}
+/*-------------------------------------------------------------------------------\
+|                             calculateByteSizeAndAlignmentOfClass               |
+\-------------------------------------------------------------------------------*
+void Havok::calculateByteSizeAndAlignmentOfClass(Havok_TagType* type)
+{
+	if ((!type) || ((type->subTypeFlags & TST_Class) == 0) || (type->byteSize != 0))
+		return;
+
+	std::vector<Havok_TagMember*> members = type->allMembers();
+
+	size_t offset = 0;
+	size_t nbMembers = members.size();
+	for (size_t i = 0; i < nbMembers; i++)
+	{
+		Havok_TagMember* member = members.at(i);
+		member->byteOffset = offset;
+
+		calculateByteSizeAndAlignmentOfClass(member->type);
+		offset += member->type->byteSize;
+
+		if (member->type->alignment > type->alignment)
+			type->alignment = member->type->alignment;
+	}
+
+	type->byteSize = offset;
+}
 
 
 
@@ -2284,6 +2851,11 @@ void Havok::exportFBX(FbxScene *scene)
 \-------------------------------------------------------------------------------*/
 void Havok_TagObject::exportFBX(string basename, FbxScene *scene, FbxNode* parentNode)
 {
+	//if (!exportFBX_CheckHave3dData())							//check if object or child have something knowed. is to avoid useless Node creation. => apparently it's break ingame
+	//	return;
+
+	
+	
 	FbxNode *node = FbxNode::Create(scene, basename.c_str());
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
 	node->LclRotation.Set(FbxVector4(0, 0, 0, 1));
@@ -2318,6 +2890,10 @@ void Havok_TagObject::exportFBX(string basename, FbxScene *scene, FbxNode* paren
 	bool stopRecursive = false;
 
 
+	static std::vector<FbxVector4> listVertexPosition_Geometry;
+	static std::vector<size_t> listFaceIndex_Geometry;
+
+
 	if ((type->name == "hkGeometry") && (listObjectClass.size() == 2))
 	{
 		fbxName += "end;" + type->name;
@@ -2347,11 +2923,330 @@ void Havok_TagObject::exportFBX(string basename, FbxScene *scene, FbxNode* paren
 			//todo see for Material by face ?
 		}
 		
+		listVertexPosition_Geometry = listVertexPosition;				//to use them after on aabb
+		listFaceIndex_Geometry = listFaceIndex;
+
 		stopRecursive = true;
 
+		/*
+	}else if ((type->name == "hkcdStaticTree::Tree") && (listObjectClass.size() == 2)) {
+		
+		
+		
+		fbxName += "end;" + type->name;
+		color = FbxDouble3(0.0, 1.0, 0.0);
+
+
+		std::vector<Havok_TagObject*> &nodes = listObjectClass.at(0)->listObjectArray;
+		Havok_TagObject* domain = listObjectClass.at(1);
+
+		std::vector<Havok_TagObject*> &minObj = domain->listObjectClass.at(0)->listObjectTuple;
+		std::vector<Havok_TagObject*> &maxObj = domain->listObjectClass.at(1)->listObjectTuple;
+		FbxVector4 minXYZ(minObj.at(0)->f_value, minObj.at(1)->f_value, minObj.at(2)->f_value);
+		FbxVector4 maxXYZ(maxObj.at(0)->f_value, maxObj.at(1)->f_value, maxObj.at(2)->f_value);
+
+		printf("aabb: [%f, %f]x[%f, %f]x[%f, %f] \n", minXYZ[0], maxXYZ[0], minXYZ[1], maxXYZ[1], minXYZ[2], maxXYZ[2]);
+
+		//to symbilize the AABB (AxixAlignedBoundingBox) area, we will draw a Cube:
+		listVertexPosition.push_back(FbxVector4(minXYZ[0], minXYZ[1], minXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(maxXYZ[0], minXYZ[1], minXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(maxXYZ[0], minXYZ[1], maxXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(minXYZ[0], minXYZ[1], maxXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(minXYZ[0], maxXYZ[1], minXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(maxXYZ[0], maxXYZ[1], minXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(maxXYZ[0], maxXYZ[1], maxXYZ[2]));
+		listVertexPosition.push_back(FbxVector4(minXYZ[0], maxXYZ[1], maxXYZ[2]));
+		listFaceIndex.push_back(0); listFaceIndex.push_back(1); listFaceIndex.push_back(2);
+		listFaceIndex.push_back(0); listFaceIndex.push_back(2); listFaceIndex.push_back(3);
+		listFaceIndex.push_back(0); listFaceIndex.push_back(1); listFaceIndex.push_back(5);
+		listFaceIndex.push_back(0); listFaceIndex.push_back(5); listFaceIndex.push_back(4);
+		listFaceIndex.push_back(1); listFaceIndex.push_back(2); listFaceIndex.push_back(6);
+		listFaceIndex.push_back(1); listFaceIndex.push_back(6); listFaceIndex.push_back(5);
+		listFaceIndex.push_back(2); listFaceIndex.push_back(3); listFaceIndex.push_back(7);
+		listFaceIndex.push_back(2); listFaceIndex.push_back(7); listFaceIndex.push_back(6);
+		listFaceIndex.push_back(3); listFaceIndex.push_back(0); listFaceIndex.push_back(4);
+		listFaceIndex.push_back(3); listFaceIndex.push_back(4); listFaceIndex.push_back(7);
+		listFaceIndex.push_back(4); listFaceIndex.push_back(5); listFaceIndex.push_back(6);
+		listFaceIndex.push_back(4); listFaceIndex.push_back(6); listFaceIndex.push_back(7);
+
+
+		{
+			FbxNode *node = FbxNode::Create(scene, (fbxName + "_AABB").c_str());
+			node->LclTranslation.Set(FbxVector4(0, 0, 0));
+			node->LclRotation.Set(FbxVector4(0, 0, 0));
+			node->LclScaling.Set(FbxVector4(1, 1, 1));
+			parentNode->AddChild(node);
+
+
+			FbxMesh* fbxMesh = FbxMesh::Create(scene, (fbxName + "_AABB").c_str());
+			if (!fbxMesh)
+				return;
+			node->SetNodeAttribute(fbxMesh);					//attach mesh to node.
 
 
 
+																// Materials part
+			FbxGeometryElementMaterial* lMaterialElement = fbxMesh->CreateElementMaterial();			//add a material use.
+			lMaterialElement->SetMappingMode(FbxGeometryElement::eByPolygon);
+			lMaterialElement->SetReferenceMode(FbxGeometryElement::eIndexToDirect);
+
+			FbxSurfacePhong* fbxMaterial_phong = FbxSurfacePhong::Create(scene, FbxString((fbxName + "_AABB").c_str()).Buffer());
+			fbxMaterial_phong->ShadingModel.Set(FbxString("Phong"));
+			fbxMaterial_phong->Emissive.Set(color);							//to differ from classic Emd/emo
+			fbxMaterial_phong->Ambient.Set(color);
+			fbxMaterial_phong->AmbientFactor.Set(1.0);
+			fbxMaterial_phong->Diffuse.Set(color);
+			fbxMaterial_phong->DiffuseFactor.Set(1.0);
+			fbxMaterial_phong->Shininess.Set(0.0);
+			fbxMaterial_phong->Specular.Set(color);
+			fbxMaterial_phong->SpecularFactor.Set(0.0);
+			node->AddMaterial(fbxMaterial_phong);
+
+
+
+
+			fbxMesh->InitControlPoints(listVertexPosition.size());		//resize by the numbers of Vertex.
+
+			FbxVector4* fbxControlPointsPosition = fbxMesh->GetControlPoints();						//pointer of array , for position only
+
+																									//Export Vertices.
+			size_t nbVertex = listVertexPosition.size();
+			for (size_t i = 0; i < nbVertex; i++)
+				fbxControlPointsPosition[i] = listVertexPosition.at(i);
+
+
+			//Export Faces/triangle/IndexBuffer.
+			{
+				size_t nbFaces = listFaceIndex.size();
+				for (size_t j = 0; j + 2 < nbFaces; j += 3)
+				{
+					if ((listFaceIndex.at(j) >= nbVertex) || (listFaceIndex.at(j + 1) >= nbVertex) || (listFaceIndex.at(j + 2) >= nbVertex))
+						continue;
+
+					//make polygone
+					fbxMesh->BeginPolygon(0);
+
+					fbxMesh->AddPolygon(listFaceIndex.at(j));
+					fbxMesh->AddPolygon(listFaceIndex.at(j + 1));
+					fbxMesh->AddPolygon(listFaceIndex.at(j + 2));
+
+					fbxMesh->EndPolygon();
+				}
+			}
+		}
+		listFaceIndex.clear();
+		listVertexPosition.clear();
+
+
+		//now the inside Nodes.
+		size_t nbNodes = nodes.size();
+		size_t value_tmp = 0;
+		size_t value_tmp_b = 0;
+		double percentMin = 0.0;
+		double percentMax = 0.0;
+		size_t unk = 0;
+		size_t face = 0;
+		FbxVector4 minXYZ_tmp(0, 0, 0, 0);
+		FbxVector4 maxXYZ_tmp(0, 0, 0, 0);
+
+		for (size_t i = 0; i < nbNodes; i++)
+		{
+			std::vector<Havok_TagObject*> &codec3Axis6 = nodes.at(i)->listObjectClass;						//min and max are coded in a single uint8
+			std::vector<Havok_TagObject*> &minMaxXYZObj = codec3Axis6.at(0)->listObjectTuple;
+
+			printf("aabb_subpart[%i]: ", i);
+
+			for (size_t j = 0; j < 3; j++)
+			{
+				value_tmp = (size_t)minMaxXYZObj.at(j)->i_value;
+				printf("[%x]x", value_tmp);
+			}
+
+			unk = (size_t)codec3Axis6.at(1)->i_value;
+			face = (size_t)codec3Axis6.at(2)->i_value;
+
+			printf(" => %d for face %d \n", unk, face);
+		}
+
+
+		for (size_t i = 0; i < nbNodes; i++)
+		{
+			std::vector<Havok_TagObject*> &codec3Axis6 = nodes.at(i)->listObjectClass;						//min and max are coded in a single uint8
+			std::vector<Havok_TagObject*> &minMaxXYZObj = codec3Axis6.at(0)->listObjectTuple;
+
+			for (size_t j = 0; j < 3; j++)
+			{
+				value_tmp = (size_t)minMaxXYZObj.at(j)->i_value;
+				
+
+				//AabbTree : http://allenchou.net/2014/02/game-physics-broadphase-dynamic-aabb-tree/
+				//TODO find encoding of values. and after if there is a relation with Simdtree::Node
+				//simdTree : https://github.com/tpn/pdfs/blob/master/Binary%20Search%20Tree%20with%20SIMD%20Bandwidth%20Optimizations%20Using%20SSE%20(Preso06-SIMDTree).pdf
+
+
+				*//*
+				if (value_tmp == 0)					//test Todo a virer.
+					value_tmp = 255;
+
+				minXYZ_tmp[j] = - ((((double)(value_tmp & 0xF)) / (double(0xF))) * (maxXYZ[j] - minXYZ[j])/2.0 ) + (maxXYZ[j] + minXYZ[j]) / 2.0;
+				maxXYZ_tmp[j] = ((((double)( (value_tmp >> 4) & 0xF)) / (double(0xF))) * (maxXYZ[j] - minXYZ[j]) / 2.0) + (maxXYZ[j] + minXYZ[j]) / 2.0;
+				*//*
+
+
+				if ((j == 1) && (value_tmp != 0))
+					int aa = 42;
+
+				value_tmp_b = (value_tmp >> 4) & 0xF;
+				size_t inc = 0;
+				while (value_tmp_b > ((size_t)1 << inc))
+				{
+					value_tmp_b -= 1 << inc;
+					inc++;
+				}
+				percentMin = (((double)(value_tmp_b)) / ((double)((size_t)1 << inc))) ;
+
+
+				value_tmp_b = value_tmp & 0xF;
+				inc = 0;
+				while (value_tmp_b > ((size_t)1 << inc))
+				{
+					value_tmp_b -= 1 << inc;
+					inc++;
+				}
+				percentMax = (((double)(value_tmp_b + 1))/((double)((size_t)1 << inc)));
+
+				minXYZ_tmp[j] = (percentMin) * (maxXYZ[j] - minXYZ[j]);
+				maxXYZ_tmp[j] = (percentMax) * (maxXYZ[j] - minXYZ[j]);
+
+				
+				if (j != 1)				//test to solve Y first.
+				{
+					minXYZ_tmp[j] = -30;
+					maxXYZ_tmp[j] = 30;
+				}
+			}
+
+			unk = (size_t)codec3Axis6.at(1)->i_value;
+			face = (size_t)codec3Axis6.at(2)->i_value;
+
+			printf("aabb_subpart[%i]: [%f, %f]x[%f, %f]x[%f, %f] => %d for face %d \n", i, minXYZ_tmp[0], maxXYZ_tmp[0], minXYZ_tmp[1], maxXYZ_tmp[1], minXYZ_tmp[2], maxXYZ_tmp[2], unk, face);
+
+			//make the subpart
+			color = (unk!=128) ? FbxDouble3(1.0, 1.0, 0.0) : FbxDouble3(1.0, 0.0, 0.0);
+
+			{
+				//to symbilize the AABB (AxixAlignedBoundingBox) area, we will draw a Cube:
+				listVertexPosition.push_back(FbxVector4(minXYZ_tmp[0], minXYZ_tmp[1], minXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(maxXYZ_tmp[0], minXYZ_tmp[1], minXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(maxXYZ_tmp[0], minXYZ_tmp[1], maxXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(minXYZ_tmp[0], minXYZ_tmp[1], maxXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(minXYZ_tmp[0], maxXYZ_tmp[1], minXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(maxXYZ_tmp[0], maxXYZ_tmp[1], minXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(maxXYZ_tmp[0], maxXYZ_tmp[1], maxXYZ_tmp[2]));
+				listVertexPosition.push_back(FbxVector4(minXYZ_tmp[0], maxXYZ_tmp[1], maxXYZ_tmp[2]));
+				listFaceIndex.push_back(0); listFaceIndex.push_back(1); listFaceIndex.push_back(2);
+				listFaceIndex.push_back(0); listFaceIndex.push_back(2); listFaceIndex.push_back(3);
+				listFaceIndex.push_back(0); listFaceIndex.push_back(1); listFaceIndex.push_back(5);
+				listFaceIndex.push_back(0); listFaceIndex.push_back(5); listFaceIndex.push_back(4);
+				listFaceIndex.push_back(1); listFaceIndex.push_back(2); listFaceIndex.push_back(6);
+				listFaceIndex.push_back(1); listFaceIndex.push_back(6); listFaceIndex.push_back(5);
+				listFaceIndex.push_back(2); listFaceIndex.push_back(3); listFaceIndex.push_back(7);
+				listFaceIndex.push_back(2); listFaceIndex.push_back(7); listFaceIndex.push_back(6);
+				listFaceIndex.push_back(3); listFaceIndex.push_back(0); listFaceIndex.push_back(4);
+				listFaceIndex.push_back(3); listFaceIndex.push_back(4); listFaceIndex.push_back(7);
+				listFaceIndex.push_back(4); listFaceIndex.push_back(5); listFaceIndex.push_back(6);
+				listFaceIndex.push_back(4); listFaceIndex.push_back(6); listFaceIndex.push_back(7);
+
+
+
+				//add the face concerned
+				if (face * 3 + 2 < listFaceIndex_Geometry.size())
+				{
+					listVertexPosition.push_back(listVertexPosition_Geometry.at(listFaceIndex_Geometry.at(face * 3 + 0)));
+					listVertexPosition.push_back(listVertexPosition_Geometry.at(listFaceIndex_Geometry.at(face * 3 + 1)));
+					listVertexPosition.push_back(listVertexPosition_Geometry.at(listFaceIndex_Geometry.at(face * 3 + 2)));
+
+					listFaceIndex.push_back(8 + 0); listFaceIndex.push_back(8 + 1); listFaceIndex.push_back(8 + 2);
+				}
+			}
+
+			
+			{
+				FbxNode *node = FbxNode::Create(scene, (fbxName + "_AABB__"+ fillStringNumberLeft(std::to_string(i), 3) ).c_str());
+				node->SetVisibility(false);
+				node->LclTranslation.Set(FbxVector4(0, 0, 0));
+				node->LclRotation.Set(FbxVector4(0, 0, 0));
+				node->LclScaling.Set(FbxVector4(1, 1, 1));
+				parentNode->AddChild(node);
+
+
+				FbxMesh* fbxMesh = FbxMesh::Create(scene, (fbxName + "_AABB__" + fillStringNumberLeft(std::to_string(i), 3) ).c_str());
+				if (!fbxMesh)
+					return;
+				node->SetNodeAttribute(fbxMesh);					//attach mesh to node.
+
+
+
+																	// Materials part
+				FbxGeometryElementMaterial* lMaterialElement = fbxMesh->CreateElementMaterial();			//add a material use.
+				lMaterialElement->SetMappingMode(FbxGeometryElement::eByPolygon);
+				lMaterialElement->SetReferenceMode(FbxGeometryElement::eIndexToDirect);
+
+				FbxSurfacePhong* fbxMaterial_phong = FbxSurfacePhong::Create(scene, FbxString((fbxName + "_AABB__" + fillStringNumberLeft(std::to_string(i), 3) ).c_str()).Buffer());
+				fbxMaterial_phong->ShadingModel.Set(FbxString("Phong"));
+				fbxMaterial_phong->Emissive.Set(color);							//to differ from classic Emd/emo
+				fbxMaterial_phong->Ambient.Set(color);
+				fbxMaterial_phong->AmbientFactor.Set(1.0);
+				fbxMaterial_phong->Diffuse.Set(color);
+				fbxMaterial_phong->DiffuseFactor.Set(1.0);
+				fbxMaterial_phong->Shininess.Set(0.0);
+				fbxMaterial_phong->Specular.Set(color);
+				fbxMaterial_phong->SpecularFactor.Set(0.0);
+				node->AddMaterial(fbxMaterial_phong);
+
+
+
+
+				fbxMesh->InitControlPoints(listVertexPosition.size());		//resize by the numbers of Vertex.
+
+				FbxVector4* fbxControlPointsPosition = fbxMesh->GetControlPoints();						//pointer of array , for position only
+
+																										//Export Vertices.
+				size_t nbVertex = listVertexPosition.size();
+				for (size_t i = 0; i < nbVertex; i++)
+					fbxControlPointsPosition[i] = listVertexPosition.at(i);
+
+
+				//Export Faces/triangle/IndexBuffer.
+				{
+					size_t nbFaces = listFaceIndex.size();
+					for (size_t j = 0; j + 2 < nbFaces; j += 3)
+					{
+						if ((listFaceIndex.at(j) >= nbVertex) || (listFaceIndex.at(j + 1) >= nbVertex) || (listFaceIndex.at(j + 2) >= nbVertex))
+							continue;
+
+						//make polygone
+						fbxMesh->BeginPolygon(0);
+
+						fbxMesh->AddPolygon(listFaceIndex.at(j));
+						fbxMesh->AddPolygon(listFaceIndex.at(j + 1));
+						fbxMesh->AddPolygon(listFaceIndex.at(j + 2));
+
+						fbxMesh->EndPolygon();
+					}
+				}
+			}
+
+			listFaceIndex.clear();
+			listVertexPosition.clear();
+		}
+
+
+
+
+		stopRecursive = true;
+
+		*/
 	}else if ((type->name == "hkAabb") && (listObjectClass.size() == 2)){
 		fbxName += "end;"+ type->name;
 		color = FbxDouble3(0.0, 1.0, 0.0);
@@ -2578,6 +3473,69 @@ void Havok_TagObject::exportFBX(string basename, FbxScene *scene, FbxNode* paren
 			listObjectTuple.at(i)->exportFBX(std::to_string(i), scene, parentNode);
 	}
 }
+
+/*-------------------------------------------------------------------------------\
+|                             exportFBX_CheckHave3dData							 |
+\-------------------------------------------------------------------------------*/
+bool Havok_TagObject::exportFBX_CheckHave3dData()
+{
+	Havok_TagType* supertype = type->superType();
+
+	if ((supertype->subType() != Havok::TST_Pointer) &&
+		(supertype->subType() != Havok::TST_Class) &&
+		(supertype->subType() != Havok::TST_Array) &&
+		(supertype->subType() != Havok::TST_Tuple)						//todo check if Tuple could have interressting informations. else remove this
+		)
+	{
+		return false;
+	}
+
+
+	if ((type->name == "hkGeometry") && (listObjectClass.size() == 2))
+	{
+		return true;
+	}else if ((type->name == "hkcdStaticTree::Tree") && (listObjectClass.size() == 2)) {
+		return true;
+
+		/*
+	}else if ((type->name == "hkAabb") && (listObjectClass.size() == 2)){
+		return true;
+		*/
+	}
+
+	bool haveChild_WithData = false;
+
+	// recursive on children
+	if ((supertype->subType() == Havok::TST_Pointer) && (objectPointer))
+	{
+		haveChild_WithData = objectPointer->exportFBX_CheckHave3dData();
+
+	}else if (supertype->subType() == Havok::TST_Class) {
+
+		std::vector<Havok_TagMember*> listMembers = type->allMembers();
+		size_t nbMember = listMembers.size();
+
+		size_t nbObj = listObjectClass.size();
+		for (size_t i = 0; i < nbObj; i++)
+			haveChild_WithData = haveChild_WithData || listObjectClass.at(i)->exportFBX_CheckHave3dData();
+
+	}else if (supertype->subType() == Havok::TST_Array) {
+
+		size_t nbObj = listObjectArray.size();
+		for (size_t i = 0; i < nbObj; i++)
+			haveChild_WithData = haveChild_WithData || listObjectArray.at(i)->exportFBX_CheckHave3dData();
+
+	}else if (supertype->subType() == Havok::TST_Tuple) {
+
+		size_t nbObj = listObjectTuple.size();
+		for (size_t i = 0; i < nbObj; i++)
+			haveChild_WithData = haveChild_WithData || listObjectTuple.at(i)->exportFBX_CheckHave3dData();
+	}
+
+	return haveChild_WithData;
+}
+
+
 
 
 

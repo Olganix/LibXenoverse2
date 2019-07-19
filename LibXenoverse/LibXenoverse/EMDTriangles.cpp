@@ -74,7 +74,7 @@ void EMDTriangles::write(File *file)
 	file->fixPadding(0x4);
 
 	// Write Names
-	unsigned int face_name_table_address = file->getCurrentAddress() - base_face_address;
+	unsigned int face_name_table_address = ((bone_names.size()!=0) ? (file->getCurrentAddress() - base_face_address) : 0);
 	file->writeNull(bone_names.size() * 4);
 
 	for (size_t i = 0; i < bone_names.size(); i++)

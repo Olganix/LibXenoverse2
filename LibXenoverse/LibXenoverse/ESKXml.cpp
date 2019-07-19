@@ -60,15 +60,12 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	size_t tmp;
-	if (xmlCurrentNode->QueryUnsignedAttribute("flag", &tmp) == TIXML_SUCCESS)
-		flag = (unsigned short)tmp;
-
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_offset_0", &unknown_offset_0);
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_offset_1", &unknown_offset_1);
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_offset_2", &unknown_offset_2);
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_offset_3", &unknown_offset_3);
-	xmlCurrentNode->QueryBoolAttribute("have128unknownBytes", &mHave128unknownBytes);
+	string str = "";
+	
+	xmlCurrentNode->QueryStringAttribute("flag", &str); flag = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknown_offset_2", &str); unknown_offset_2 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknown_offset_3", &str); unknown_offset_3 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryBoolAttribute("haveExtraBytesOnEachBone", &mHaveExtraBytesOnEachBone);
 
 
 	TiXmlElement* bonesNode = xmlCurrentNode->FirstChildElement("ESKBones");
@@ -86,7 +83,7 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	for (TiXmlElement* xmlNode = bonesNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
 	{
 		ESKBone* eskBone = new ESKBone();
-		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeRootNode);
+		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeRootNode, mHaveExtraBytesOnEachBone);
 		if (treeNode)
 		{
 			treeRootNode->mChildren.push_back(treeNode);
@@ -97,15 +94,54 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	
 	setTreeOrganisation(treeRootNode);					//read hieirarchy to make the list of bones.
 	
-	
 	delete treeRootNode;					//delete the hieirarchy organisation, but not the bones
+
+
+	//read IK and Extra
+	TiXmlElement* node_IK_list = xmlCurrentNode->FirstChildElement("InverseKinematic");
+	if (node_IK_list)
+	{
+		for (TiXmlElement* node_group = node_IK_list->FirstChildElement("Group"); node_group; node_group = node_group->NextSiblingElement("Group"))
+		{
+			listInverseKinematic.push_back(Esk_IK_Group());
+
+			for (TiXmlElement* node_ik = node_group->FirstChildElement("IK"); node_ik; node_ik = node_ik->NextSiblingElement("IK"))
+			{
+				listInverseKinematic.back().mListIK.push_back(Esk_IK_Relation());
+				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
+
+				for (TiXmlElement* node = node_ik->FirstChildElement("Bone"); node; node = node->NextSiblingElement("Bone"))
+				{
+					string name = "";
+					double value = 0.0;
+					node->QueryStringAttribute("name", &name);
+					node->QueryDoubleAttribute("value", &value);
+
+					ESKBone* eskBone = 0;
+					size_t nbBones = bones.size();
+					for (size_t i = 0; i < nbBones; i++)
+					{
+						if (bones.at(i)->getName()== name)
+						{
+							eskBone = bones.at(i);
+							break;
+						}
+					}
+
+					if(eskBone)
+						ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(eskBone, (float)value));
+				}
+			}
+		}
+	}
+
 
 	return (bones.size() != 0);
 }
 /*-------------------------------------------------------------------------------\
 |                             importXml											 |
 \-------------------------------------------------------------------------------*/
-EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBone*> &bones, EskTreeNode* treeParentNode)
+EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBone*> &bones, EskTreeNode* treeParentNode, bool haveExtraBytesOnEachBone)
 {
 	EskTreeNode* treeCurrentNode = new EskTreeNode(this, bones.size(), treeParentNode);
 	bones.push_back(this);
@@ -115,6 +151,14 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 	size_t tmp = 0;
 	xmlCurrentNode->QueryUnsignedAttribute("unknown_index_4", &tmp);
 	index_4 = (unsigned short)tmp;
+
+	if (haveExtraBytesOnEachBone)
+	{
+		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_0", &unk_extraInfo_0);
+		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_1", &unk_extraInfo_1);
+		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_2", &unk_extraInfo_2);
+		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_3", &unk_extraInfo_3);
+	}
 
 
 	TiXmlElement* absoluteTransformMatrixNode = xmlCurrentNode->FirstChildElement("AbsoluteTransformMatrix");
@@ -192,7 +236,7 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
 	{
 		ESKBone* eskBone = new ESKBone();
-		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeCurrentNode);
+		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeCurrentNode, haveExtraBytesOnEachBone);
 		if (treeNode)
 			treeCurrentNode->mChildren.push_back(treeNode);
 		else
@@ -216,43 +260,86 @@ TiXmlElement* ESK::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("ESK");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("flag", (size_t)flag);
-	xmlCurrentNode->SetAttribute("unknown_offset_0", (size_t)unknown_offset_0);
-	xmlCurrentNode->SetAttribute("unknown_offset_1", (size_t)unknown_offset_1);
-	xmlCurrentNode->SetAttribute("unknown_offset_2", (size_t)unknown_offset_2);
-	xmlCurrentNode->SetAttribute("unknown_offset_3", (size_t)unknown_offset_3);
-	xmlCurrentNode->SetAttribute("have128unknownBytes", mHave128unknownBytes);
+	xmlCurrentNode->SetAttribute("flag", EMO_BaseFile::UnsignedToString(flag, true));
+	xmlCurrentNode->SetAttribute("unknown_offset_2", EMO_BaseFile::UnsignedToString(unknown_offset_2, true));
+	xmlCurrentNode->SetAttribute("unknown_offset_3", EMO_BaseFile::UnsignedToString(unknown_offset_3, true));
+	xmlCurrentNode->SetAttribute("haveExtraBytesOnEachBone", mHaveExtraBytesOnEachBone);
 
 	
 	
 	TiXmlElement* bonesNode = new TiXmlElement("ESKBones");
+	xmlCurrentNode->LinkEndChild(bonesNode);
 
-	EskTreeNode* rootTreeNode = getTreeOrganisation();		//get by hieirarchy.
+	EskTreeNode* rootTreeNode = getTreeOrganisation();		//get by hierarchy.
 
 	EskTreeNode* childTreeNode;
 	size_t nbchild = rootTreeNode->mChildren.size();
 	for (size_t i = 0; i < nbchild; i++)
 	{
 		childTreeNode = rootTreeNode->mChildren.at(i);
-		bonesNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode));
+		bonesNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode, mHaveExtraBytesOnEachBone));
+	}
+	delete rootTreeNode;
+
+
+
+
+	if (listInverseKinematic.size())
+	{
+		TiXmlElement* node_IK_list = new TiXmlElement("InverseKinematic");
+		xmlCurrentNode->LinkEndChild(node_IK_list);
+		
+		size_t nbBones = listInverseKinematic.size();
+		for (size_t i=0;i<nbBones;i++)
+		{
+			Esk_IK_Group &group = listInverseKinematic.at(i);
+			
+			TiXmlElement* node_group = new TiXmlElement("Group");
+			node_IK_list->LinkEndChild(node_group);
+
+			size_t nbIk = group.mListIK.size();
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				Esk_IK_Relation &ik = group.mListIK.at(j);
+				TiXmlElement* node_ik = new TiXmlElement("IK");
+				node_group->LinkEndChild(node_ik);
+
+				size_t nbBones = ik.mListBones.size();
+				//node_ik->SetAttribute("count", nbBones);
+				
+				for (size_t k = 0; k < nbBones; k++)
+				{
+					TiXmlElement* node = new TiXmlElement("Bone");
+					node_ik->LinkEndChild(node);
+
+					node->SetAttribute("name", ik.mListBones.at(k).bone->getName());
+					node->SetDoubleAttribute("value", ik.mListBones.at(k).value);
+				}
+			}
+		}
 	}
 
-	xmlCurrentNode->LinkEndChild(bonesNode);
-
-	delete rootTreeNode;
 
 	return xmlCurrentNode;
 }
 /*-------------------------------------------------------------------------------\
 |                             exportXml											 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode)
+TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEachBone)
 {
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("ESKBone");
 
 	xmlCurrentNode->SetAttribute("name", name);
 
 	xmlCurrentNode->SetAttribute("unknown_index_4", (size_t)index_4);
+
+	if (haveExtraBytesOnEachBone)
+	{
+		xmlCurrentNode->SetAttribute("extra_unk_0", unk_extraInfo_0);
+		xmlCurrentNode->SetAttribute("extra_unk_1", unk_extraInfo_1);
+		xmlCurrentNode->SetAttribute("extra_unk_2", unk_extraInfo_2);
+		xmlCurrentNode->SetAttribute("extra_unk_3", unk_extraInfo_3);
+	}
 
 	if (haveTransformMatrix)
 	{
@@ -328,7 +415,7 @@ TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode)
 	for (size_t i = 0; i < nbchild; i++)
 	{
 		childTreeNode = treeNode->mChildren.at(i);
-		xmlCurrentNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode));
+		xmlCurrentNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode, haveExtraBytesOnEachBone));
 	}
 
 	return xmlCurrentNode;

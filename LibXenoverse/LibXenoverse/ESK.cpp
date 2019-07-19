@@ -12,11 +12,9 @@ ESK::ESK(void)
 {
 	name = "";
 	flag = 0;
-	unknown_offset_0 = 0;
-	unknown_offset_1 = 0;
 	unknown_offset_2 = 0;
 	unknown_offset_3 = 0;
-	mHave128unknownBytes = true;
+	mHaveExtraBytesOnEachBone = true;
 }
 /*-------------------------------------------------------------------------------\
 |                             ESK					                             |
@@ -120,7 +118,7 @@ unsigned int ESK::getWriteSize(bool withTransformMatrix)
 	if (withTransformMatrix)
 		size += 4;								//TODO search why need 4 octets after names. and not for EAN version
 
-	size += 124 + bone_count * 8;			//unkown3 et 4.
+	size += calculIksize() + ((mHaveExtraBytesOnEachBone) ? (bone_count * 8) : 0);			//unkown3 et 4.
 
 	return size;
 }
@@ -135,20 +133,21 @@ void ESK::read(File *file)
 	unsigned int bone_names_offset = 0;
 	unsigned int skinning_matrix_offset = 0;
 	unsigned int transform_matrix_offset = 0;
+	unsigned int ik_offset = 0;								//inverse Kinematic
+	unsigned int bone_extraInfo_offset = 0;
 		
 	file->readInt16E(&bone_count);
-	unsigned int test_address = file->getCurrentAddress();
 	file->readInt16E(&flag);		
 	file->readInt32E(&bone_indices_offset);
 	file->readInt32E(&bone_names_offset);
 	file->readInt32E(&skinning_matrix_offset);
 	file->readInt32E(&transform_matrix_offset);
-	file->readInt32E(&unknown_offset_0);
-	file->readInt32E(&unknown_offset_1);
+	file->readInt32E(&ik_offset);
+	file->readInt32E(&bone_extraInfo_offset);
 	file->readInt32E(&unknown_offset_2);
 	file->readInt32E(&unknown_offset_3);
 
-	LOG_DEBUG("--------------- read ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], unknown_offset_3 : [%i], unknown_offset_4 : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, unknown_offset_0, unknown_offset_1);
+	LOG_DEBUG("--------------- read ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
 
 
 	bones.resize(bone_count);
@@ -203,18 +202,132 @@ void ESK::read(File *file)
 		}
 	}
 
-	file->goToAddress(base_skeleton_address + unknown_offset_0);
-	unsigned int unkown_1;
-	file->readInt32E(&unkown_1);
-	mHave128unknownBytes = (unkown_1 == 0x00000005);
+
+
+	listInverseKinematic.clear();
+	if (ik_offset)
+	{
+		size_t nbBones = bones.size();
+
+		file->goToAddress(base_skeleton_address + ik_offset);
+		
+		size_t nbIkGroup = 0;
+		file->readInt32E(&nbIkGroup);
+
+		bool wrongOldCaseDetected = false;
+
+		uint8_t val_u8;
+		uint16_t val_u16;
+		float val_f;
+		for (size_t i = 0; i < nbIkGroup; i++)
+		{
+			listInverseKinematic.push_back(Esk_IK_Group());
+
+			uint16_t nbIk = 0;
+			file->readInt16E(&nbIk);
+			uint16_t size_tmp = 0;
+			file->readInt16E(&size_tmp);
+
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				listInverseKinematic.back().mListIK.push_back(Esk_IK_Relation());
+
+				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
+
+				file->readUChar(&val_u8);
+				uint8_t nbRelations = 0;
+				file->readUChar(&nbRelations);
+				
+				for (size_t k = 0; k <= nbRelations; k++)
+				{
+					file->readInt16E(&val_u16);
+					if (val_u16 < nbBones)
+					{
+						ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(bones.at(val_u16)));
+					}else {
+						wrongOldCaseDetected = true;
+						break;
+					}
+				}
+				if (wrongOldCaseDetected)
+					break;
+
+				if (nbRelations % 2 != 0)					//padding for 32bits
+					file->readInt16E(&val_u16);
+
+				for (size_t k = 0; k <= nbRelations; k++)
+				{
+					file->readFloat32E(&val_f);
+					ik.mListBones.at(k).value = val_f;
+				}
+			}
+
+			if (wrongOldCaseDetected)
+				break;
+		}
+
+		if(wrongOldCaseDetected)
+			listInverseKinematic.clear();
+	}
+
+
+
+
+	mHaveExtraBytesOnEachBone = false;
+	if (bone_extraInfo_offset)										//only camera animation don't have this.
+	{
+		mHaveExtraBytesOnEachBone = true;
+		file->goToAddress(base_skeleton_address + bone_extraInfo_offset);
+
+		unsigned short value;
+		for (size_t i = 0; i < bone_count; i++)
+		{
+			file->readInt16E(&value);
+			bones[i]->unk_extraInfo_0 = value;
+			file->readInt16E(&value);
+			bones[i]->unk_extraInfo_1 = value;
+			file->readInt16E(&value);
+			bones[i]->unk_extraInfo_2 = value;
+			file->readInt16E(&value);
+			bones[i]->unk_extraInfo_3 = value;
+		}
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             calculIksize			                             |
+\-------------------------------------------------------------------------------*/
+size_t ESK::calculIksize()
+{
+	size_t filesize = 0;
+	size_t nbGroup = listInverseKinematic.size();
+	if (nbGroup == 0)
+		return filesize;
+
+	filesize = sizeof(uint32_t);
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Esk_IK_Group &group = listInverseKinematic.at(i);
+		size_t nbIk = group.mListIK.size();
+		filesize += 2 * sizeof(uint16_t);
+
+		size_t size_tmp = 0;
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			size_t nbrelations = group.mListIK.at(j).mListBones.size();
+			size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
+			if ((nbrelations+1) % 2 != 0)
+				size_tmp += sizeof(uint16_t);
+		}
+		filesize += size_tmp;
+	}
+
+	return filesize;
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
 void ESK::write(File *file, bool withTransformMatrix)
-{
-	//TODO check all comments to trad in english.
-	
+{	
 	unsigned int base_skeleton_address = file->getCurrentAddress();
 	unsigned short bone_count = bones.size();
 		
@@ -230,28 +343,30 @@ void ESK::write(File *file, bool withTransformMatrix)
 	unsigned int bone_indices_offset = 36;			//this header size (TODO voir pourquoi ce n'est pas 28, il y a quoi dans ces 8 octect ?)
 	unsigned int bone_names_offset = bone_indices_offset + bone_count * 8;
 	unsigned int skinning_matrix_offset = (unsigned int)ceil((bone_names_offset + bone_count * 4 + name_size) / 16.0) * 16;
-	unsigned int transform_matrix_offset = ((withTransformMatrix) ? (skinning_matrix_offset + bone_count * 48) : 0);
-	unknown_offset_0 = ((withTransformMatrix) ? (transform_matrix_offset + bone_count * 64) : (skinning_matrix_offset + bone_count * 48));
-	unknown_offset_1 = unknown_offset_0 + 124;
+	size_t offset = (skinning_matrix_offset + bone_count * 48);
 
-	if(!mHave128unknownBytes)						//TODO find why
-	{
-		unknown_offset_1 = unknown_offset_0;
-		unknown_offset_0 = 0;
-	}
+	unsigned int transform_matrix_offset = ((withTransformMatrix) ? offset : 0);
+	offset += (withTransformMatrix) ? (transform_matrix_offset + bone_count * 64) : 0;
 
+	size_t ikSize = calculIksize();
+	unsigned int ik_offset =  (ikSize!=0) ? offset : 0;
+	offset += ikSize;
+
+	unsigned int bone_extraInfo_offset = (mHaveExtraBytesOnEachBone) ? offset : 0;
+
+	
 	file->writeInt16E(&bone_count);
 	file->writeInt16E(&flag);
 	file->writeInt32E(&bone_indices_offset);
 	file->writeInt32E(&bone_names_offset);
 	file->writeInt32E(&skinning_matrix_offset);
 	file->writeInt32E(&transform_matrix_offset);
-	file->writeInt32E(&unknown_offset_0);
-	file->writeInt32E(&unknown_offset_1);
+	file->writeInt32E(&ik_offset);
+	file->writeInt32E(&bone_extraInfo_offset);
 	file->writeInt32E(&unknown_offset_2);
 	file->writeInt32E(&unknown_offset_3);
 
-	LOG_DEBUG("--------------- write ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], unknown_offset_3 : [%i], unknown_offset_4 : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, unknown_offset_0, unknown_offset_1);
+	LOG_DEBUG("--------------- write ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
 
 	// Write Bone Indices
 	for (size_t i = 0; i < bone_count; i++)
@@ -293,74 +408,78 @@ void ESK::write(File *file, bool withTransformMatrix)
 
 		
 	
-	//unknown_offset_3 : 128 bytes always the same
-	if (unknown_offset_0 != 0)
+
+	if (ik_offset)
 	{
-		file->goToAddress(base_skeleton_address + unknown_offset_0);
-		unsigned int unkown_1 = 0x00000005;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00180001;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00080200;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00040003;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x3F000000;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x00180001;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x000E0200;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x000A0009;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x3F000000;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x00180001;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00150200;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00160014;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x3F000000;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x00180001;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00400200;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x002D002C;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x3F000000;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x00180001;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x00600200;
-		file->writeInt32E(&unkown_1);
-		unkown_1 = 0x004B0046;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
-		unkown_1 = 0x3F000000;
-		file->writeInt32E(&unkown_1);
-		file->writeNull(4);
+		file->goToAddress(base_skeleton_address + ik_offset);
+
+		size_t nbGroup = listInverseKinematic.size();
+		file->writeInt32E(&nbGroup);
+
+		for (size_t i = 0; i < nbGroup; i++)
+		{
+			Esk_IK_Group &group = listInverseKinematic.at(i);
+
+			size_t nbIk = group.mListIK.size();
+			file->writeInt16E((unsigned short*)&nbIk);
+
+			size_t size_tmp = 2 * sizeof(uint16_t);
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				size_t nbrelations = group.mListIK.at(j).mListBones.size();
+				size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
+			}
+			file->writeInt16E((unsigned short*)&size_tmp);
+
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				Esk_IK_Relation &ik = group.mListIK.at(j);
+				size_t nbrelations = ik.mListBones.size();
+				if (nbrelations > 1)
+					nbrelations--;
+
+				file->writeNull(1);
+				file->writeUChar((unsigned char*)&nbrelations);
+
+				for (size_t k = 0; k <= nbrelations; k++)
+				{
+					ESKBone* bone = ik.mListBones.at(k).bone;
+						
+					size_t isfound = (size_t)-1;
+					for (size_t m = 0; m < bone_count; m++)
+					{
+						if(bones.at(m)== bone)
+						{
+							isfound = m;
+							break;
+						}
+					}
+					if (!isfound)			//secu
+						isfound = 0;
+
+					file->writeInt16E((unsigned short*)&isfound);
+				}
+				if (nbrelations % 2 != 0)				//padding
+					file->writeNull(2);
+
+				for (size_t k = 0; k <= nbrelations; k++)
+					file->writeFloat32E(&ik.mListBones.at(k).value);
+			}
+		}
 	}
 
 
-	//unknown_offset_4 : the same for all bones : 8 octets with FFFF 0000 0000 0000 (except the last)
-	//Hyp : it's the weights of a bone on animation ? FFFF for full influence ?
-	file->goToAddress(base_skeleton_address + unknown_offset_1);
-
-	unsigned int unkown_1 = 0x0000FFFF;
-	for (size_t i = 0; i < bone_count; i++)
+	if (mHaveExtraBytesOnEachBone)
 	{
-		file->writeNull(4);
-		file->writeInt32E(&unkown_1);
+		file->goToAddress(base_skeleton_address + bone_extraInfo_offset);
+
+		for (size_t i = 0; i < bone_count; i++)
+		{
+			file->writeInt16E((unsigned short*)&bones.at(i)->unk_extraInfo_0);
+			file->writeInt16E((unsigned short*)&bones.at(i)->unk_extraInfo_1);
+			file->writeInt16E((unsigned short*)&bones.at(i)->unk_extraInfo_2);
+			file->writeInt16E((unsigned short*)&bones.at(i)->unk_extraInfo_3);
+		}
 	}
 
 	file->goToEnd();
@@ -571,11 +690,10 @@ void ESK::clone(ESK *esk)
 		bones.push_back( new ESKBone(src_bones.at(i)) );
 
 	this->flag = esk->flag;
-	this->unknown_offset_0 = esk->unknown_offset_0;
-	this->unknown_offset_1 = esk->unknown_offset_1;
 	this->unknown_offset_2 = esk->unknown_offset_2;
 	this->unknown_offset_3 = esk->unknown_offset_3;
-	this->mHave128unknownBytes = esk->mHave128unknownBytes;
+	this->mHaveExtraBytesOnEachBone = esk->mHaveExtraBytesOnEachBone;
+	this->listInverseKinematic = esk->listInverseKinematic;
 }
 /*-------------------------------------------------------------------------------\
 |                             getListIndexOfChildBones                           |
@@ -611,31 +729,132 @@ std::vector<size_t> ESK::getListIndexOfChildBones(size_t index)
 /*-------------------------------------------------------------------------------\
 |                             getTreeOrganisation	                             |
 \-------------------------------------------------------------------------------*/
-EskTreeNode* ESK::getTreeOrganisation(size_t index, EskTreeNode* parent)
+//
+// because some of file have a wrong children_index, we have to use the parent_index as priority for making the hierarchy.
+//
+EskTreeNode* ESK::getTreeOrganisation(size_t index, EskTreeNode* parent, std::vector<bool>* listAllReadyUsed)
 {
-	//this recursive fonction will make a tree of pointer to easally see heirarchy, and after doing some opeartion on that, and use the setTreeOrganisation() to reOrganize correctly
+	bool haveToClean = false;
+	if (listAllReadyUsed == 0)
+	{
+		haveToClean = true;
+		listAllReadyUsed = new std::vector<bool>();
+		listAllReadyUsed->resize(bones.size(), false);
+	}
+
+	//this recursive fonction will make a tree of pointer to easelly see heirarchy, and after doing some opeartion on that, and use the setTreeOrganisation() to reOrganize correctly
 	EskTreeNode* tree = new EskTreeNode((index < bones.size()) ? bones.at(index) : nullptr, (index < bones.size()) ? index : (size_t)-1, parent);
 
 	if (index >= bones.size())
-	{
 		index = 65535;							//root node
-		for (size_t i = 0; i < bones.size(); i++)
-			if (bones.at(i)->parent_index == index)
-				tree->mChildren.push_back(getTreeOrganisation(i, tree));
-	}else{
 
-		if (tree->mBone->child_index != 65535)
+
+	std::vector<EskTreeNode*> children;
+	for (size_t i = 0; i < bones.size(); i++)
+	{
+		if (bones.at(i)->parent_index == index)
 		{
-			tree->mChildren.push_back(getTreeOrganisation( tree->mBone->child_index, tree));
-			ESKBone* bone = bones.at(tree->mBone->child_index);
-
-			while (bone->sibling_index != 65535)
+			if (listAllReadyUsed->at(i) == false)
 			{
-				tree->mChildren.push_back(getTreeOrganisation(bone->sibling_index, tree));
-				bone = bones.at(bone->sibling_index);
+				listAllReadyUsed->at(i) = true;
+				children.push_back(getTreeOrganisation(i, tree, listAllReadyUsed));
+			}
+		}
+	}
+	
+	//now order the children by sibling.
+	
+	//first case, we have a correct child_index, so we try to do as before.
+	bool isfound = false;
+	ESKBone* bone = 0;
+	if ((index != 65535)&&(tree->mBone->child_index != 65535))
+	{
+		bone = bones.at(tree->mBone->child_index);
+		
+		size_t nbChild = children.size();
+		for (size_t i = 0; i < nbChild; i++)
+		{
+			if (children.at(i)->mBone == bone)
+			{
+				tree->mChildren.push_back(children.at(i));
+				children.erase(children.begin() + i);
+				isfound = true;
+				break;
 			}
 		}
 
+		if (isfound)
+		{
+			while (bone->sibling_index != 65535)
+			{
+				bone = bones.at(bone->sibling_index);
+
+				size_t nbChild = children.size();
+				for (size_t i = 0; i < nbChild; i++)
+				{
+					if (children.at(i)->mBone == bone)
+					{
+						tree->mChildren.push_back(children.at(i));
+						children.erase(children.begin() + i);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+
+	//second case if child_index is incorrect (not part of the children found previously)
+	if (!isfound)
+	{
+		//first we search the last to the first.
+		bool isfound = true;
+		size_t index_tmp = 65535;
+
+		while (!isfound)
+		{
+			isfound = false;
+
+			size_t nbChild = children.size();
+			for (size_t i = 0; i < nbChild; i++)
+			{
+				if (children.at(i)->mBone->sibling_index == index_tmp)
+				{
+					bone = children.at(i)->mBone;
+					tree->mChildren.insert(tree->mChildren.begin(), children.at(i));
+					children.erase(children.begin() + i);
+
+					size_t nbBones = bones.size();
+					for (size_t j = 0; j < nbBones; j++)
+					{
+						if (bones.at(j) == bone)
+						{
+							index_tmp = j;
+							isfound = true;
+							break;
+						}
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+
+	//last test , to keep bone missed
+	if (children.size() != 0)
+	{
+		size_t nbChild = children.size();
+		for (size_t i = 0; i < nbChild; i++)
+			tree->mChildren.push_back(children.at(i));
+		children.clear();
+	}
+	
+	if (haveToClean)
+	{
+		delete listAllReadyUsed;
+		listAllReadyUsed = 0;
 	}
 
 	return tree;
@@ -696,6 +915,9 @@ std::vector<std::vector<size_t>> ESK::setTreeOrganisation(EskTreeNode* treeBone)
 \-------------------------------------------------------------------------------*/
 std::vector<std::vector<size_t>> ESK::remove(size_t index, bool recursive)
 {
+	//TODO check in relationlist if it's not existe to  also remove it.
+
+
 	size_t nbBones = bones.size();
 	if (index >= nbBones)
 	{
@@ -755,6 +977,8 @@ void ESK::clear(void)
 	for (size_t i = 0; i < nbBones; i++)
 		delete bones.at(i);
 	bones.clear();
+
+	listInverseKinematic.clear();
 }
 /*-------------------------------------------------------------------------------\
 |                             addTree				                             |

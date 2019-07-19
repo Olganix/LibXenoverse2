@@ -215,6 +215,14 @@ void EMD::replaceBonesNames(const string &oldName, const string &newName)
 	for (size_t i = 0; i < models.size(); i++)
 		models[i]->replaceBonesNames(oldName, newName);
 }
+/*-------------------------------------------------------------------------------\
+|                             mergeTriangles									 |
+\-------------------------------------------------------------------------------*/
+void EMD::mergeTriangles()
+{
+	for (size_t i = 0; i < models.size(); i++)
+		models[i]->mergeTriangles();
+}
 
 
 }

@@ -70,6 +70,9 @@
     <Filter Include="SCD">
       <UniqueIdentifier>{b712d7cc-95bc-4532-95df-92d8084d3b2f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OBL">
+      <UniqueIdentifier>{a894a28b-7023-4bc1-a503-ddbbd4649208}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyxml\tinystr.h">
@@ -164,6 +167,9 @@
     </ClInclude>
     <ClInclude Include="scd.h">
       <Filter>SCD</Filter>
+    </ClInclude>
+    <ClInclude Include="obl.h">
+      <Filter>OBL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -319,6 +325,9 @@
     </ClCompile>
     <ClCompile Include="scd.cpp">
       <Filter>SCD</Filter>
+    </ClCompile>
+    <ClCompile Include="obl.cpp">
+      <Filter>OBL</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -238,6 +238,7 @@ public:
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	bool	importFBX(FbxNode *fbxNode, std::vector<string> &xmlPath, string typeName);
 	void	exportFBX(string basename, FbxScene *scene, FbxNode* parentNode = 0);
+	bool	exportFBX_CheckHave3dData();					//check if object or child have something knowed. is to avoid useless Node creation.
 #endif
 
 };
@@ -319,7 +320,11 @@ public:
 	void saveXml(string filename);
 	TiXmlElement* export_Xml(string filename);
 	virtual bool Compile(TiXmlDocument *doc, bool big_endian = false);
-	bool import_Xml(TiXmlElement* parent);
+	bool import_Xml(TiXmlElement* parent);							//version 2015
+	//bool import_Xml_v2014_01_00_r1(TiXmlElement* parent);			//version 2014.01.00.r1
+	//Havok_TagObject* objectImportXml_v2014_01_00_r1(TiXmlElement* node, std::vector<Havok_TagObject*> &linkObj, std::vector<size_t> &linkIndex, Havok_TagItem* parentAttachement = 0);
+	Havok_TagType* searchForType(string name, Havok_TagType* pointer = 0);
+	//void calculateByteSizeAndAlignmentOfClass(Havok_TagType* type);
 
 
 	

@@ -1,6 +1,9 @@
 #include "LibXenoverse.h"
 #include "qdir.h"
+#include "rapidxml.hpp"
+#include "EMO_BaseFile.h"
 
+using namespace rapidxml;
 
 
 
@@ -79,7 +82,7 @@ public:
 
 	std::vector<XmlNode> mListChild;
 
-
+	bool haveTooMuchDatas;
 
 
 public:
@@ -87,15 +90,89 @@ public:
 	{
 		mName = name;
 		mType = type;
+		haveTooMuchDatas = false;
 	}
 	virtual ~XmlNode() { }
 
+
+
+
+	/*-------------------------------------------------------------------------------\
+	|                             cleanIfTooMuchOrigines		                     |
+	\-------------------------------------------------------------------------------*/
+	void cleanIfTooMuchOrigines()																// crash after ~526000 references.
+	{
+		size_t nbElements = mListValuesPossibilities.size();
+		if (nbElements < 100000)
+			return;
+
+
+
+		size_t limitOrigines = 30;
+
+		std::vector<valueWithRef> listUniques;
+		std::vector<size_t> listUniques_count;
+
+		
+		for (size_t i = 0; i < nbElements; ++i)			//premiere chose a faire c'est de merger les elements, pour n'avoir que les uniques.
+		{
+			valueWithRef &valueRef = mListValuesPossibilities.at(i);
+
+			size_t isfound = (size_t)-1;
+			size_t nbUniques = listUniques.size();
+			for (size_t j = 0; j < nbUniques; j++)
+			{
+				if (listUniques.at(j).mValue_str == valueRef.mValue_str)
+				{
+					isfound = j;
+					break;
+				}
+			}
+
+			if (isfound == (size_t)-1)
+			{
+				listUniques.push_back(valueRef);
+				listUniques_count.push_back(1);
+			}else {
+				listUniques_count.at(isfound) += 1;
+				if (listUniques_count.at(isfound)<limitOrigines)			//that will speed up a little the process time.
+					listUniques.at(isfound).mOrigineFromFile += ";" + valueRef.mOrigineFromFile;		//merge des references.
+			}
+		}
+
+		//avoid too long string on Origine witch break the Analyzer.
+		nbElements = listUniques.size();
+		for (size_t i = 0; i < nbElements; i++)
+		{
+			if (listUniques_count.at(i) < limitOrigines)
+				continue;
+
+			size_t firstPart = listUniques.at(i).mOrigineFromFile.find(';');
+			if (firstPart != std::string::npos)
+				listUniques.at(i).mOrigineFromFile = listUniques.at(i).mOrigineFromFile.substr(0, firstPart + 1) + " ... x " + std::to_string(listUniques_count.at(i));
+		}
+
+
+		mListValuesPossibilities = listUniques;
+		listUniques.clear();
+
+		if (listUniques.size() >= 100000)
+		{
+			listUniques.back().mOrigineFromFile = "Too many Datas ... stop here";
+			haveTooMuchDatas = true;
+		}
+	}
 
 	/*-------------------------------------------------------------------------------\
 	|                             merge					                             |
 	\-------------------------------------------------------------------------------*/
 	void merge(TiXmlElement *node, string origineFromFile)
 	{
+		if (haveTooMuchDatas)
+			return;
+
+		cleanIfTooMuchOrigines();
+		
 
 		if (mType == "text")
 		{
@@ -190,6 +267,122 @@ public:
 
 
 
+
+	/*-------------------------------------------------------------------------------\
+	|                             merge					                             |
+	\-------------------------------------------------------------------------------*/
+	void merge_RapidXml(xml_node<>* node, string origineFromFile)
+	{
+		cleanIfTooMuchOrigines();
+
+
+		if (mType == "text")
+		{
+			valueWithRef value;
+			value.mValue_str = string(node->value());
+			value.mOrigineFromFile = origineFromFile;
+			value.testCompatibily();
+
+			mListValuesPossibilities.push_back(value);
+
+		}else if (mType == "argument") {
+
+			valueWithRef value;
+			value.mValue_str = string ((node->first_attribute(mName.c_str()))->value());
+			value.mOrigineFromFile = origineFromFile;
+			value.testCompatibily();
+			mListValuesPossibilities.push_back(value);			
+			return;
+		}
+
+
+
+		size_t nbChilds;
+		size_t isfound;
+		string name, type;
+		size_t inc = 0;
+		bool pass;
+
+		for (xml_node<>* elem = node->first_node(); elem != NULL; elem = elem->next_sibling())
+		{
+			name = string(elem->name());
+
+			pass = false;
+			switch (elem->type())
+			{
+			case node_element: 
+			{
+				type = "node"; 
+
+				/*
+				if (
+					(name == "AABB") || (name == "Vertices") || (name == "TriangleList")				//case too much data for emd. Todo comment.
+					)
+				{
+					pass = true;
+				}
+				*/
+
+				break;
+			}
+			case node_data: type = "text"; break;
+			default:  pass = true;
+			}
+
+			if (pass)
+				continue;
+
+			isfound = (size_t)-1;
+			nbChilds = mListChild.size();
+			for (size_t i = 0; i < nbChilds; i++)
+			{
+				if ((mListChild.at(i).mName == name) && (mListChild.at(i).mType == type))
+				{
+					isfound = i;
+					break;
+				}
+			}
+			if (isfound == (size_t)-1)
+			{
+				isfound = nbChilds;
+				mListChild.push_back(XmlNode(name, type));
+			}
+
+			mListChild.at(isfound).merge_RapidXml(elem, origineFromFile + "," + std::to_string(inc++));
+		}
+
+
+		if (mType == "doc")						//no argument in document.
+			return;
+
+
+		//same for argument.
+		for (xml_attribute<>* elem = node->first_attribute(); elem != NULL; elem = elem->next_attribute())
+		{
+			name = elem->name();
+
+			isfound = (size_t)-1;
+			nbChilds = mListChild.size();
+			for (size_t i = 0; i < nbChilds; i++)
+			{
+				if ((mListChild.at(i).mName == name) && (mListChild.at(i).mType == "argument"))
+				{
+					isfound = i;
+					break;
+				}
+			}
+			if (isfound == (size_t)-1)
+			{
+				isfound = nbChilds;
+				mListChild.push_back(XmlNode(name, "argument"));
+			}
+
+			mListChild.at(isfound).merge_RapidXml(node, origineFromFile);
+		}
+	}
+
+
+
 	/*-------------------------------------------------------------------------------\
 	|                             exportAnalyze			                             |
 	\-------------------------------------------------------------------------------*/
@@ -260,11 +453,22 @@ public:
 			{
 				mlistUniques.push_back(valueRef);
 				mlistUniques_count.push_back(1);
-			}
-			else {
-				mlistUniques_count.at(isfound) += 1;
-				if(mlistUniques_count.at(isfound)<limitOrigines)			//that will speed up a little the process time.
-					mlistUniques.at(isfound).mOrigineFromFile += ";" + valueRef.mOrigineFromFile;		//merge des references.
+			}else {
+
+				size_t isfound_previousCleanning = valueRef.mOrigineFromFile.find(" ... x ");
+				if (isfound_previousCleanning == string::npos)
+				{
+					mlistUniques_count.at(isfound) += 1;
+					if (mlistUniques_count.at(isfound)<limitOrigines)			//that will speed up a little the process time.
+						mlistUniques.at(isfound).mOrigineFromFile += ";" + valueRef.mOrigineFromFile;		//merge des references.
+				}else {
+
+					string firstOrigine = valueRef.mOrigineFromFile.substr(0, isfound_previousCleanning);
+					if (mlistUniques_count.at(isfound) + 1<limitOrigines)			//that will speed up a little the process time.
+						mlistUniques.at(isfound).mOrigineFromFile += ";" + firstOrigine;		//merge des references.
+
+					mlistUniques_count.at(isfound) += std::stoi( valueRef.mOrigineFromFile.substr(isfound_previousCleanning + 7));
+				}
 			}
 		}
 
@@ -475,11 +679,13 @@ int main(int argc, char** argv)
 
 		if (extension != "xml")
 			continue;
-		if (filename.substr(filename.length() - 11) == "AnalyzerXml.xml")
+		if ((filename.length()>15)&&(filename.substr(filename.length() - 15) == "AnalyzerXml.xml"))
 			continue;
 
 		printf("Try to load \"%s\"\n", filename.c_str());
 
+		/*
+		//TinyXml version
 		TiXmlDocument doc;
 
 		if (!doc.LoadFile(filename))
@@ -493,10 +699,41 @@ int main(int argc, char** argv)
 			continue;
 		}
 
-
 		printf("processing...(please wait)\n");
 		xmlNode.merge((TiXmlElement*)(&doc), std::to_string(listValidFilenames.size()));
 		listValidFilenames.push_back(filename);
+		*/
+
+		//rapidXml version
+		xml_document<> doc;
+
+		char* buf;
+		size_t size;
+		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(filename, &size, true);
+		if (!buf)
+		{
+			printf("Error loading file \"%s\". skipped.\n", filename.c_str());
+			continue;
+		}
+		
+		string mess_debug = string(buf);
+		mess_debug[size] = '\0';
+
+		try
+		{
+			doc.parse<0>(&mess_debug[0]);
+
+		}catch (exception& e) {
+			printf("Error parsing file \"%s\". This is what rapidXml has to say: %s. skipped\n", filename.c_str(), e.what());
+			LibXenoverse::notifyError();
+			continue;
+		}
+
+		printf("processing...(please wait)\n");
+		xmlNode.merge_RapidXml((xml_document<>*)(&doc), std::to_string(listValidFilenames.size()));
+		listValidFilenames.push_back(filename);
+
+		delete buf;
 	}
 
 

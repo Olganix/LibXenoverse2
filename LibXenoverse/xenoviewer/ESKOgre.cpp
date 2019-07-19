@@ -71,7 +71,12 @@ void ESKOgre::buildBone(unsigned short b, Ogre::Skeleton *ogre_skeleton, Ogre::B
 	Ogre::Vector3 mPos = Ogre::Vector3(relativeTransform[0], relativeTransform[1], relativeTransform[2]) * relativeTransform[3];		//multiplication by w if scaled.
 	Ogre::Quaternion mRot = Ogre::Quaternion(relativeTransform[7], relativeTransform[4], relativeTransform[5], relativeTransform[6]);
 	Ogre::Vector3 mScale = Ogre::Vector3(relativeTransform[8], relativeTransform[9], relativeTransform[10]) * relativeTransform[11];		//multiplication by w if scaled.
-
+	if ((mScale.x == 0)|| (mScale.y == 0)|| (mScale.z == 0))
+	{
+		Ogre::LogManager::getSingleton().logMessage("Warning: Bone " + std::to_string(b) + " " + bones.at(b)->getName() + " Have a Scale at 0. it's should be a mistake (may be because of the current keyframe when you export from Blender or 3dsmax) Ogre don't like this. so we use Scale at 1 instead.");
+		mScale = Ogre::Vector3::UNIT_SCALE;
+	}
+	
 
 	mBone->setPosition(mPos);
 	mBone->setOrientation(mRot);
@@ -95,6 +100,8 @@ void ESKOgre::buildBone(unsigned short b, Ogre::Skeleton *ogre_skeleton, Ogre::B
 			}
 		}
 	}
+
+	mBone->_update(true, true);
 }
 
 

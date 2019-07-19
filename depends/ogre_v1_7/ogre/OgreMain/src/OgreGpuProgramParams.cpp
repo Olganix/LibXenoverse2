@@ -71,6 +71,7 @@ namespace Ogre
 
 		AutoConstantDefinition(ACT_WORLDVIEW_MATRIX,              "worldview_matrix",            16, ET_REAL, ACDT_NONE),
 		AutoConstantDefinition(ACT_WORLDVIEW_MATRIX_3x4,		  "worldview_matrix_3x4",		 12, ET_REAL, ACDT_NONE),
+		AutoConstantDefinition(ACT_WORLDVIEW_MATRIX_4x3,		  "worldview_matrix_4x3",		 12, ET_REAL, ACDT_NONE),
 		AutoConstantDefinition(ACT_INVERSE_WORLDVIEW_MATRIX,      "inverse_worldview_matrix",    16, ET_REAL, ACDT_NONE),
 		AutoConstantDefinition(ACT_TRANSPOSE_WORLDVIEW_MATRIX,         "transpose_worldview_matrix",        16, ET_REAL, ACDT_NONE),
 		AutoConstantDefinition(ACT_INVERSE_TRANSPOSE_WORLDVIEW_MATRIX, "inverse_transpose_worldview_matrix", 16, ET_REAL, ACDT_NONE),
@@ -1047,6 +1048,7 @@ namespace Ogre
 		case ACT_WORLD_MATRIX_ARRAY:
 		case ACT_WORLDVIEW_MATRIX:
 		case ACT_WORLDVIEW_MATRIX_3x4:
+		case ACT_WORLDVIEW_MATRIX_4x3:
 		case ACT_INVERSE_WORLDVIEW_MATRIX:
 		case ACT_TRANSPOSE_WORLDVIEW_MATRIX:
 		case ACT_INVERSE_TRANSPOSE_WORLDVIEW_MATRIX:
@@ -1952,7 +1954,7 @@ namespace Ogre
 						_writeRawConstants(i->physicalIndex + 6, t[2], 3);
 						_writeRawConstants(i->physicalIndex + 9, t[3], 3);						//=> makgres la bonne continuité , ca ne marche pas a cause du "uniform".
 						*/
-						_writeRawConstants(i->physicalIndex, t[0], 16);			//on fait comme d'hab grace au "uniform" qui en fait des float4
+						_writeRawConstants(i->physicalIndex, t[0], 12);			//on fait comme d'hab grace au "uniform" qui en fait des float4
 					}
 					break;
 				case ACT_INVERSE_WORLD_MATRIX:
@@ -1986,6 +1988,21 @@ namespace Ogre
 				case ACT_WORLDVIEW_MATRIX_3x4:
 					_writeRawConstants(i->physicalIndex, source->getWorldViewMatrix()[0], 12);
 					break;
+				case ACT_WORLDVIEW_MATRIX_4x3:
+				{
+					Matrix4 t = ((mTransposeMatrices) ? source->getWorldViewMatrix().transpose() : source->getWorldViewMatrix());
+
+					/*
+					// remember, raw content access uses raw float count rather than float4
+					_writeRawConstants(i->physicalIndex	   , t[0], 3);
+					_writeRawConstants(i->physicalIndex + 3, t[1], 3);
+					_writeRawConstants(i->physicalIndex + 6, t[2], 3);
+					_writeRawConstants(i->physicalIndex + 9, t[3], 3);						//=> malgres la bonne continuité , ca ne marche pas a cause du "uniform".
+					*/
+					_writeRawConstants(i->physicalIndex, t[0], 12);			//on fait comme d'hab grace au "uniform" qui en fait des float4
+
+					break;
+				}
 				case ACT_INVERSE_WORLDVIEW_MATRIX:
 					_writeRawConstant(i->physicalIndex, source->getInverseWorldViewMatrix(),i->elementCount);
 					break;

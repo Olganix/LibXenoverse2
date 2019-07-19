@@ -103,6 +103,14 @@ void EMDModel::replaceBonesNames(const string &oldName, const string &newName)
 	for (size_t i = 0; i < meshes.size(); i++)
 		meshes[i]->replaceBonesNames(oldName, newName);
 }
+/*-------------------------------------------------------------------------------\
+|                             mergeTriangles									 |
+\-------------------------------------------------------------------------------*/
+void EMDModel::mergeTriangles()
+{
+	for (size_t i = 0; i < meshes.size(); i++)
+		meshes[i]->mergeTriangles();
+}
 
 
 

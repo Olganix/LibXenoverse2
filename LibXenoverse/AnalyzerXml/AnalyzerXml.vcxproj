@@ -55,7 +55,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/LibXenoverse/LibXenoverse;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/zlib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/LibXenoverse/LibXenoverse;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/zlib/include;$(SolutionDir)/depends/rapidxml-1.13;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LIBXENOVERSE_ZLIB_SUPPORT;LIBXENOVERSE_WINSDK_SUPPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -71,7 +71,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/LibXenoverse/LibXenoverse;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/zlib/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/LibXenoverse/LibXenoverse;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/zlib/include;$(SolutionDir)/depends/rapidxml-1.13;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LIBXENOVERSE_ZLIB_SUPPORT;LIBXENOVERSE_WINSDK_SUPPORT;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

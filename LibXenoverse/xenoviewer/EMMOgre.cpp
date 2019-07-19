@@ -546,7 +546,9 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					(paramName == "ImageUTexture") || (paramName == "Texture_UTexture") ||
 					(paramName == "ImageVTexture") || (paramName == "Texture_VTexture")
 					)
+				{
 					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+				}
 
 				
 
@@ -997,7 +999,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vAlphaTest_PS")							//DBXv2
 				{
-					Ogre::Vector4 vect_tmp(0.5, 0.5, 0.5, 0.5);
+					Ogre::Vector4 vect_tmp(0.001, 0.001, 0.001, 0.001);
 
 					params = emm_material->getParameter("AlphaTest");
 					if (params)
@@ -1034,7 +1036,30 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				if(paramName.substr(0, 11) == "g_vLightSpc")													//g_vLightSpc0_VS, g_vLightSpc0_PS, g_vLightSpc1_VS, g_vLightSpc1_PS, etc ...
 				{
 					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR, index);
+
+					string indexMatCol = "MatSpc";
+					Ogre::Vector4 vect_tmp(0, 0, 0, 1);
+					bool useMatParam = false;
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
+
+					if (useMatParam)
+					{
+						fp_parameters->setConstant(reg, vect_tmp);
+						defaultValue = vect_tmp;
+					}else{
+						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR, index);
+					}
 					isUsed = "float4";
 				}
 
@@ -1042,7 +1067,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vEyePos_VS")
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_CAMERA_POSITION);
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_CAMERA_POSITION_OBJECT_SPACE);
 					isUsed = "float4";
 				}
 				
@@ -1061,7 +1086,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				
 				if ((paramName == "g_SystemTime_VS") || (paramName == "g_ElapsedTime_VS") ||(paramName == "g_SystemTime_PS") || (paramName == "g_ElapsedTime_PS"))
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_TIME);
+					fp_parameters->setAutoConstantReal(reg, Ogre::GpuProgramParameters::ACT_TIME, 1.0f);
 					isUsed = "float4";
 				}
 
@@ -1130,17 +1155,42 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 				
 
-				if (paramName == "g_vUserFlag0_VS")							//DBXv2
+				if (paramName == "g_vUserFlag0_VS")							//DBXv2 CustomFlag
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));			//test Todo remttre a 0
+					isUsed = "float4";
+				}
+				if (paramName == "g_vUserFlag1_VS")							//DBXv2
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
+					isUsed = "float4";
+				}
+				if (paramName == "g_vUserFlag2_VS")							//DBXv2
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
+					isUsed = "float4";
+				}
+				if (paramName == "g_vUserFlag3_VS")							//DBXv2
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
 					isUsed = "float4";
 				}
 				
-
+				if (paramName == "g_vHemiA_VS")								//DBXv2
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
+					defaultValue = Ogre::Vector4(0.2);
+					isUsed = "float4";
+				}
+				if (paramName == "g_vHemiB_VS")								//DBXv2
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
+					defaultValue = Ogre::Vector4(0.2);
+					isUsed = "float4";
+				}
 				if (paramName == "g_vHemiC_VS")								//DBXv2
 				{
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
-
 					defaultValue = Ogre::Vector4(0.2);
 					isUsed = "float4";
 				}
@@ -1150,7 +1200,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					isUsed = "float4";
 				}
 				
-
+				
 				if (paramName == "g_vFadeAdd_PS")
 				{
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
@@ -1158,7 +1208,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 				if (paramName == "g_vFadeMulti_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
 					isUsed = "float4";
 				}
 				if (paramName == "g_vFadeRim_PS")
@@ -1171,6 +1221,18 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
 					isUsed = "float4";
 				}
+				if (paramName == "g_vAltFadeAdd_PS")
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					isUsed = "float4";
+				}
+				if (paramName == "g_vAltFadeMulti_PS")
+				{
+					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
+					isUsed = "float4";
+				}
+
+				
 				
 				// Color Multiplier
 				if (paramName == "g_vParam0_VS")							//DBXv2
@@ -1222,7 +1284,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vAmbUni_VS")								//DBXv2. for the second framebuffer, like a general base ambiente for postEffect.
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_AMBIENT_LIGHT_COLOUR);
 					isUsed = "float4";
 				}
 				
@@ -1288,7 +1350,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 0);
 					isUsed = "float4x4";
 				}
-				if (paramName == "g_mWLPB_SM_VS")							//DBXv2. World Light Projection (SM = ShadowMap), (B ? backward ?) ShadowMap ?, or may be B for a second one ? because of g_mWLP_SM_VS (and g_mWLP_PM_VS, g_mWLPB_PM_VS)
+				if (paramName == "g_mWLPB_SM_VS")							//DBXv2. World Light Projection (SM = ShadowMap), (B ? backward ?) ShadowMap, or may be B for a second one ? because of g_mWLP_SM_VS (and g_mWLP_PM_VS, g_mWLPB_PM_VS).
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_SPOTLIGHT_WORLDVIEWPROJ_MATRIX, 1);
 					isUsed = "float4x4";
@@ -1330,7 +1392,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				
 				if (paramName == "g_mWV_VS")								// Matrix Worl View par contre Ogre ne delivre pas une version en 4x3
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLDVIEW_MATRIX_3x4);
+					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLDVIEW_MATRIX_4x3);
 					isUsed = "float4x3";
 				}
 
@@ -1636,6 +1698,17 @@ string EMMOgre::getCreatedMaterialName(string materialName)
 			return testedName;
 	}
 	return toTest;
+}
+
+EMMOgre::EmmMaterialCreated* EMMOgre::getEmmMaterialCreated(string materialName)
+{
+	size_t nbMat = created_materials.size();
+	for (size_t i = 0; i < nbMat; i++)
+	{
+		if (created_materials.at(i).name == materialName)
+			return &created_materials.at(i);
+	}
+	return 0;
 }
 
 void EMMOgre::destroyResources()

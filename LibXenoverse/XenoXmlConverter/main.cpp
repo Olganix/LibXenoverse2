@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 	printf("*******************************************************************\n\
  This tool is for convert some files of Dbxv2 into a Xml version, and reverse\n\
  Usage: 'XenoXmlConverter.exe [options] file.ext file2.ext ...'\n\
- Files formats supported : emd, esk, ean, emm, map, hkx, nsk, emo, mat.ema, ema(debug, no Rebuild), etr, aur, sds, spm(debug, fullRebuild), scd(debug, fullRebuild).\n\
+ Files formats supported : emd, esk, ean, emm, map, hkx, nsk, emo, mat.ema, ema(debug, no Rebuild), etr, aur, sds, obl, spm(debug, fullRebuild), scd(debug, fullRebuild).\n\
  Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
  Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
  Notice: \"path With Spaces\" allowed now. \n\
@@ -146,15 +146,24 @@ int main(int argc, char** argv)
 		}else if (extension == "emd") {
 
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
-			if(emd->load(filename))
+			if (emd->load(filename))
+			{
+				//emd->save(filename + "_reasave.emd");		//test todo remove.
+
 				emd->saveXml(filename + ".xml");
+			}
 			delete emd;
 
 		}else if ((extension == "xml") && (extension2 == "emd")) {
 
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
-			if(emd->loadXml(filename))
+			if (emd->loadXml(filename))
+			{
+				emd->mergeTriangles();						//Test Todo remove.
+
 				emd->save(basefilename2 + ".emd");
+			}
+				
 			delete emd;
 
 
@@ -353,6 +362,24 @@ int main(int argc, char** argv)
 			if(havok->load(filename))
 				havok->SaveToFile(basefilename2 + ".hkx");
 			delete havok;
+
+
+
+
+		}else if (extension == "obl") {
+
+			LibXenoverse::Obl* obl = new LibXenoverse::Obl();
+			if (obl->load(filename))
+				obl->saveXml(filename + ".xml");
+			delete obl;
+
+		}else if ((extension == "xml") && (extension2 == "obl")) {
+
+			LibXenoverse::Obl* obl = new LibXenoverse::Obl();
+			if (obl->load(filename))
+				obl->SaveToFile(basefilename2 + ".obl");
+			delete obl;
+
 
 
 		}else {

@@ -50,6 +50,12 @@ namespace LibXenoverse
 	void waitOnEnd() { if (haveToWait()) { printf("press Enter to continue ...\n");  getchar(); } }
 
 
+	string fillStringNumberLeft(string value, size_t numberCharacter)
+	{
+		for (size_t i = value.length(); i < numberCharacter; i++)
+			value = "0" + value;
+		return value;
+	}
 
 
 	std::vector<string> initApplication(int argc, char** argv, ApplicationEndWait applicationEndWait)
@@ -61,7 +67,8 @@ namespace LibXenoverse
 		std::vector<string> arguments;
 		string str_tmp = "";
 		string str2_tmp = "";
-		for (int i = 1; i < argc; i++)									//detection of options, remove then from arguments list, plus take care of folder with spaces inside (use " ")
+		//for (int i = ((argc > 1) ? 1 : 0); i < argc; i++)									//detection of options, remove then from arguments list, plus take care of folder with spaces inside (use " ")
+		for (int i = 1; i < argc; i++)
 		{
 			str_tmp = ToString(argv[i]);
 			if ((str2_tmp.length() == 0) && (str_tmp.length() == 0))

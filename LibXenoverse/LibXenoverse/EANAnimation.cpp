@@ -618,6 +618,73 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 			frame_count = nbframe;
 	}
 
+
+	size_t lastKfTime = (frame_count>0) ? (frame_count -1) : 0;
+	size_t nbNodes = nodes.size();
+	for (size_t i = 0; i < nbNodes; i++)
+	{
+		vector<EANKeyframedAnimation> &keyframed_animations  = nodes.at(i).getKeyframed_animations();
+
+		ESKBone* bone = bones.at(nodes.at(i).getBoneIndex());
+
+
+		size_t nbAnim = keyframed_animations.size();
+		if (nbAnim != 3)
+		{
+			bool have_POS = false;
+			bool have_ROT = false;
+			bool have_SCA = false;
+			bool have_CAM = false;
+			for (size_t j = 0; j < nbAnim; j++)
+			{
+				if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION)
+				{
+					have_POS = true;
+				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) {
+					have_ROT = true;
+				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE) {
+					have_SCA = true;
+				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA) {
+					have_CAM = true;
+				}
+			}
+
+			if (!have_POS)
+			{
+				keyframed_animations.insert(keyframed_animations.begin(), EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION));
+				vector<EANKeyframe> &listPos = keyframed_animations.at(0).getKeyframes();
+				//TODO use the default position of bone instead of neutral.
+				listPos.push_back(EANKeyframe(0, bone->skinning_matrix[0], bone->skinning_matrix[1], bone->skinning_matrix[2], 1.0f));
+				listPos.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[0], bone->skinning_matrix[1], bone->skinning_matrix[2], 1.0f));
+			}
+			
+			if (!have_ROT)
+			{
+				keyframed_animations.insert(keyframed_animations.begin()+1, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION));
+				vector<EANKeyframe> &listRot = keyframed_animations.at(1).getKeyframes();
+				listRot.push_back(EANKeyframe(0, bone->skinning_matrix[4], bone->skinning_matrix[5], bone->skinning_matrix[6], bone->skinning_matrix[7]));
+				listRot.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[4], bone->skinning_matrix[5], bone->skinning_matrix[6], bone->skinning_matrix[7]));
+			}
+
+			if (!have_SCA)
+			{
+				keyframed_animations.insert(keyframed_animations.begin() + 2, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE));
+				vector<EANKeyframe> &listScale = keyframed_animations.at(2).getKeyframes();
+				listScale.push_back(EANKeyframe(0, bone->skinning_matrix[8], bone->skinning_matrix[9], bone->skinning_matrix[10], 1.0f));
+				listScale.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[8], bone->skinning_matrix[9], bone->skinning_matrix[10], 1.0f));
+			}
+
+			if ((allowCamera)&&(!have_CAM))
+			{
+				keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA));
+				vector<EANKeyframe> &listScale = keyframed_animations.back().getKeyframes();
+				listScale.push_back(EANKeyframe(0, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));
+				listScale.push_back(EANKeyframe(lastKfTime, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));
+			}
+		}
+
+	}
+
 	LOG_DEBUG("Animation Frames: %d\n", frame_count);
 	LOG_DEBUG("Animation Nodes (%d):\n", nodes.size());
 }

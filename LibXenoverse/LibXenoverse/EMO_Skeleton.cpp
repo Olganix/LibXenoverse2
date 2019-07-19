@@ -325,8 +325,12 @@ bool EMO_Bone::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 void EMO_Bone::readESKBone(ESKBone* esk)
 {
 	name = esk->name;
-	index_4 = esk->index_4;
-
+	sn_u0A[0] = esk->index_4;
+	usd_u00[0] = esk->unk_extraInfo_0;
+	usd_u00[1] = esk->unk_extraInfo_1;
+	usd_u00[2] = esk->unk_extraInfo_2;
+	usd_u00[3] = esk->unk_extraInfo_3;
+	
 	has_matrix2 = esk->haveTransformMatrix;
 
 	if (has_matrix2)
@@ -352,7 +356,13 @@ void EMO_Bone::readESKBone(ESKBone* esk)
 void EMO_Bone::writeESKBone(ESKBone* esk)
 {
 	esk->name = name;
-	esk->index_4 = index_4;
+	esk->index_4 = sn_u0A[0];
+	esk->unk_extraInfo_0 = usd_u00[0];
+	esk->unk_extraInfo_1 = usd_u00[1];
+	esk->unk_extraInfo_2 = usd_u00[2];
+	esk->unk_extraInfo_3 = usd_u00[3];
+
+
 
 	esk->haveTransformMatrix = has_matrix2;
 
@@ -588,14 +598,12 @@ bool EMO_Bone::operator==(const EMO_Bone &rhs) const
 
 EMO_Skeleton::EMO_Skeleton(void)
 {
-    ik_data = nullptr;
     big_endian = false;
     Reset();
 }
 
 EMO_Skeleton::EMO_Skeleton(uint8_t *buf, unsigned int size)
 {
-	ik_data = nullptr;
     big_endian = false;
     Load(buf, size);
 }
@@ -607,19 +615,7 @@ EMO_Skeleton::~EMO_Skeleton()
 
 void EMO_Skeleton::Copy(const EMO_Skeleton &other)
 {
-    if (other.ik_data)
-    {
-        this->ik_data = new uint8_t[other.ik_size];
-		memcpy(this->ik_data, other.ik_data, other.ik_size);
-		
-        this->ik_size = other.ik_size;
-    }
-    else
-    {
-        this->ik_data = nullptr;
-        this->ik_size = 0;
-    }
-
+	this->listInverseKinematic = other.listInverseKinematic;
     this->unk_02 = other.unk_02;
     this->unk_06 = other.unk_06;
 
@@ -655,16 +651,11 @@ void EMO_Skeleton::Copy(const EMO_Skeleton &other)
 
 void EMO_Skeleton::Reset()
 {
-    if (ik_data)
-    {
-        delete[] ik_data;
-        ik_data = nullptr;
-    }
-
-    ik_size = unk_02 = unk_06 = unk_10[0] = unk_10[1] = unk_34[0] = unk_34[1] = 0;
+    unk_02 = unk_06 = unk_10[0] = unk_10[1] = unk_34[0] = unk_34[1] = 0;
 	unk_38[0] = unk_38[1] = 0.0f;
 
     bones.clear();
+	listInverseKinematic.clear();
 }
 
 uint16_t EMO_Skeleton::FindBone(const std::vector<EMO_Bone *> &bones, EMO_Bone *bone, bool assert_if_not_found)
@@ -704,6 +695,37 @@ void EMO_Skeleton::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
             b.sibling = &bones[FindBone(old_bones_ptr, b.sibling, true)];
         }
     }
+}
+
+
+EMO_Bone* EMO_Skeleton::GetBone(uint16_t idx)
+{
+	if (idx >= bones.size())
+		return nullptr;
+
+	return &bones[idx];
+}
+
+EMO_Bone* EMO_Skeleton::GetBone(const std::string &name)
+{
+	for (EMO_Bone &b : bones)
+	{
+		if (b.name == name)
+			return &b;
+	}
+
+	return nullptr;
+}
+
+const EMO_Bone* EMO_Skeleton::GetBone(const std::string &name) const
+{
+	for (const EMO_Bone &b : bones)
+	{
+		if (b.name == name)
+			return &b;
+	}
+
+	return nullptr;
 }
 
 uint16_t EMO_Skeleton::AppendBone(const EMO_Skeleton &other, const std::string &name)
@@ -836,86 +858,6 @@ uint16_t EMO_Skeleton::BoneToIndex(EMO_Bone *bone) const
     return 0xFFFF;
 }
 
-size_t EMO_Skeleton::CalculateIKSize(const uint8_t *ik_data, uint16_t count)
-{
-    size_t size = 0;
-
-    for (uint16_t i = 0; i < count; i++)
-    {
-        uint16_t data_size = val16(*(uint16_t *)(ik_data + 2));
-
-        size += data_size;
-        ik_data += data_size;
-    }
-
-    return size;
-}
-
-uint16_t EMO_Skeleton::CalculateIKCount(const uint8_t *ik_data, size_t size)
-{
-    const uint8_t *end = ik_data + size;
-    unsigned int count = 0;
-
-    while (ik_data < end)
-    {
-        uint16_t data_size = *(uint16_t *)(ik_data + 2);
-
-        count++;
-        ik_data += data_size;
-    }    
-
-    return count;
-}
-
-void EMO_Skeleton::TranslateIKData(uint8_t *dst, const uint8_t *src, size_t size, bool import)
-{
-    if (this->big_endian == false)
-    {
-        memcpy(dst, src, size);
-        return;
-    }
-
-    const IKEntry *ike_src = (const IKEntry *)src;
-    IKEntry *ike_dst = (IKEntry *)dst;
-    IKEntry *top = (IKEntry *)(dst + size);
-
-    while (ike_dst < top)
-    {
-       ike_dst->unk_00 = val16(ike_src->unk_00);
-       ike_dst->entry_size = val16(ike_src->entry_size);
-
-       if (import)
-       {
-           assert (ike_dst->entry_size == 0x18);
-       }
-
-       ike_dst->unk_03 = ike_src->unk_03;
-       ike_dst->unk_04 = ike_src->unk_04;
-       ike_dst->unk_06 = val16(ike_src->unk_06);
-
-       ike_dst->unk_08[0] = val16(ike_src->unk_08[0]);
-       ike_dst->unk_08[1] = val16(ike_src->unk_08[1]);
-
-       assert(ike_src->unk_08[2] == 0 && ike_src->unk_08[3] == 0);
-
-       ike_dst->unk_08[2] = 0;
-       ike_dst->unk_08[3] = 0;
-
-       ike_dst->unk_10[0] = val32(ike_src->unk_10[0]);
-       ike_dst->unk_10[1] = val32(ike_src->unk_10[1]);
-
-       if (import)
-       {
-           assert(ike_dst->unk_10[0] == 0x3F000000 && ike_dst->unk_10[1] == 0);
-       }
-
-       ike_src++;
-       ike_dst++;
-    }
-
-    //LOG_DEBUG("Comparison after translation: %d\n", (memcmp(dst, src, size) == 0));
-}
-
 bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 {
 	Reset();
@@ -925,32 +867,6 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 	SkeletonHeader *hdr = (SkeletonHeader *)buf;
 	uint16_t node_count = val16(hdr->node_count);
 
-	if (hdr->ik_data_offset)
-	{
-		ik_size = CalculateIKSize(GetOffsetPtr(buf, hdr->ik_data_offset), val16(hdr->ik_count));
-		if (ik_size != 0x108)
-		{
-			// Temporal message, it will be supressed in future
-			// Update: supressed now
-			//LOG_DEBUG("Warning: ik_size not 0x108. Ignore this if this is not a SSSS CHARACTER file.\n");
-		}
-
-		ik_data = new uint8_t[ik_size];
-
-		if (!ik_data)
-		{
-			LOG_DEBUG("%s: Memory allocation error.\n", FUNCNAME);
-			LibXenoverse::notifyError();
-			return false;
-		}
-
-		TranslateIKData(ik_data, GetOffsetPtr(buf, hdr->ik_data_offset), ik_size, true);
-	}
-	else
-	{
-		ik_data = nullptr;
-		ik_size = 0;
-	}
 
 	unk_02 = val16(hdr->unk_02);
 	unk_06 = val16(hdr->unk_06);
@@ -967,38 +883,9 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 
 	unk_34[0] = val16(hdr->unk_34[0]);
 	unk_34[1] = val16(hdr->unk_34[1]);
-
-	
 	unk_38[0] = val_float(hdr->unk_38[0]);
 	unk_38[1] = val_float(hdr->unk_38[1]);
-	
-	/*
-	//test essaye de trouver a quoi sert unk_38 qui a l'air d'etre important , et qui est le meme dans le xxxx.obj.ema.
-	{
-		uint32_t *p = (uint32_t *)&(hdr->unk_38[0]);
-		uint32_t *p_2 = (uint32_t *)&(hdr->unk_38[1]);
 
-		//inversion du val32() pour les avoir a nouveau dans l'ordre
-#ifdef __BIG_ENDIAN__
-		*p = (big_endian) ? LE32(*p) : *p;
-		*p_2 = (big_endian) ? LE32(*p_2) : *p_2;
-#else
-		*p = (big_endian) ? *p : BE32(*p);
-		*p_2 = (big_endian) ? *p_2 : BE32(*p_2);
-#endif
-
-		uint16_t *p16 = (uint16_t*)p;
-		uint16_t *p16_2 = (uint16_t*)p_2;
-
-		float a38_a = float16ToFloat(val16(p16[1]));
-		float a38_b = float16ToFloat(val16(p16[0]));
-		float a38_c = float16ToFloat(val16(p16_2[1]));
-		float a38_d = float16ToFloat(val16(p16_2[0]));
-		
-
-		int aa = 42;
-	}
-	*/
 
     uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, hdr->names_offset);
     SkeletonNode *nodes = (SkeletonNode *)GetOffsetPtr(buf, hdr->start_offset);
@@ -1116,6 +1003,77 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)
 		bones[i].index_4 = index_4;
     }
 
+
+
+
+
+	listInverseKinematic.clear();
+	if (hdr->ik_data_offset)
+	{
+		size_t offset = val32(hdr->ik_data_offset);
+		size_t nbIkGroup = val16(hdr->ik_count);
+		size_t nbBones = bones.size();
+
+		bool wrongOldCaseDetected = false;
+
+		uint16_t val_u16;
+		for (size_t i = 0; i < nbIkGroup; i++)
+		{
+			listInverseKinematic.push_back(Emo_IK_Group());
+
+			size_t startOffset_group = offset;
+			uint16_t* u16_values = (uint16_t *)GetOffsetPtr(buf, offset, true);
+
+			uint16_t nbIk = val16(u16_values[0]);
+			uint16_t size_tmp = val16(u16_values[1]);
+			offset += 2 * sizeof(uint16_t);
+
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
+				Emo_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
+
+				offset++;
+				uint8_t nbRelations = buf[offset];
+				offset++;
+
+				u16_values = (uint16_t *)GetOffsetPtr(buf, offset, true);
+				offset += (nbRelations + 1) * sizeof(uint16_t);
+				for (size_t k = 0; k <= nbRelations; k++)
+				{
+					val_u16 = val16(u16_values[k]);
+					if (val_u16 < nbBones)
+					{
+						ik.mListBones.push_back(Emo_IK_Relation::IKR_Bone(&bones.at(val_u16)));
+					}else{
+						wrongOldCaseDetected = true;
+						break;
+					}
+				}
+				if (wrongOldCaseDetected)
+					break;
+
+				if (nbRelations % 2 != 0)					//padding for 32bits
+					offset += sizeof(uint16_t);
+
+
+				float* float_values = (float*)GetOffsetPtr(buf, offset, true);
+				offset += (nbRelations + 1) * sizeof(float);
+
+				for (size_t k = 0; k <= nbRelations; k++)
+					ik.mListBones.at(k).value = val_float(float_values[k]);
+			}
+			if (wrongOldCaseDetected)
+				break;
+
+			offset = startOffset_group + size_tmp;
+		}
+
+		if (wrongOldCaseDetected)
+			listInverseKinematic.clear();
+	}
+
+
     return true;
 }
 
@@ -1150,12 +1108,39 @@ unsigned int EMO_Skeleton::CalculateFileSize() const
         file_size += (bones.size() * sizeof(MatrixData));
     }
 
-    if (ik_data)
-    {
-        file_size += ik_size;
-    }
+    file_size += calculIksize();
 
     return file_size;
+}
+/*-------------------------------------------------------------------------------\
+|                             calculIksize			                             |
+\-------------------------------------------------------------------------------*/
+size_t EMO_Skeleton::calculIksize() const
+{
+	size_t filesize = 0;
+	size_t nbGroup = listInverseKinematic.size();
+	if (nbGroup == 0)
+		return filesize;
+
+	filesize = 0;
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		const Emo_IK_Group &group = listInverseKinematic.at(i);
+		size_t nbIk = group.mListIK.size();
+		filesize += 2 * sizeof(uint16_t);
+
+		size_t size_tmp = 0;
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			size_t nbrelations = group.mListIK.at(j).mListBones.size();
+			size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
+			if ((nbrelations + 1) % 2 != 0)
+				size_tmp += sizeof(uint16_t);
+		}
+		filesize += size_tmp;
+	}
+
+	return filesize;
 }
 
 uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize)
@@ -1291,20 +1276,86 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
         hdr->matrix_offset = 0;
     }
 
-    if (ik_data)
-    {
-       hdr->ik_data_offset = val32(offset);
 
-       TranslateIKData(buf+offset, ik_data, ik_size, false);
-       offset += ik_size;
 
-       hdr->ik_count = val16(CalculateIKCount(ik_data, ik_size));
-    }
-    else
-    {
-        hdr->ik_data_offset = 0;
-        hdr->ik_count = 0;
-    }
+
+	if (listInverseKinematic.size())
+	{
+		hdr->ik_data_offset = val32(offset);
+		
+		size_t bone_count = bones.size();
+		size_t nbGroup = listInverseKinematic.size();
+		hdr->ik_count = val16(nbGroup);
+
+		for (size_t i = 0; i < nbGroup; i++)
+		{
+			Emo_IK_Group &group = listInverseKinematic.at(i);
+
+			size_t startOffset_group = offset;
+			uint16_t* u16_values = (uint16_t *)GetOffsetPtr(buf, offset, true);
+
+			size_t nbIk = group.mListIK.size();
+			u16_values[0] = val16(nbIk);
+
+			size_t size_tmp = 2 * sizeof(uint16_t);
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				size_t nbrelations = group.mListIK.at(j).mListBones.size();
+				size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
+			}
+			u16_values[1] = val16(size_tmp);
+			offset += 2 * sizeof(uint16_t);
+
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				Emo_IK_Relation &ik = group.mListIK.at(j);
+				size_t nbrelations = ik.mListBones.size();
+				if (nbrelations > 1)
+					nbrelations--;
+
+				buf[offset++] = 0;
+				buf[offset++] = nbrelations;
+
+				u16_values = (uint16_t *)GetOffsetPtr(buf, offset, true);
+				offset += (nbrelations + 1) * sizeof(uint16_t);
+
+				for (size_t k = 0; k <= nbrelations; k++)
+				{
+					EMO_Bone* bone = ik.mListBones.at(k).bone;
+
+					size_t isfound = (size_t)-1;
+					for (size_t m = 0; m < bone_count; m++)
+					{
+						if (&bones.at(m) == bone)
+						{
+							isfound = m;
+							break;
+						}
+					}
+					if (!isfound)			//secu
+						isfound = 0;
+
+					u16_values[k] = val16(isfound);
+				}
+				if (nbrelations % 2 != 0)				//padding
+				{
+					buf[offset++] = 0;
+					buf[offset++] = 0;
+				}
+
+				float* float_values = (float*)GetOffsetPtr(buf, offset, true);
+				offset += (nbrelations + 1) * sizeof(float);
+
+				for (size_t k = 0; k <= nbrelations; k++)
+					float_values[k] = val_float(ik.mListBones.at(k).value);
+			}
+
+			offset = startOffset_group + size_tmp;
+		}
+	}
+
+
+
 
     assert(offset == file_size);
 
@@ -1327,10 +1378,43 @@ void EMO_Skeleton::Decompile(TiXmlNode *root) const
         b.Decompile(entry_root);
     }
 
-    if (ik_data)
-    {
-        EMO_BaseFile::WriteParamBlob(entry_root, "IK_DATA", ik_data, ik_size);
-    }
+
+
+	if (listInverseKinematic.size())
+	{
+		TiXmlElement* node_IK_list = new TiXmlElement("InverseKinematic");
+		entry_root->LinkEndChild(node_IK_list);
+
+		size_t nbBones = listInverseKinematic.size();
+		for (size_t i = 0; i<nbBones; i++)
+		{
+			const Emo_IK_Group &group = listInverseKinematic.at(i);
+
+			TiXmlElement* node_group = new TiXmlElement("Group");
+			node_IK_list->LinkEndChild(node_group);
+
+			size_t nbIk = group.mListIK.size();
+			for (size_t j = 0; j < nbIk; j++)
+			{
+				const Emo_IK_Relation &ik = group.mListIK.at(j);
+				TiXmlElement* node_ik = new TiXmlElement("IK");
+				node_group->LinkEndChild(node_ik);
+
+				size_t nbBones = ik.mListBones.size();
+				//node_ik->SetAttribute("count", nbBones);
+
+				for (size_t k = 0; k < nbBones; k++)
+				{
+					TiXmlElement* node = new TiXmlElement("Bone");
+					node_ik->LinkEndChild(node);
+
+					node->SetAttribute("name", ik.mListBones.at(k).bone->name);
+					node->SetDoubleAttribute("value", ik.mListBones.at(k).value);
+				}
+			}
+		}
+	}
+
 
     root->LinkEndChild(entry_root);
 }
@@ -1441,9 +1525,43 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
         }
     }
 	
-	ik_data = EMO_BaseFile::ReadParamBlob(root, "IK_DATA", &ik_size);
-	if (!ik_data)
-		ik_size = 0;
+	//read IK and Extra
+	const TiXmlElement* node_IK_list = root->FirstChildElement("InverseKinematic");
+	if (node_IK_list)
+	{
+		for (const TiXmlElement* node_group = node_IK_list->FirstChildElement("Group"); node_group; node_group = node_group->NextSiblingElement("Group"))
+		{
+			listInverseKinematic.push_back(Emo_IK_Group());
+
+			for (const TiXmlElement* node_ik = node_group->FirstChildElement("IK"); node_ik; node_ik = node_ik->NextSiblingElement("IK"))
+			{
+				listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
+				Emo_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
+
+				for (const TiXmlElement* node = node_ik->FirstChildElement("Bone"); node; node = node->NextSiblingElement("Bone"))
+				{
+					string name = "";
+					double value = 0.0;
+					node->QueryStringAttribute("name", &name);
+					node->QueryDoubleAttribute("value", &value);
+
+					EMO_Bone* eskBone = 0;
+					size_t nbBones = bones.size();
+					for (size_t i = 0; i < nbBones; i++)
+					{
+						if (bones.at(i).name == name)
+						{
+							eskBone = &bones.at(i);
+							break;
+						}
+					}
+
+					if (eskBone)
+						ik.mListBones.push_back(Emo_IK_Relation::IKR_Bone(eskBone, (float)value));
+				}
+			}
+		}
+	}
 
     return true;
 }
@@ -1603,14 +1721,15 @@ bool EMO_Skeleton::ExportFbx(FbxScene *scene, std::vector<FbxNode *> &fbx_bones)
 
 bool EMO_Skeleton::operator==(const EMO_Skeleton &rhs) const
 {
-    if (this->ik_size != rhs.ik_size)
-        return false;
+	size_t nbGroup = listInverseKinematic.size();
+	if (nbGroup != rhs.listInverseKinematic.size())
+		return false;
 
-    if (this->ik_size != 0)
-    {
-        if (memcmp(this->ik_data, rhs.ik_data, this->ik_size) != 0)
-            return false;
-    }
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		if (listInverseKinematic.at(i) != rhs.listInverseKinematic.at(i))
+			return false;
+	}
 
     if (this->unk_02 != rhs.unk_02)
         return false;
@@ -1643,7 +1762,9 @@ bool EMO_Skeleton::operator==(const EMO_Skeleton &rhs) const
 void EMO_Skeleton::writeEsk(ESK* esk)
 {
 	esk->name = name;
-
+	esk->unknown_offset_2 = *(uint32_t*)(&(unk_38[0]));
+	esk->unknown_offset_3 = *(uint32_t*)(&(unk_38[1]));
+	esk->mHaveExtraBytesOnEachBone = true;
 
 	esk->bones.clear();
 	EskTreeNode* rootNode = esk->getTreeOrganisation();
@@ -1766,14 +1887,53 @@ void EMO_Skeleton::writeEsk(ESK* esk)
 
 
 	esk->setTreeOrganisation(rootNode);
+
+
+
+
+	//Ik datas
+	esk->listInverseKinematic.clear();
+	size_t nbBones_all = esk->bones.size();
+	size_t nbGroup = listInverseKinematic.size();
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Emo_IK_Group &group = listInverseKinematic.at(i);
+		esk->listInverseKinematic.push_back(Esk_IK_Group());
+
+		size_t nbIk = group.mListIK.size();
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			Emo_IK_Relation &ik = group.mListIK.at(j);
+			esk->listInverseKinematic.back().mListIK.push_back(Esk_IK_Relation());
+			Esk_IK_Relation &ik_b = esk->listInverseKinematic.back().mListIK.back();
+
+			size_t nbBones = ik.mListBones.size();
+			for (size_t k = 0; k < nbBones; k++)
+			{
+				EMO_Bone* bone = ik.mListBones.at(k).bone;
+				ESKBone* bone_b = 0;
+
+				for (size_t m = 0; m < nbBones_all; m++)
+				{
+					if (esk->bones.at(m)->getName() == bone->name)
+					{
+						bone_b = esk->bones.at(m);
+						break;
+					}
+				}
+				if (!bone_b)
+					continue;
+
+				ik_b.mListBones.push_back(Esk_IK_Relation::IKR_Bone(bone_b, ik.mListBones.at(k).value));		
+			}
+		}
+	}
 }
 /*-------------------------------------------------------------------------------\
 |                             writeEsk__recursive				                 |
 \-------------------------------------------------------------------------------*/
 void EMO_Skeleton::writeEsk__recursive(EMO_Bone* emoBone, std::vector<EMO_Bone> &bones, EskTreeNode* treeNode, std::vector<EskTreeNode*> &listTreeNode)
 {
-
-
 	//we look after all children (child and sibling), to make the hierarchy.
 	EMO_Bone* emoBone_child = emoBone->child;
 	size_t inc = 0;

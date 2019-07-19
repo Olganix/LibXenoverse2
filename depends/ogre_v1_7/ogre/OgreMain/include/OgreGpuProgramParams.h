@@ -656,6 +656,7 @@ namespace Ogre {
 			/// The current world & view matrices concatenated
 			ACT_WORLDVIEW_MATRIX,
 			ACT_WORLDVIEW_MATRIX_3x4,
+			ACT_WORLDVIEW_MATRIX_4x3,
 			/// The current world & view matrices concatenated, then inverted
 			ACT_INVERSE_WORLDVIEW_MATRIX,
 			/** Provides transpose of concatenated world and view matrices.

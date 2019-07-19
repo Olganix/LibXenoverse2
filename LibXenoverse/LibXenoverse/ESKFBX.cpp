@@ -15,6 +15,7 @@ void ESK::importFBXSkeleton(FbxScene *scene, bool allowCamera)
 	bones.clear();
 	EskTreeNode* rootNode = getTreeOrganisation();
 
+	mHaveExtraBytesOnEachBone = !allowCamera;
 
 	FbxNode *lNode;
 	FbxSkeleton *lSkeleton;

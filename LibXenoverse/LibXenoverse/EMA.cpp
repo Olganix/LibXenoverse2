@@ -9,7 +9,7 @@ namespace LibXenoverse
 /*-------------------------------------------------------------------------------\
 |                             readEAN				                             |
 \-------------------------------------------------------------------------------*/
-void EMA::readEAN(EAN* ean)
+void EMA::readEAN(EAN* ean, bool forceOrientationInterpolation)
 {
 	name = ean->name;
 	unk_08 = ean->unknown_total & 0xffff;
@@ -21,7 +21,7 @@ void EMA::readEAN(EAN* ean)
 	for (size_t i = 0; i < nbElements; i++)
 	{
 		animations.push_back(EmaAnimation());
-		animations.back().readEANAnimation(&ean->animations.at(i), ean->getSkeleton(), this);
+		animations.back().readEANAnimation(&ean->animations.at(i), ean->getSkeleton(), this, forceOrientationInterpolation);
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -52,6 +52,8 @@ void EMA::writeEAN(EAN* ean)
 void EMA::readEsk(ESK* esk)
 {
 	name = esk->name;
+	unk_38[0] = *(float*)(&(esk->unknown_offset_2));
+	unk_38[1] = *(float*)(&(esk->unknown_offset_3));
 
 	EskTreeNode* rootNode = esk->getTreeOrganisation();
 
@@ -83,7 +85,6 @@ void EMA::readEsk(ESK* esk)
 				if (bones.at(j).GetName() == parentName)
 				{
 					bones.at(i - 1).parent = &(bones.at(j));
-					bones.at(i - 1).sn_u0A[0] = 1;
 
 					if (bones.at(j).child == nullptr)
 					{
@@ -111,6 +112,46 @@ void EMA::readEsk(ESK* esk)
 		}
 	}
 
+
+
+
+	//Ik datas
+	listInverseKinematic.clear();
+	size_t nbBones_all = bones.size();
+	size_t nbGroup = esk->listInverseKinematic.size();
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Esk_IK_Group &group = esk->listInverseKinematic.at(i);
+		listInverseKinematic.push_back(Emo_IK_Group());
+
+		size_t nbIk = group.mListIK.size();
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			Esk_IK_Relation &ik = group.mListIK.at(j);
+			listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
+			Emo_IK_Relation &ik_b = listInverseKinematic.back().mListIK.back();
+
+			size_t nbBones = ik.mListBones.size();
+			for (size_t k = 0; k < nbBones; k++)
+			{
+				ESKBone* bone = ik.mListBones.at(k).bone;
+				EMO_Bone* bone_b = 0;
+
+				for (size_t m = 0; m < nbBones_all; m++)
+				{
+					if (bones.at(m).name == bone->getName())
+					{
+						bone_b = &bones.at(m);
+						break;
+					}
+				}
+				if (!bone_b)
+					continue;
+
+				ik_b.mListBones.push_back(Emo_IK_Relation::IKR_Bone(bone_b, ik.mListBones.at(k).value));
+			}
+		}
+	}
 }
 
 
@@ -123,12 +164,12 @@ void EMA::readEsk(ESK* esk)
 /*-------------------------------------------------------------------------------\
 |                             readEANAnimation		                             |
 \-------------------------------------------------------------------------------*/
-void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton)
+void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton, bool forceOrientationInterpolation)
 {
 	name = ean->name;
 	duration = ean->frame_count;
 	type = ean->getParent()->getType() & 0x1FF;			//todo find a way to have the type (may be the extension of the file)
-	frame_float_size = ean->frame_float_size;
+	frame_float_size = ((ean->frame_float_size == 1) ? 1 : 0);
 
 
 	ESKBone* eskBone;
@@ -164,11 +205,12 @@ void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* e
 				{
 					commands.push_back(EmaCommand());
 					commands.back().bone = emo_Bone;
-					commands.back().transformComponent = k;			//0 for X, 1 one Y, 2 for Z.
+					//commands.back().transformComponent = k;			//0 for X, 1 one Y, 2 for Z.
+					commands.back().transformComponent = k + 0x8;			//0 for X, 1 one Y, 2 for Z. TODO find what is the first left bit for. and also the component 3. it's W for light and material animations.
 
 					commands.back().timesByteSize = ((duration > 0xff) ? 0x20 : 0x0);
 
-					commands.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k, duration);
+					commands.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k, duration, forceOrientationInterpolation);
 
 					commands.back().indexesByteSize = ((values.size() > 0xffff) ? 0x40 : 0x0);
 				}
@@ -186,7 +228,7 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 	ean->frame_index_size = 0;
 	if(ean->getParent())
 		ean->getParent()->setType(type | 0x400);
-	ean->frame_float_size = (unsigned char)frame_float_size;
+	ean->frame_float_size = (unsigned char)((frame_float_size == 1) ? 1 : 2);
 	
 
 
@@ -466,7 +508,7 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 /*-------------------------------------------------------------------------------\
 |                             readANKeyframedAnimation                           |
 \-------------------------------------------------------------------------------*/
-void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration)
+void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation)
 {
 	size_t flag_tmp = 0;
 	switch (ean->flag)
@@ -487,15 +529,15 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 	size_t nbElements = ean->keyframes.size();
 	for (size_t i = 0; i < nbElements; i++)						//Command is about a couple Bone+Transform, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
 	{
-		steps.push_back(EmaStep());
-
 		EANKeyframe &kf = ean->keyframes.at(i);
 
-		steps.back().time = kf.frame;
 		
 		float value = 0.0;
 		if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION)
 		{
+			steps.push_back(EmaStep());
+			steps.back().time = kf.frame;
+
 			if (currComponent == 0)
 				value = kf.x;
 			else if (currComponent == 1)
@@ -504,19 +546,105 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 				value = kf.z;
 			else if (currComponent == 3)
 				value = kf.w;
-		} else {
-			
 
-			//Quaternion -> Euler Angle (in real, is TaitBryan angles)
-			FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
+		}else{
 
-			//Xenoverse data is on XYZ order.
-			if (currComponent == 0)					//rotation for X axis
-				value = (float)angles[2];					//roll
-			else if (currComponent == 1)			//for Y axis
-				value = (float)angles[1];					//yaw on disc from pitch.
-			else if (currComponent == 2)			//for Z axis
-				value = (float)angles[0];					//pitch
+			if ((!forceOrientationInterpolation)||(i+1 == nbElements))
+			{
+				steps.push_back(EmaStep());
+				steps.back().time = kf.frame;
+				
+				//Quaternion -> Euler Angle (in real, is TaitBryan angles)
+				FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
+
+				//Xenoverse data is on XYZ order.
+				if (currComponent == 0)					//rotation for X axis
+					value = (float)angles[2];					//roll
+				else if (currComponent == 1)			//for Y axis
+					value = (float)angles[1];					//yaw on disc from pitch.
+				else if (currComponent == 2)			//for Z axis
+					value = (float)angles[0];					//pitch
+
+				//test TODO REMOVE ( this test <=>remove if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) in certain case )
+				if (currComponent == 0)					//rotation for X axis
+					value = kf.x;					//roll
+				else if (currComponent == 1)			//for Y axis
+					value = kf.y;					//yaw on disc from pitch.
+				else if (currComponent == 2)			//for Z axis
+					value = kf.z;					//pitch
+
+			}else{									// force to have all keyframe for orientation, to avoid weird interpolation between result of the conversion from quaternion to EulerAngles XYZ.
+
+				EANKeyframe &kf_next = ean->keyframes.at(i+1);
+				size_t prevFrame = kf.frame;
+				size_t nextFrame = kf_next.frame;
+				size_t nbFrames = nextFrame - prevFrame;
+
+				if (nbFrames != 0)
+				{
+					double factor = 0.0;
+					for (size_t j = 0; j < nbFrames; j++)
+					{
+						factor = (double)j / (double)nbFrames;
+
+						steps.push_back(EmaStep());
+						steps.back().time = prevFrame + j;
+
+
+						//Todo slerp between kf, kf_next, factor => x y z w
+						FbxQuaternion prevQuat = FbxQuaternion(kf.x, kf.y, kf.z, kf.w);
+						FbxQuaternion nextQuat = FbxQuaternion(kf_next.x, kf_next.y, kf_next.z, kf_next.w);
+						FbxQuaternion currQuat = prevQuat.Slerp(nextQuat, factor);
+						
+
+						FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(currQuat[0], currQuat[1], currQuat[2], currQuat[3]));		// yaws, pitch, roll
+
+						//Xenoverse data is on XYZ order.
+						if (currComponent == 0)					//rotation for X axis
+							value = (float)angles[2];					//roll
+						else if (currComponent == 1)			//for Y axis
+							value = (float)angles[1];					//yaw on disc from pitch.
+						else if (currComponent == 2)			//for Z axis
+							value = (float)angles[0];					//pitch
+
+
+						//to reduce the number of Values (goal of this format)
+						size_t isfound = (size_t)-1;
+						size_t nbValues = values.size();
+						for (size_t j = 0; j < nbValues; j++)
+						{
+							if (values.at(j) == value)
+							{
+								isfound = j;
+								break;
+							}
+						}
+						if (isfound == (size_t)-1)
+						{
+							isfound = nbValues;
+							values.push_back(value);
+						}
+
+						steps.back().index = isfound;
+					}
+					continue;
+
+
+
+				}else {				//secu
+					
+					steps.push_back(EmaStep());
+					steps.back().time = kf.frame;
+					
+					FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
+					if (currComponent == 0)					//rotation for X axis
+						value = (float)angles[2];					//roll
+					else if (currComponent == 1)			//for Y axis
+						value = (float)angles[1];					//yaw on disc from pitch.
+					else if (currComponent == 2)			//for Z axis
+						value = (float)angles[0];					//pitch
+				}
+			}
 		}
 		
 		//to reduce the number of Values (goal of this format)
@@ -765,9 +893,13 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 void EmaStep::Decompile(TiXmlNode *root, const std::vector<float> &values) const
 {
 	TiXmlElement *entry_root = new TiXmlElement("Step");
+	entry_root->SetAttribute("TIME", time);
+	entry_root->SetAttribute("INDEX", EMO_BaseFile::UnsignedToString(index, true));
 
+	/*
 	EMO_BaseFile::WriteParamUnsigned(entry_root, "TIME", time);
 	EMO_BaseFile::WriteParamUnsigned(entry_root, "INDEX", index, true);
+	*/
 
 	size_t index_tmp = index;
 	if (index_tmp >= values.size())
@@ -776,7 +908,10 @@ void EmaStep::Decompile(TiXmlNode *root, const std::vector<float> &values) const
 		index_tmp = index_tmp & 0x3fff;
 
 	if (index_tmp < values.size())
-		EMO_BaseFile::WriteParamFloat(entry_root, "TestValues", values.at(index_tmp) );
+	{
+		entry_root->SetDoubleAttribute("TestValues", values.at(index_tmp));
+		//EMO_BaseFile::WriteParamFloat(entry_root, "TestValues", values.at(index_tmp));
+	}
 
 	root->LinkEndChild(entry_root);
 }
@@ -2165,54 +2300,14 @@ void EMA::write_Coloration_Skeleton(TiXmlElement *parent, const uint8_t *buf, si
 	size_t startOffset_data = hdr->ik_data_offset;
 
 	size_t ik_size = 0;
-	uint8_t* ik_data;
 
 	if (startOffset_data)
 	{
-		ik_size = 0;
+		size_t ik_size = 0;
 		for (uint16_t i = 0; i < hdr->ik_count; i++)
 			ik_size += val16(*(uint16_t *)(buf + startOffset_data + ik_size + 2));
 
-
-		ik_data = new uint8_t[ik_size];
-
-		if (this->big_endian == false)
-		{
-			memcpy(ik_data, buf + startOffset_data, ik_size);
-		}
-		else {
-
-			const IKEntry *ike_src = (const IKEntry *)(buf + startOffset_data);
-			IKEntry *ike_dst = (IKEntry *)ik_data;
-			IKEntry *top = (IKEntry *)(ik_data + size);
-
-			while (ike_dst < top)
-			{
-				ike_dst->unk_00 = val16(ike_src->unk_00);
-				ike_dst->entry_size = val16(ike_src->entry_size);
-				assert(ike_dst->entry_size == 0x18);
-				ike_dst->unk_03 = ike_src->unk_03;
-				ike_dst->unk_04 = ike_src->unk_04;
-				ike_dst->unk_06 = val16(ike_src->unk_06);
-				ike_dst->unk_08[0] = val16(ike_src->unk_08[0]);
-				ike_dst->unk_08[1] = val16(ike_src->unk_08[1]);
-				assert(ike_src->unk_08[2] == 0 && ike_src->unk_08[3] == 0);
-				ike_dst->unk_08[2] = 0;
-				ike_dst->unk_08[3] = 0;
-				ike_dst->unk_10[0] = val32(ike_src->unk_10[0]);
-				ike_dst->unk_10[1] = val32(ike_src->unk_10[1]);
-				assert(ike_dst->unk_10[0] == 0x3F000000 && ike_dst->unk_10[1] == 0);
-				ike_src++;
-				ike_dst++;
-			}
-		}
-
 		write_Coloration_Tag("Data InverseKinematic", "blob", "", startOffset_Skeleton + startOffset_data, ik_size, "DataIK", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += ik_size;
-
-	}
-	else {
-		ik_data = nullptr;
-		ik_size = 0;
 	}
 
 	if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)

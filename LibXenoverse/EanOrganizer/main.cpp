@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 		'GetBoneList <indexEan>'\n\
 		'AddBoneFilter <indexEan> <indexBone1> <indexBone2> <indexBone3> ...' by using the filter, when you paste, all the destination animation wiil be not erased, just only for bone specified in filter. Ex: if you just copy the tails animation but not the body animation, just add bone of tail in filter.\n\
 		'AddAllBoneInFilterFor <indexEan> <indexBone1_notIn> <indexBone2_notIn> <indexBone3_notIn> ...' fast version to add all of but not the specified index.\n\
-		'AddBoneFilterPreset <indexEan> <presetName>' add a preselected list of bone to the filter. Preset are : 'torso', 'leg_left', 'leg_right', 'arm_left', 'arm_right', 'head', 'tail'.\n\
+		'AddBoneFilterPreset <indexEan> <presetName>' add a preselected list of bone to the filter. Preset are : 'torso', 'leg_left', 'leg_right', 'arm_left', 'arm_right', 'head', 'tail', 'spine', 'wings', 'sword', 'cane', 'spear', 'acessories'.\n\
 		'GetBoneFilter' list all bones in filter by eanfile\n\
 		'ResetBoneFilter' clear the filter\n\
 		'PasteWithBoneFilter <indexEan> <indexAnimation>'\n\
@@ -1048,16 +1048,34 @@ int main(int argc, char** argv)
 				line = "AddBoneFilter " + indexFile_str + " b_R_Leg1 b_R_Leg2 b_R_Foot g_R_Foot b_R_Toe b_R_Knee b_R_LegHelper";
 				automaticLine = true;
 			}else if (presetName == "arm_left") {
-				line = "AddBoneFilter " + indexFile_str + " b_L_Shoulder b_L_Arm1 b_L_Arm2 b_L_Hand h_L_Middle1 h_L_Middle2 h_L_Middle3 g_L_Hand h_L_Pinky1 h_L_Pinky2 h_L_Pinky3 h_L_Ring1 h_L_Ring2 h_L_Ring3 h_L_Index1 h_L_Index2 h_L_Index3 h_L_Thumb1 h_L_Thumb2 h_L_Thumb3 b_L_ArmRoll b_L_Elbow b_L_ArmHelper b_L_ArmorParts";
+				line = "AddBoneFilter " + indexFile_str + " b_L_Shoulder b_L_Arm1 b_L_Arm2 b_L_Hand h_L_Middle1 h_L_Middle2 h_L_Middle3 g_L_Hand h_L_Pinky1 h_L_Pinky2 h_L_Pinky3 h_L_Ring1 h_L_Ring2 h_L_Ring3 h_L_Index1 h_L_Index2 h_L_Index3 h_L_Thumb1 h_L_Thumb2 h_L_Thumb3 b_L_ArmRoll b_L_Elbow b_L_ArmHelper b_L_ArmorParts x_L_ArmZoom1 x_L_ArmZoom2 x_L_ArmZoom3 x_L_ArmZoom4 x_L_ArmZoom5 x_L_ArmZoom6 x_L_ArmZoom7 x_L_ArmZoom8 x_L_ArmZoom9 x_L_ArmZoom10";
 				automaticLine = true;
 			}else if (presetName == "arm_right") {
-				line = "AddBoneFilter " + indexFile_str + " b_R_Shoulder b_R_Arm1 b_R_Elbow b_R_Arm2 b_R_Hand h_R_Middle1 h_R_Middle2 h_R_Middle3 g_R_Hand h_R_Pinky1 h_R_Pinky2 h_R_Pinky3 h_R_Ring1 h_R_Ring2 h_R_Ring3 h_R_Index1 h_R_Index2 h_R_Index3 h_R_Thumb1 h_R_Thumb2 h_R_Thumb3 b_R_ArmRoll b_R_ArmHelper b_R_ArmorParts";
+				line = "AddBoneFilter " + indexFile_str + " b_R_Shoulder b_R_Arm1 b_R_Arm2 b_R_Hand h_R_Middle1 h_R_Middle2 h_R_Middle3 g_R_Hand h_R_Pinky1 h_R_Pinky2 h_R_Pinky3 h_R_Ring1 h_R_Ring2 h_R_Ring3 h_R_Index1 h_R_Index2 h_R_Index3 h_R_Thumb1 h_R_Thumb2 h_R_Thumb3 b_R_ArmRoll b_R_Elbow b_R_ArmHelper b_R_ArmorParts x_R_ArmZoom1 x_R_ArmZoom2 x_R_ArmZoom3 x_R_ArmZoom4 x_R_ArmZoom5 x_R_ArmZoom6 x_R_ArmZoom7 x_R_ArmZoom8 x_R_ArmZoom9 x_R_ArmZoom10";
 				automaticLine = true;
 			}else if (presetName == "head") {
 				line = "AddBoneFilter " + indexFile_str + " b_C_Neck1 b_C_Head g_C_Head f_C_FaceRoot f_L_EyeInnerCorner f_R_EyeCorner f_L_EyeSocket f_C_ToothTop f_C_Jaw f_L_MouthBottom f_C_MouthBottom f_R_MouthBottom f_C_Tongue1 f_C_Tongue2 f_C_Tongue3 f_C_Tongue4 f_C_ToothBottom f_L_EyeCorner f_L_EyeBrows1 f_L_EyeBrows2 f_L_EyeBrows3 f_L_EyeBrowsHair3 f_L_EyeBrowsHair2 f_L_EyeBrowsHair1 f_L_CheekTop f_R_Eye f_R_EyeIris f_L_Eye f_L_EyeIris f_C_JawHalf f_L_MouthCorners f_L_CheekBottom f_R_CheekBottom f_R_MouthCorners f_C_NoseTop f_C_MouthTop f_L_EyelidBottom f_L_EyelidTop f_R_CheekTop f_R_EyeInnerCorner f_R_EyeSocket f_R_EyelidBottom f_R_EyelidTop f_R_EyeBrows1 f_R_EyeBrows2 f_R_EyeBrows3 f_R_EyeBrowsHair3 f_R_EyeBrowsHair2 f_R_EyeBrowsHair1 f_R_MouthTop f_L_MouthTop";
 				automaticLine = true;
 			}else if (presetName == "tail") {
 				line = "AddBoneFilter " + indexFile_str + " X_T_TAIL1 X_T_TAIL2 X_T_TAIL3 X_T_TAIL4 X_T_TAIL5 X_T_TAIL6 X_T_TAIL7 X_T_TAIL8 X_T_TAIL9 X_T_TAIL10";
+				automaticLine = true;
+			}else if (presetName == "spine") {
+				line = "AddBoneFilter " + indexFile_str + " x_x_backhorn x_L_backtophorn1 x_L_backtophorn2 x_R_backmiddlehorn1 x_R_backmiddlehorn2 x_R_backtophorn1 x_R_backtophorn2 x_L_backmiddlehorn1 x_L_backmiddlehorn2";
+				automaticLine = true;
+			}else if (presetName == "wings") {
+				line = "AddBoneFilter " + indexFile_str + " Wing_bases RWing_bases RWing_A RWing_B RWing_B_outsidethe1 RWing_B_outsidethe2 RWing_B_outsidethe3 RWing_B_outsidethe4 RWing_B_middle1 RWing_B_inside1 RWing_B_inside2 RWing_A1 RWing_A2 LWing_bases LWing_A LWing_B LWing_B_outsidethe1 LWing_B_outsidethe2 LWing_B_outsidethe3 LWing_B_outsidethe4 LWing_B_middle1 LWing_B_inside1 LWing_B_inside2 LWing_A1 LWing_A2";
+				automaticLine = true;
+			}else if (presetName == "sword") {
+				line = "AddBoneFilter " + indexFile_str + " a_x_sword1 a_x_sword2 a_x_sword3 a_x_sword4";
+				automaticLine = true;
+			}else if (presetName == "cane") {
+				line = "AddBoneFilter " + indexFile_str + " a_x_cane_root a_x_cane_front1 a_x_cane_front2 a_x_cane_back1";
+				automaticLine = true;
+			}else if (presetName == "spear") {
+				line = "AddBoneFilter " + indexFile_str + " a_x_spear_root a_x_spear_front1 a_x_spear_front2 a_x_spear_front3 a_x_spear_back1 a_x_spear_back2 a_x_spear_back3";
+				automaticLine = true;
+			}else if (presetName == "acessories") {
+				line = "AddBoneFilter " + indexFile_str + " a_x_flute a_x_glasses";
 				automaticLine = true;
 			}else {
 				printf("Unknow preset's name. try 'Help' command\n");

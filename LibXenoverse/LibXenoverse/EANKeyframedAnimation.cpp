@@ -233,7 +233,7 @@ void EANKeyframedAnimation::cut(size_t indexKfStart, size_t indexKfEnd, bool pus
 		{
 			if (keyframes.at(i).frame > indexKfEnd)
 			{
-				keyframes.insert(keyframes.begin() + (i - 1), EANKeyframe(indexKfEnd, x, y, z, w));
+				keyframes.insert(keyframes.begin() + i, EANKeyframe(indexKfEnd, x, y, z, w));
 				break;
 			}
 		}
@@ -265,6 +265,21 @@ void EANKeyframedAnimation::cut(size_t indexKfStart, size_t indexKfEnd, bool pus
 void EANKeyframedAnimation::sort()
 {
 	std::sort(keyframes.begin(), keyframes.end(), &EANKeyframedAnimation::timeOrder);
+
+
+	size_t nbKeyFrames = keyframes.size();
+	size_t lastTime = (size_t)-1;
+	for (size_t i = 0; i < nbKeyFrames; i++)					//remove duplicate frames times.
+	{
+		if ((i!=0) && (keyframes.at(i).frame == lastTime))
+		{
+			keyframes.erase(keyframes.begin() + i);
+			nbKeyFrames--;
+			i--;
+			continue;
+		}
+		lastTime = keyframes.at(i).frame;
+	}
 }
 /*-------------------------------------------------------------------------------\
 |                             addKeyFrameAtTime			                         |
@@ -447,6 +462,8 @@ bool EANKeyframedAnimation::importFBXRotationAnimCurve(FbxNode *fbx_node, size_t
 	
 	bool haveNoNeutralPosition = false;
 
+	//printf("\n*******\n", rx, rz, ry);
+
 	nbMerged = list_fbxtime.size();
 	for (size_t i = 0; i < nbMerged; i++)
 	{
@@ -500,30 +517,55 @@ bool EANKeyframedAnimation::importFBXRotationAnimCurve(FbxNode *fbx_node, size_t
 		{
 			//yaw sur Y //pitch sur Z //roll sur X
 			rotation = FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx);	//lacet sur Y //tangage sur Z //roulis sur X
+			//printf("rx: %f, rz: %f, ry: %f => qx: %f, qy: %f, qz: %f, qw: %f\n", rx, rz, ry, rotation[0], rotation[1], rotation[2], rotation[3]);
 		}
 		break;
 
-		case FbxEuler::EOrder::eOrderXYZ: { rotation = FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx); } break;
-		case FbxEuler::EOrder::eOrderYZX: { rotation = FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry); } break;
-		case FbxEuler::EOrder::eOrderYXZ: { rotation = FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry); } break;
-		case FbxEuler::EOrder::eOrderZXY: { rotation = FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz); } break;
-		case FbxEuler::EOrder::eOrderZYX: { rotation = FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz); } break;
+		case FbxEuler::EOrder::eOrderXYZ:
+		{ 
+			rotation = FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx); 
+			//printf("rx: %f, ry: %f, rz: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", rx, ry, rz, rotation[0], rotation[1], rotation[2], rotation[3]);
+		} break;
+		case FbxEuler::EOrder::eOrderYZX: 
+		{
+			rotation = FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry); 
+			//printf("ry: %f, rz: %f, rx: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", ry, rz, rx, rotation[0], rotation[1], rotation[2], rotation[3]);
+		} break;
+		case FbxEuler::EOrder::eOrderYXZ:
+		{ 
+			rotation = FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry); 
+			//printf("ry: %f, rx: %f, rz: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", ry, rx, rz, rotation[0], rotation[1], rotation[2], rotation[3]);
+		} break;
+		case FbxEuler::EOrder::eOrderZXY: 
+		{ 
+			rotation = FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz); 
+			//printf("rz: %f, rx: %f, ry: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", rz, rx, ry, rotation[0], rotation[1], rotation[2], rotation[3]);
+		} break;
+		case FbxEuler::EOrder::eOrderZYX: 
+		{
+			rotation = FbxQuaternion(FbxVector4(1, 0, 0, 1), rx) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(0, 0, 1, 1), rz); 
+			//printf("rz: %f, ry: %f, rx: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", rz, ry, rx, rotation[0], rotation[1], rotation[2], rotation[3]);
+		} break;
 
 		case FbxEuler::EOrder::eOrderSphericXYZ:
 		{
 			//todo put a warning :  we will use eOrderXYZ instead of the spherique version, because I don't find information on that case.
 			rotation = FbxQuaternion(FbxVector4(0, 0, 1, 1), rz) * FbxQuaternion(FbxVector4(0, 1, 0, 1), ry) * FbxQuaternion(FbxVector4(1, 0, 0, 1), rx);
+			//printf("(spherical) rx: %f, ry: %f, rz: %f => qx: %f, qy: %f, qz: %f, qw: %f \n", rx, ry, rz, rotation[0], rotation[1], rotation[2], rotation[3]);
 		}
 		break;
 		}
 
 
-		
+		//TEST TODO REMOVE COMMENTS for remove Test of direct Rx, Ry, Rz animations, without quaternion conversion
 		rx = (float)(rotation[0]);
 		ry = (float)(rotation[1]);
 		rz = (float)(rotation[2]);
 		rw = (float)(rotation[3]);
-			
+		
+		
+		
+
 
 		if ((!haveNoNeutralPosition) && ((abs(rx) > 0.00001) || (abs(ry) > 0.00001) || (abs(rz) > 0.00001) || (abs(rw-1.0) > 0.00001)))
 			haveNoNeutralPosition = true;

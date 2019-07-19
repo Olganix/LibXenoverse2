@@ -39,22 +39,41 @@ void EMD::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &gl
 void EMDModel::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, size_t indexModel, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
+	//FbxNode *node = FbxNode::Create(scene, (name +"_test").c_str());			//test todo remove
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
 	node->LclRotation.Set(FbxVector4(0, 0, 0));
 	node->LclScaling.Set(FbxVector4(1, 1, 1));
 
 	parentNode->AddChild(node);
 
+	
+	//Test Todo remove. to have Node animation (not just on bones).
+	FbxNode* forceBoneNode = 0;
+	if (false)
+	{
+		const int lNodeCount = scene->GetSrcObjectCount<FbxNode>();
+		for (int lIndex = 0; lIndex < lNodeCount; lIndex++)
+		{
+			FbxNode* fbxNode = scene->GetSrcObject<FbxNode>(lIndex);
+			if ((!fbxNode) || (!fbxNode->GetSkeleton()) || (string(fbxNode->GetName()) != name))	//in this case the bones have the same name of a EmdModel
+				continue;
+
+			forceBoneNode = fbxNode;
+			break;
+		}
+	}
+
 	size_t nbMesh = meshes.size();
 	for (size_t i = 0; i < nbMesh; i++)
-		meshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture);
+		meshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture, forceBoneNode);
 }
 /*-------------------------------------------------------------------------------\
 |                             exportFBX											 |
 \-------------------------------------------------------------------------------*/
-void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
+void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture, FbxNode* forceBoneNode)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
+	//FbxNode *node = FbxNode::Create(scene, (name + "_test").c_str());			//test todo remove
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
 	node->LclRotation.Set(FbxVector4(0, 0, 0));
 	node->LclScaling.Set(FbxVector4(1, 1, 1));
@@ -63,19 +82,25 @@ void EMDMesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv>
 
 	size_t nbSubMesh = submeshes.size();
 	for (size_t i = 0; i < nbSubMesh; i++)
-		submeshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture);
+		submeshes.at(i)->exportFBX(scene, global_fbx_bones, node, listTexturePackEMB, emmMaterial, wantNoTexture, forceBoneNode);
 }
 /*-------------------------------------------------------------------------------\
 |                             EMDSubmesh										 |
 \-------------------------------------------------------------------------------*/
-void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture)
+void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial, bool wantNoTexture, FbxNode* forceBoneNode)
 {
 	FbxNode *node = FbxNode::Create(scene, name.c_str());
 	node->LclTranslation.Set(FbxVector4(0, 0, 0));
 	node->LclRotation.Set(FbxVector4(0, 0, 0));
 	node->LclScaling.Set(FbxVector4(1, 1, 1));
 
-	parentNode->AddChild(node);
+	if (!forceBoneNode)
+	{
+		parentNode->AddChild(node);
+	}else {
+		forceBoneNode->AddChild(node);
+		forceBoneNode = 0;
+	}
 
 	
 
@@ -122,6 +147,14 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 		fbxGeometryElementTangent->SetMappingMode(FbxGeometryElement::eByControlPoint);
 		fbxGeometryElementTangent->SetReferenceMode(FbxGeometryElement::eDirect);
 	}
+
+	FbxGeometryElementVertexColor* fbxGeometryElementColor = NULL;
+	if (flags & EMD_VTX_FLAG_COLOR)
+	{
+		fbxGeometryElementColor = fbxMesh->CreateElementVertexColor();
+		fbxGeometryElementColor->SetMappingMode(FbxGeometryElement::eByControlPoint);
+		fbxGeometryElementColor->SetReferenceMode(FbxGeometryElement::eDirect);
+	}
 	
 	FbxGeometryElementUV* fbxGeometryElementUV = NULL;
 	if (flags & EMD_VTX_FLAG_TEX)
@@ -139,14 +172,20 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 		fbxGeometryElementUV2->SetReferenceMode(FbxGeometryElement::eDirect);
 	}
 
-	FbxGeometryElementVertexColor* fbxGeometryElementColor = NULL;
-	if (flags & EMD_VTX_FLAG_COLOR)
-	{
-		fbxGeometryElementColor = fbxMesh->CreateElementVertexColor();
-		fbxGeometryElementColor->SetMappingMode(FbxGeometryElement::eByControlPoint);
-		fbxGeometryElementColor->SetReferenceMode(FbxGeometryElement::eDirect);
-	}
+	
 
+
+	if (forceBoneNode)
+		int aa = 42;
+
+	
+	/*
+	if (((flags & EMD_VTX_FLAG_BLEND_WEIGHT) == 0) && (forceBoneNode))				//if it use bones influence. case force to match
+		flags = flags | EMD_VTX_FLAG_BLEND_WEIGHT;
+	else
+		forceBoneNode = false;														//if allready have blend, stop force.
+	*/
+	
 	FbxSkin* lSkin = NULL;
 	if (flags & EMD_VTX_FLAG_BLEND_WEIGHT)				//if it use bones influence.
 	{
@@ -212,6 +251,26 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 		{
 			std::vector<std::string> &bone_names = triangles.at(i).bone_names;
 
+			if (forceBoneNode)
+			{
+				bone_names.clear();
+				bone_names.push_back(forceBoneNode->GetName());
+
+				/*
+				//Test because problem on declaration of parent on bindpose , for 3dsmax.
+				FbxNode* bone_tmp = forceBoneNode->GetParent();
+				while (bone_tmp)
+				{
+					string name_tmp = string(bone_tmp->GetName());
+					if(name_tmp.length())
+						bone_names.push_back(name_tmp);
+
+					bone_tmp = bone_tmp->GetParent();
+				}
+				*/
+			}
+
+
 			FbxCluster* fbxCluster;
 			nbBones = bone_names.size();
 			for (size_t j = 0; j < nbBones; j++)
@@ -223,9 +282,9 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 				bool isfound = false;
 				for (size_t k = 0; k < nbCluster; k++)
 				{
-					if (boneAllareadyHaveClusterList.at(i) == bone_name)
+					if (boneAllareadyHaveClusterList.at(k) == bone_name)
 					{
-						triangle_shortBoneListCluster.push_back(clusterList.at(i));
+						triangle_shortBoneListCluster.push_back(clusterList.at(k));
 						isfound = true;
 						break;
 					}
@@ -253,8 +312,16 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 						{
 							ESK::FbxBonesInstance_DBxv	&fbxBoneInst = global_fbx_bones.at(k);
 							fbxCluster->SetLink(fbxBoneInst.mNode);
-							fbxCluster->SetTransformLinkMatrix(fbxBoneInst.mNode->EvaluateGlobalTransform());
 							
+							if (!forceBoneNode)
+							{
+								fbxCluster->SetTransformLinkMatrix(fbxBoneInst.mNode->EvaluateGlobalTransform());
+							}else {
+								FbxAMatrix matrix;
+								matrix.SetIdentity();
+								fbxCluster->SetTransformLinkMatrix(matrix);
+							}
+
 							break;
 						}
 					}
@@ -333,14 +400,14 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 						printf("Invalid Bone Index %d compared to Bone FBX Index Map size %d. just skip.\n", bone_index, triangle_shortBoneListCluster.size());
 						continue;
 					}
-
-					if( (bone_index == 15)&&(name=="hand"))
-						int aa = 42;
-
 					float blend_weight = ((m != 3) ? v.blend_weight[m] : (1.0f - (v.blend_weight[0] + v.blend_weight[1] + v.blend_weight[2])));					
 
-					if ((blend_weight < 0.0) || (blend_weight > 1.0))
-						int aa = 42;
+					if (forceBoneNode)
+					{
+						bone_index = 0;
+						blend_weight = (m==0) ? 1.0f : 0.0f;
+					}
+
 
 					bool isfound_tmp = false;
 					size_t nbIndex_tmp = blendIndiceUnique.size();

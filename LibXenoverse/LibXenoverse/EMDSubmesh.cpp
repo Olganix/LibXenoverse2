@@ -252,6 +252,62 @@ size_t EMDSubmesh::mergeVertex(EMDVertex &v)
 	return (vertices.size() - 1);
 }
 /*-------------------------------------------------------------------------------\
+|                             mergeTriangles									 |
+\-------------------------------------------------------------------------------*/
+void EMDSubmesh::mergeTriangles()
+{
+	vector<EMDTriangles> old_triangles = triangles;
+	size_t nbOldTriangles = old_triangles.size();
+	if (nbOldTriangles < 2)
+		return;
+
+	triangles.clear();
+	//triangles.push_back(old_triangles.at(0));
+	triangles.push_back(EMDTriangles());
+	vector<string> &bone_names = triangles.at(0).bone_names;
+	vector<unsigned short> &faces = triangles.at(0).faces;
+
+	size_t nbVertices = vertices.size();
+	std::vector<bool> verticeAllreadyModified;
+	verticeAllreadyModified.resize(nbVertices, false);
+
+	size_t startBoneNameIndex = 0;
+	size_t nbBones = 0;
+	size_t nbFaces = 0;
+	//for (size_t i = 1; i < nbOldTriangles; i++)
+	for (size_t i = 0; i < nbOldTriangles; i++)
+	{
+		startBoneNameIndex = bone_names.size();
+		
+		EMDTriangles &triangle = old_triangles.at(i);
+
+		nbBones = triangle.bone_names.size();
+		for (size_t j = 0; j < nbBones; j++)
+			bone_names.push_back(triangle.bone_names.at(j));							//Todo check if there isn't duplication of boneName (not the case of current test)
+
+		nbFaces = triangle.faces.size();
+		for (size_t j = 0; j < nbFaces; j++)
+		{
+			faces.push_back(triangle.faces.at(j));
+
+			//now we need to update blend indice.
+			EMDVertex &vertex = vertices.at(faces.back());
+			if (verticeAllreadyModified.at(faces.back()))
+				continue;
+			verticeAllreadyModified.at(faces.back()) = true;
+
+			if ((vertex.flags & EMD_VTX_FLAG_BLEND_WEIGHT) == 0)
+				continue;
+
+
+			for (size_t k = 0; k < 4; k++)
+				vertex.blend[k] += startBoneNameIndex;
+		}
+	}
+
+	int aa = 42;
+}
+/*-------------------------------------------------------------------------------\
 |                             getTriangleForBoneNameCombinaison					 |
 \-------------------------------------------------------------------------------*/
 EMDTriangles* EMDSubmesh::getTriangleForBoneNameCombinaison(vector<string> bone_names, bool createIfDontExist)

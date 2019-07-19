@@ -16,6 +16,21 @@ int main(int argc, char** argv)
 
 	std::vector<string> arguments = LibXenoverse::initApplication(argc, argv);
 
+	
+	//options
+	bool forceOrientationInterpolation = false;
+
+	size_t nbArg = arguments.size();
+	for (size_t i = 0; i < nbArg; i++)
+	{
+		if (arguments.at(i) == "-forceOrientationInterpolation")
+		{
+			arguments.erase(arguments.begin() + i);
+			forceOrientationInterpolation = true;
+			break;
+		}
+	}
+
 	if (arguments.size() == 0)
 	{
 		printf("Error not enougth arguments.\n");
@@ -52,7 +67,7 @@ int main(int argc, char** argv)
 		if (ean->load(filename))
 		{
 			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
-			ema->readEAN(ean);
+			ema->readEAN(ean, forceOrientationInterpolation);
 
 			ema->SaveToFile(filename + ".ema");
 			//ema->DecompileToFile(filename + "_resave.ema.xml");		//test

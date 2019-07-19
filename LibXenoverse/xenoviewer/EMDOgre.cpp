@@ -205,7 +205,7 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 	Ogre::Matrix4 mat = Ogre::Matrix4::IDENTITY;
 	
 	LibXenoverse::ESKBone* boneToForceLink = 0;
-	if (((flags & EMD_VTX_FLAG_BLEND_WEIGHT) == 0) && (skeleton) && (skeleton->getOgreSkeleton()))			//if there isn't skining, and after emd link to esk.
+	if (((flags & EMD_VTX_FLAG_BLEND_WEIGHT) == 0) && (skeleton) && (skeleton->getOgreSkeleton())&&(submesh->getTriangles().size()!=0))			//if there isn't skining, and after emd link to esk.
 	{
 		string boneToSearchName = modelName;				//a bone with the same name of mesh, is for NodeAnim
 
@@ -564,6 +564,14 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 	{
 		Ogre::Pass* pass = mat->getTechnique(0)->getPass(0);
 
+		if (pass->isTransparent())
+		{
+			entity->setRenderQueueGroup(Ogre::RenderQueueGroupID::RENDER_QUEUE_6);
+
+			//static Ogre::ushort priority = (Ogre::ushort)-1;
+			//entity->setRenderQueueGroupAndPriority(Ogre::RenderQueueGroupID::RENDER_QUEUE_6, priority--);	//test transparent after the rest, because of smokes on bFcel01. Todo remove or check every case
+		}
+
 		// Create Render Object Listeners depending on submesh definitions
 		EMBOgre* texture_pack = (material_pack) ?  material_pack->getTexturePack() : 0;
 		EMBOgre* texture_dyt_pack = (material_pack) ? material_pack->getDYTTexturePack() : 0;
@@ -581,6 +589,8 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 			if (nbSubMeshDefinition > pass->getNumTextureUnitStates())
 				nbSubMeshDefinition = pass->getNumTextureUnitStates();
 
+			vector<Ogre::Real> listTileFloats;
+
 			for (size_t k = 0; k < nbSubMeshDefinition; k++)
 			{
 				unsigned short texIndex = definitions.at(k).texIndex;
@@ -588,12 +598,24 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 				if (texIndex >= textures_ptr->size())
 					texIndex = textures_ptr->size() - 1;
 
+				pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));
+
+				//todoo look after unknow next to textureIndex for 
+				//pass->getTextureUnitState(k)->setNumMipmaps(0);
+				//pass->getTextureUnitState(k)->setTextureAnisotropy(1.0);
+				//pass->getTextureUnitState(k)->setTextureFiltering(Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE);
+
+				listTileFloats.push_back(definitions.at(k).textScale_u);
+				listTileFloats.push_back(definitions.at(k).textScale_v);
+
+
 				
+				/*
 				//Here a new problem : when you use shaders, you have to deal with textureScale into shader. but the Dbx2 shaders don't do this.
 				//so changing TextureScale of TextureUnitStates don't have any influence.
 				//And as the goal is to not modify shader by hands, We need to create a new texture with the repetition. it's not a good hack. 
 				// Todo do better, or try to understand how the game do.
-				if ((definitions.at(k).textScale_u != 1.0) || (definitions.at(k).textScale_v  != 1.0))
+				if ( (false) && ((definitions.at(k).textScale_u != 1.0) || (definitions.at(k).textScale_v  != 1.0)) )
 				{
 					string targetTextTile = Ogre::StringConverter::toString(texIndex + 1);
 					if (targetTextTile.length() == 1)
@@ -617,7 +639,7 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 						Ogre::Vector2 resolution( Ogre::Math::Floor(text->getWidth() * definitions.at(k).textScale_u), Ogre::Math::Floor(text->getHeight() * definitions.at(k).textScale_v));
 						if (resolution.x > 8192)				//security about old GPU.
 							resolution.x = 8192;
-						if (resolution.y > 8192)
+						if (resolution.y > 8192) 
 							resolution.y = 8192;
 
 						Ogre::Vector2 nbRepete = resolution / Ogre::Vector2(text->getWidth(), text->getHeight());
@@ -666,6 +688,7 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 				}else {
 					pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));
 				}
+				*/
 
 				
 				
@@ -677,6 +700,35 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 				*/
 
 				//pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));			//test bug scouter before skin.
+			}
+
+
+
+			//here, we try a new solution , fill first find g_vTexTileXX_VS (or PS) to put floats of texture_scale_u and v at follow. and the next after.
+			size_t nbFloats = listTileFloats.size();
+			if (nbFloats != 0)
+			{
+				EMMOgre::EmmMaterialCreated* matCrea = material_pack->getEmmMaterialCreated(mat->getName());
+				std::vector<EMMOgre::EmmMaterialParameter> &parameter = matCrea->parameter;
+				size_t inc = 0;
+				size_t nbParam = parameter.size();
+				for (size_t i = 0; i < nbParam; i++)
+				{
+					if ((parameter.at(i).name.length() > 10) && (parameter.at(i).name.substr(0, 10) == "g_vTexTile"))
+					{
+						Ogre::Vector4 vector_tmp(listTileFloats.at(inc++), listTileFloats.at(inc++), 1, 1);
+						if (inc < nbFloats)
+						{
+							vector_tmp.z = listTileFloats.at(inc++);
+							vector_tmp.w = listTileFloats.at(inc++);
+						}
+
+						material_pack->setShaderParameter(mat->getName(), parameter.at(i).name, vector_tmp);
+						if (inc >= nbFloats)
+							break;
+					}
+					
+				}
 			}
 		}
 	}

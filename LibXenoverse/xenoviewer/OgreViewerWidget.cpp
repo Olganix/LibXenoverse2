@@ -561,19 +561,23 @@ namespace QtOgre
 				Ogre::TextureType::TEX_TYPE_2D, w, h, 0, Ogre::PixelFormat::PF_A8R8G8B8, (int)Ogre::TextureUsage::TU_RENDERTARGET);
 
 			Ogre::RenderTexture* renderTarget = renderTexture->getBuffer()->getRenderTarget();
-			renderTarget->setAutoUpdated(false);
-
 			Ogre::Viewport* renderViewport = renderTarget->addViewport(mCamera);
 			renderViewport->setOverlaysEnabled(false);
 			renderViewport->setClearEveryFrame(true);
 			renderViewport->setShadowsEnabled(false);
 			renderViewport->setBackgroundColour(Ogre::ColourValue(0.0, 0.0, 0.0, 0.0));
+
+			renderTarget->setActive(true);
+			renderTarget->setAutoUpdated(false);
 			renderTarget->update();
 			renderTarget->update();							//for double buffering
 			renderTarget->writeContentsToFile(ss.str());
 
 			//clean
 			Ogre::TextureManager::getSingleton().remove(renderTexture->getName());
+			
+
+			//mWindow->writeContentsToFile(ss.str());
 		}
 	}
 
@@ -604,7 +608,7 @@ namespace QtOgre
 			spinCamera(delta_f_x, delta_f_y);
 
 		if (enable_panning)
-			panCamera(delta_f_x, delta_f_y);
+			panCamera(delta_f_x * zoom, delta_f_y * zoom);
 
 		last_mouse_x = mouse_x;
 		last_mouse_y = mouse_y;
@@ -682,8 +686,16 @@ namespace QtOgre
 				displayMenu_materials->addAction(displayApplyMaterialAct_Tangents);
 				QAction* displayApplyMaterialAct_TexCoord = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord);
+				QAction* displayApplyMaterialAct_TexCoord_Neg = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat -UV"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord_Neg);
 				QAction* displayApplyMaterialAct_TexCoord2 = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV2"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord2);
+				QAction* displayApplyMaterialAct_TexCoord2_Neg = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat -UV2"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord2_Neg);
+				QAction* displayApplyMaterialAct_TexCoord_Rep = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV repet"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord_Rep);
+				QAction* displayApplyMaterialAct_TexCoord2_Rep = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat UV2 repet"), this);
+				displayMenu_materials->addAction(displayApplyMaterialAct_TexCoord2_Rep);
 				QAction* displayApplyMaterialAct_Color = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Color"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Color);
 				QAction* displayApplyMaterialAct_ColorRGB = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat ColorRGB"), this);
@@ -696,7 +708,7 @@ namespace QtOgre
 				QAction* displayApplyMaterialAct_Kmh_Bas_Cor = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Mat Kmh_Bas_Cor"), this);
 				displayMenu_materials->addAction(displayApplyMaterialAct_Kmh_Bas_Cor);
 
-
+				
 
 				//////////////////////// 
 				QMenu* displayMenu_Camera = displayMenu->addMenu("Camera");
@@ -719,6 +731,8 @@ namespace QtOgre
 				displayMenu_Light->addAction(displayLightAct_XenoClassic);
 				QAction* displayLightAct_CharacSelection = new QAction(tr("&Game Rooster"), this);
 				displayMenu_Light->addAction(displayLightAct_CharacSelection);
+				QAction* displayLightAct_StageXeno = new QAction(tr("&Xview Stage"), this);
+				displayMenu_Light->addAction(displayLightAct_StageXeno);
 
 				QMenu* displayMenu_Light_X = displayMenu_Light->addMenu("X");
 				QMenu* displayMenu_Light_Y = displayMenu_Light->addMenu("Y");
@@ -838,13 +852,15 @@ namespace QtOgre
 					|| (selectedItem == displayApplyMaterialAct_Tangents)
 					|| (selectedItem == displayApplyMaterialAct_TexCoord)
 					|| (selectedItem == displayApplyMaterialAct_TexCoord2)
+					|| (selectedItem == displayApplyMaterialAct_TexCoord_Neg)
+					|| (selectedItem == displayApplyMaterialAct_TexCoord2_Neg)
+					|| (selectedItem == displayApplyMaterialAct_TexCoord_Rep)
+					|| (selectedItem == displayApplyMaterialAct_TexCoord2_Rep)
 					|| (selectedItem == displayApplyMaterialAct_Color)
 					|| (selectedItem == displayApplyMaterialAct_ColorRGB)
 					|| (selectedItem == displayApplyMaterialAct_ColorA)
 					|| (selectedItem == displayApplyMaterialAct_TestOpacity)
 					|| (selectedItem == displayApplyMaterialAct_Kmh_Bas_Cor)
-
-					
 					)
 				{
 					Ogre::String materialName = "White";
@@ -858,6 +874,14 @@ namespace QtOgre
 						materialName = "TexCoord";
 					else if (selectedItem == displayApplyMaterialAct_TexCoord2)
 						materialName = "TexCoord2";
+					else if (selectedItem == displayApplyMaterialAct_TexCoord_Neg)
+						materialName = "TexCoord_Neg";
+					else if (selectedItem == displayApplyMaterialAct_TexCoord2_Neg)
+						materialName = "TexCoord2_Neg";
+					else if (selectedItem == displayApplyMaterialAct_TexCoord_Rep)
+						materialName = "TexCoord_Rep";
+					else if (selectedItem == displayApplyMaterialAct_TexCoord2_Rep)
+						materialName = "TexCoord2_Rep";
 					else if (selectedItem == displayApplyMaterialAct_Color)
 						materialName = "Color";
 					else if (selectedItem == displayApplyMaterialAct_ColorRGB)
@@ -889,6 +913,7 @@ namespace QtOgre
 
 				}else if ( (selectedItem == displayLightAct_XenoClassic) 
 						|| (selectedItem == displayLightAct_CharacSelection)
+						|| (selectedItem == displayLightAct_StageXeno)
 						|| (selectedItem == displayLightAct_X_n1)
 						|| (selectedItem == displayLightAct_X_0)
 						|| (selectedItem == displayLightAct_X_1)
@@ -904,15 +929,22 @@ namespace QtOgre
 					if (light)
 					{
 						Ogre::Vector3 lightPosition = -light->getDirection();
+						Ogre::Real scalefactor = (lightPosition.length() > 10.0) ? 1000.0 : 1.0;
 						if (lightPosition.x > 0.0001) { lightPosition.x = 1.0; } else if (lightPosition.x < 0.0001) { lightPosition.x = -1.0; } else { lightPosition.x = 0.0; }
 						if (lightPosition.y > 0.0001) { lightPosition.y = 1.0; } else if (lightPosition.y < 0.0001) { lightPosition.y = -1.0; } else { lightPosition.y = 0.0; }
 						if (lightPosition.z > 0.0001) { lightPosition.z = 1.0; } else if (lightPosition.z < 0.0001) { lightPosition.z = -1.0; } else { lightPosition.z = 0.0; }
 
 						if (selectedItem == displayLightAct_XenoClassic)
+						{
 							lightPosition = Ogre::Vector3(-1, 1, -1);
-						else if (selectedItem == displayLightAct_CharacSelection)
+							scalefactor = 1.0;
+						}else if (selectedItem == displayLightAct_CharacSelection){
 							lightPosition = Ogre::Vector3(1, -1, -1);
-						else if (selectedItem == displayLightAct_X_n1)
+							scalefactor = 1.0;
+						}else if (selectedItem == displayLightAct_StageXeno) {
+							lightPosition = Ogre::Vector3(1, -1, -1);
+							scalefactor = 1000.0;
+						}else if (selectedItem == displayLightAct_X_n1)
 							lightPosition.x = -1.0;
 						else if (selectedItem == displayLightAct_X_0)
 							lightPosition.x = 0.0;
@@ -931,7 +963,10 @@ namespace QtOgre
 						else if (selectedItem == displayLightAct_Z_1)
 							lightPosition.z = 1.0;
 
+						
+
 						light->setDirection(-lightPosition.normalisedCopy());
+						light->setPosition( lightPosition.normalisedCopy() * scalefactor );
 					}
 				}
 				
@@ -982,7 +1017,12 @@ namespace QtOgre
 
 	void OgreWidget::zoomCamera(float delta)
 	{
-		zoom += delta * -0.001f;
+		float factor = -0.001f;
+		if (zoom > 10.0) factor = -0.01f;
+		if (zoom > 100.0) factor = -0.1f;
+		if (zoom > 1000.0) factor = -.1f;
+
+		zoom += delta * factor;
 
 		if (zoom < 0.01f) zoom = 0.01f;
 	}

@@ -164,6 +164,7 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 
 
 				bool isTextcoord = (sv2.at(0) == "TEXCOORD");
+				bool isColor = (sv2.at(0) == "COLOR");
 
 				if (sv2.at(0) == "SV_IsFrontFace")				// https://msdn.microsoft.com/en-us/library/windows/desktop/bb509647(v=vs.85).aspx
 					sv2.at(0) = "VFACE";						//Direct3D 9 Shader Model 3.0.
@@ -185,8 +186,7 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 				{
 					mListShaderRegistrer_VertexInput.push_back(ShaderRegistrer(registerName));
 					mListShaderRegistrer_VertexInput.back().addChannels(sv2.at(2));
-					textCoordIndexInc_Input = sv2.at(1);
-					mListShaderRegistrer_VertexInput.back().mInputName = sv2.at(0) + (((isTextcoord) && (textCoordIndexInc_Input != "0")) ? textCoordIndexInc_Input : "");
+					mListShaderRegistrer_VertexInput.back().mInputName = sv2.at(0) + (((isTextcoord || isColor) && (sv2.at(1) != "0")) ? sv2.at(1) : "");
 				}else {
 
 					//we get the first declaration
@@ -197,7 +197,7 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 					ShaderRegistrer duplicated(registerName +"_"+ std::to_string(input.mNbInputDeclaration));
 					duplicated.addChannels(sv2.at(2));
 					textCoordIndexInc_Input = sv2.at(1);
-					duplicated.mInputName = sv2.at(0) + (((isTextcoord) && (textCoordIndexInc_Input != "0")) ? textCoordIndexInc_Input : "");
+					duplicated.mInputName = sv2.at(0) + (((isTextcoord || isColor) && (sv2.at(1) != "0")) ? sv2.at(1) : "");
 					duplicated.mOnlyUseNumberOfChannelForDefineType = true;			//the calcul of the type will be on the number of declared channel, and not on the last channel founded.
 					
 
@@ -687,25 +687,97 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 		}else if ((instruction == "and") && (nbArg == 3)) {										//https://msdn.microsoft.com/en-us/library/windows/desktop/hh446818(v=vs.85).aspx
 
 			//mHlslCode += tabInc + sv2.at(0) + " = " + sv2.at(1) + " & " + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";	
-			mHlslCode += tabInc + sv2.at(0) + " = "+ ((sv2.at(1).substr(0,3)!="int") ? "(int)": "") + sv2.at(1) + " && "+ ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
+			
+			//v0
+			//mHlslCode += tabInc + sv2.at(0) + " = "+ ((sv2.at(1).substr(0,3)!="int") ? "(int)": "") + sv2.at(1) + " && "+ ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
+			//registreResult.push_back(sv2.at(0));
+
+			Shader_AsmArg arg0(sv2.at(0), getShaderCBuffer_Var(sv2.at(0)));
+			Shader_AsmArg arg1(sv2.at(1), getShaderCBuffer_Var(sv2.at(1)));
+			Shader_AsmArg arg2(sv2.at(2), getShaderCBuffer_Var(sv2.at(2)));
+
+			if (arg0.haveNoChannel())
+			{
+				//mHlslCode += tabInc + sv2.at(0) + " = " + ((sv2.at(1).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(1) + " && " + ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
+				//mHlslCode += tabInc + sv2.at(0) + " = specialCheck_Dbxv2Shaders(and_BitWise_operation(" + ((sv2.at(1).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(1) + " , " + ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + "));\t\t// bit-wise operation\n";
+				mHlslCode += tabInc + sv2.at(0) + " = specialCheck_Dbxv2Shaders(and_BitWise_operation(" + sv2.at(1) + " , " + sv2.at(2) + "));\t\t// bit-wise operation\n";
+			}else{
+
+				string ouputChannel = rectifyChannels(sv2.at(0));
+				bool haveToForce = (ouputChannel.length() > 1);
+
+				size_t nbChannel = (!haveToForce) ? arg0.mListChannel.size() : ouputChannel.length();
+				for (size_t j = 0; j < nbChannel; j++)
+				{
+					if(!haveToForce)
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = specialCheck_Dbxv2Shaders(and_BitWise_operation(" + arg1.getArg_ForChannel(j) + " , " +  arg2.getArg_ForChannel(j) + "));\t\t// bit-wise operation\n";
+					else
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = specialCheck_Dbxv2Shaders(and_BitWise_operation( (" + sv2.at(1) + ")."+ ouputChannel.substr(j,1) +" , (" + sv2.at(2) + ")."+ ouputChannel.substr(j, 1) +"));\t\t// bit-wise operation\n";
+				}
+			}
 			registreResult.push_back(sv2.at(0));
+
+
 
 		}else if ((instruction == "or") && (nbArg == 3)) {										//https://msdn.microsoft.com/en-us/library/windows/desktop/hh447202(v=vs.85).aspx
 																								//mHlslCode += tabInc + sv2.at(0) + " = " + sv2.at(1) + " | " + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
-			mHlslCode += tabInc + sv2.at(0) + " = " + ((sv2.at(1).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(1) + " || " + ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
+			//mHlslCode += tabInc + sv2.at(0) + " = " + ((sv2.at(1).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(1) + " || " + ((sv2.at(2).substr(0, 3) != "int") ? "(int)" : "") + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
+			//registreResult.push_back(sv2.at(0));
+
+			Shader_AsmArg arg0(sv2.at(0), getShaderCBuffer_Var(sv2.at(0)));
+			Shader_AsmArg arg1(sv2.at(1), getShaderCBuffer_Var(sv2.at(1)));
+			Shader_AsmArg arg2(sv2.at(2), getShaderCBuffer_Var(sv2.at(2)));
+
+			if (arg0.haveNoChannel())
+			{
+				mHlslCode += tabInc + sv2.at(0) + " = specialCheck_Dbxv2Shaders(or_BitWise_operation(" + sv2.at(1) + " , " + sv2.at(2) + "));\t\t// bit-wise operation\n";
+			}else {
+				string ouputChannel = rectifyChannels(sv2.at(0));
+				bool haveToForce = (ouputChannel.length() > 1);
+
+				size_t nbChannel = (!haveToForce) ? arg0.mListChannel.size() : ouputChannel.length();
+				for (size_t j = 0; j < nbChannel; j++)
+				{
+					if (!haveToForce)
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = specialCheck_Dbxv2Shaders(or_BitWise_operation(" + arg1.getArg_ForChannel(j) + " , " + arg2.getArg_ForChannel(j) + "));\t\t// bit-wise operation\n";
+					else
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = specialCheck_Dbxv2Shaders(or_BitWise_operation( (" + sv2.at(1) + ")." + ouputChannel.substr(j, 1) + " , (" + sv2.at(2) + ")." + ouputChannel.substr(j, 1) + "));\t\t// bit-wise operation\n";
+				}
+			}
 			registreResult.push_back(sv2.at(0));
 
 
 		}else if ((instruction == "ineg") && (nbArg == 2)) {									//https://msdn.microsoft.com/en-us/library/windows/desktop/hh447139(v=vs.85).aspx
 
-			mHlslCode += tabInc + sv2.at(0) + " = -" + sv2.at(1) +";\t\t//TODO bit-wise operation\n";	// component at 2  => negative.
+			mHlslCode += tabInc + sv2.at(0) + " = -" + sv2.at(1) +";\t\t// bit-wise operation\n";	// component at 2  => negative.
 			registreResult.push_back(sv2.at(0));
 
 		}else if ((instruction == "imax") && (nbArg == 3)) {										//https://msdn.microsoft.com/en-us/library/windows/desktop/hh446825(v=vs.85).aspx
 																								//mHlslCode += tabInc + sv2.at(0) + " = " + sv2.at(1) + " | " + sv2.at(2) + ";\t\t//TODO bit-wise operation\n";
-			mHlslCode += tabInc + sv2.at(0) + " = max("+ sv2.at(0) +","+ sv2.at(2) +");\t\t//TODO bit-wise operation\n";
-			registreResult.push_back(sv2.at(0));
+			//mHlslCode += tabInc + sv2.at(0) + " = max("+ sv2.at(0) +","+ sv2.at(2) +");\t\t//TODO bit-wise operation\n";
+			//registreResult.push_back(sv2.at(0));
 
+			Shader_AsmArg arg0(sv2.at(0), getShaderCBuffer_Var(sv2.at(0)));
+			Shader_AsmArg arg1(sv2.at(1), getShaderCBuffer_Var(sv2.at(1)));
+			Shader_AsmArg arg2(sv2.at(2), getShaderCBuffer_Var(sv2.at(2)));
+
+			if (arg0.haveNoChannel())
+			{
+				mHlslCode += tabInc + sv2.at(0) + " = max(" + sv2.at(1) + " , " + sv2.at(2) + "));\t\t// bit-wise operation\n";
+			}else {
+				string ouputChannel = rectifyChannels(sv2.at(0));
+				bool haveToForce = (ouputChannel.length() > 1);
+
+				size_t nbChannel = (!haveToForce) ? arg0.mListChannel.size() : ouputChannel.length();
+				for (size_t j = 0; j < nbChannel; j++)
+				{
+					if (!haveToForce)
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = max(" + arg1.getArg_ForChannel(j) + " , " + arg2.getArg_ForChannel(j) + ");\t\t// bit-wise operation\n";
+					else
+						mHlslCode += tabInc + arg0.getArg_ForChannel(j) + " = max( (" + sv2.at(1) + ")." + ouputChannel.substr(j, 1) + " , (" + sv2.at(2) + ")." + ouputChannel.substr(j, 1) + ");\t\t// bit-wise operation\n";
+				}
+			}
+			registreResult.push_back(sv2.at(0));
 
 
 		
@@ -958,12 +1030,12 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 
 			if (arg0.haveNoChannel())
 			{
-				mHlslCode += tabInc + "if(" + arg0.getArg() + " == 0.0) clip(-1);\n";
+				mHlslCode += tabInc + "if(" + arg0.getArg() + " != 0.0) clip(-1);\n";
 			}
 			else {
 				size_t nbChannel = arg0.mListChannel.size();
 				for (size_t j = 0; j < nbChannel; j++)
-					mHlslCode += tabInc + "if(" + arg0.getArg_ForChannel(j) + " == 0.0) clip(-1);\n";
+					mHlslCode += tabInc + "if(" + arg0.getArg_ForChannel(j) + " != 0.0) clip(-1);\n";
 			}
 
 
@@ -1328,9 +1400,48 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 
 
 
+	std::string previousFunctions = tabInc + "//////////////////////////////////////  Bit-wise function (missing in shader v3.0) //////////////////////////////////////////\n" +
+									tabInc + "int slidetoLeft(int value, int nbMoves) { return value * pow(2.0, nbMoves); }						// << \n" +
+									tabInc + "int slidetoRight(int value, int nbMoves) { return floor(value / pow(2.0, nbMoves)); }				// >>\n" +
+									tabInc + "int getBit(int value, int bitIndex)										//index from right\n" +
+									tabInc + "{\n" +
+									tabInc + "	float base = floor(((float)value) / ((float)pow(2, bitIndex)));				//remove next right bits\n" +
+									tabInc + "	return ((base - floor(base / 2.0) * 2.0) != 0.0) ? 1 : 0;				//remove previous left bits, and see if it's rest something.\n" +
+									tabInc + "}\n" +
+									tabInc + "float specialCheck_Dbxv2Shaders(float value)\n" +
+									tabInc + "{\n" +
+									tabInc + "	if (value == (int)0x3F800000) return 1.0;									//common case. and with precision problem (because under it's all float32 values), simplification is better.\n" +
+									tabInc + "	if (value == (int)0x3E4CCCCD) return 0.2;\n" +
+									tabInc + "	if (value == (int)0xC0490FDB) return -3.14159274;\n" +
+									tabInc + "	if (value == (int)0x80000000) return 0.0;\n" +
+									tabInc + "	return value;\n" +
+									tabInc + "}\n" +
+									tabInc + "float and_BitWise_operation(float a, float b)									//notice it's on 32 bits\n" +
+									tabInc + "{\n" +
+									tabInc + "	if (a == (int)0xFFFFFFFF) return b;										//common case. and with precision problem (because under it's all float32 values), simplification is better.\n" +
+									tabInc + "	if (b == (int)0xFFFFFFFF) return a;\n" +
+									tabInc + "	if (b == a) return a;\n" +
+									tabInc + "	float c = 0;\n" +
+									tabInc + "	for (int i = 0; i < 32; i++)\n" +
+									tabInc + "		c += (getBit(floor(a), i) && getBit(floor(b), i)) * pow(2, i);\n" +
+									tabInc + "	return c;\n" +
+									tabInc + "}\n" +
+									tabInc + "float or_BitWise_operation(float a, float b)									//notice it's on 32 bits\n" +
+									tabInc + "{\n" +
+									tabInc + "	if (a == (int)0xFFFFFFFF) return a;										//common case. and with precision problem (because under it's all float32 values), simplification is better.\n" +
+									tabInc + "	if (b == (int)0xFFFFFFFF) return b;\n" +
+									tabInc + "	if (b == a) return a;\n" +
+									tabInc + "	float c = 0;\n" +
+									tabInc + "	for (int i = 0; i < 32; i++)\n" +
+									tabInc + "		c += (getBit(floor(a), i) || getBit(floor(b), i)) * pow(2, i);\n" +
+									tabInc + "	return c;\n" +
+									tabInc + "}\n" +
+									tabInc + "/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n" +
+									tabInc + "\n";
+
 	
 
-	mHlslCode = uniform +"void\tmain_"+ ((isAPixelShader) ? "ps" : "vs")  +"("+ inputDeclaration +"\t\t\t\t\t)\n{\n"+ registerDeclaration  + mHlslCode;
+	mHlslCode = uniform + previousFunctions +"void\tmain_"+ ((isAPixelShader) ? "ps" : "vs")  +"("+ inputDeclaration +"\t\t\t\t\t)\n{\n"+ registerDeclaration  + mHlslCode;
 
 	
 

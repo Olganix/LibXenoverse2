@@ -119,12 +119,12 @@ material Normal
 		pass
 		{
 			vertex_program_ref normal_vs
-      {
-      }
+            {
+            }
 
-      fragment_program_ref normal_ps
-      {
-      }
+            fragment_program_ref normal_ps
+            {
+            }
 		}
 	}
 }
@@ -183,6 +183,86 @@ material TexCoord2
 		}
 	}
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord_Neg
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord_vs
+      {
+      }
+
+      fragment_program_ref texCoord_neg_ps
+      {
+      }
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord2_Neg
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord2_vs
+      {
+      }
+
+      fragment_program_ref texCoord2_neg_ps
+      {
+      }
+		}
+	}
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord_Rep
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord_vs
+      {
+      }
+
+      fragment_program_ref texCoord_rep_ps
+      {
+      }
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+material TexCoord2_Rep
+{
+	technique
+	{
+		pass
+		{
+			vertex_program_ref texCoord2_vs
+      {
+      }
+
+      fragment_program_ref texCoord2_rep_ps
+      {
+      }
+		}
+	}
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 material Color
@@ -303,6 +383,7 @@ material TestOpacity
 
 
 
+/*
 
 ////////////////////////////////////////////////////////////////////////////////
 material Test
@@ -330,5 +411,64 @@ material Test
       
 		}
 	}
+}
+*/
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+material Test
+{
+  technique
+  {
+    pass
+    {
+      //depth_write off
+      //cull_hardware none
+      //separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+      
+      vertex_program_ref test_vs
+      {
+      }
+      
+      fragment_program_ref test_ps
+      {
+      }
+      
+      texture_unit ImageSampler0
+      {
+      texture DATA016.dds
+      }
+      texture_unit ImageSampler1
+      {
+      texture DATA031.dds
+      }
+      texture_unit ImageSampler2
+      {
+      texture DATA015.dds
+      }
+      
+      texture_unit text3
+      {
+        texture empty.png
+      }
+      texture_unit text4
+      {
+        texture empty.png
+      }
+      texture_unit text5
+      {
+        texture empty.png
+      }
+      texture_unit text6
+      {
+        texture empty.png
+      }
+      texture_unit Texture_SamplerShadowMap
+      {
+        texture empty.png
+      }
+    }
+  }
 }
 

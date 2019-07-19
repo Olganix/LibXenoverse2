@@ -1,0 +1,879 @@
+<?xml version="1.0" ?>
+<Havok version="2015.01.00">
+  <Data>
+    <Object TypeId="1" TName="hknpExternMeshShape" type="Class">
+      <Object Name="flags" TypeId="11" type="int" value="4" />
+      <Object Name="type" TypeId="12" type="int" value="9" />
+      <Object Name="numShapeKeyBits" TypeId="13" type="int" value="4" />
+      <Object Name="dispatchType" TypeId="14" type="int" value="3" />
+      <Object Name="convexRadius" TypeId="15" type="float" value="0.0" />
+      <Object Name="userData" TypeId="16" type="int" value="0" />
+      <Object Name="properties" TypeId="17" type="pointer" />
+      <Object Name="edgeWeldingMap" TypeId="6" TName="hknpSparseCompactMap" type="Class">
+        <Object Name="secondaryKeyMask" TypeId="7" type="int" value="4294967295" />
+        <Object Name="sencondaryKeyBits" TypeId="7" type="int" value="0" />
+        <Object Name="primaryKeyToIndex" TypeId="19" type="Array" />
+        <Object Name="valueAndSecondaryKeys" TypeId="19" type="Array" />
+      </Object>
+      <Object Name="shapeTagCodecInfo" TypeId="7" type="int" value="4294967295" />
+      <Object Name="materialTable" TypeId="8" type="pointer" />
+      <Object Name="geometry" TypeId="3" type="pointer">
+        <Object TypeId="37" TName="hknpDefaultExternMeshShapeGeometry" type="Class">
+          <Object Name="geometry" TypeId="38" type="pointer">
+            <Object TypeId="39" TName="hkGeometry" type="Class">
+              <Object Name="vertices" TypeId="41" type="Array">
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+                <Object TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="0.0" />
+                </Object>
+              </Object>
+              <Object Name="triangles" TypeId="42" type="Array">
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="0" />
+                  <Object Name="b" TypeId="33" type="int" value="1" />
+                  <Object Name="c" TypeId="33" type="int" value="2" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="2" />
+                  <Object Name="b" TypeId="33" type="int" value="3" />
+                  <Object Name="c" TypeId="33" type="int" value="0" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="4" />
+                  <Object Name="b" TypeId="33" type="int" value="5" />
+                  <Object Name="c" TypeId="33" type="int" value="6" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="6" />
+                  <Object Name="b" TypeId="33" type="int" value="7" />
+                  <Object Name="c" TypeId="33" type="int" value="4" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="5" />
+                  <Object Name="b" TypeId="33" type="int" value="3" />
+                  <Object Name="c" TypeId="33" type="int" value="2" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="2" />
+                  <Object Name="b" TypeId="33" type="int" value="6" />
+                  <Object Name="c" TypeId="33" type="int" value="5" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="4" />
+                  <Object Name="b" TypeId="33" type="int" value="0" />
+                  <Object Name="c" TypeId="33" type="int" value="3" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="3" />
+                  <Object Name="b" TypeId="33" type="int" value="5" />
+                  <Object Name="c" TypeId="33" type="int" value="4" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="7" />
+                  <Object Name="b" TypeId="33" type="int" value="1" />
+                  <Object Name="c" TypeId="33" type="int" value="0" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="0" />
+                  <Object Name="b" TypeId="33" type="int" value="4" />
+                  <Object Name="c" TypeId="33" type="int" value="7" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="6" />
+                  <Object Name="b" TypeId="33" type="int" value="2" />
+                  <Object Name="c" TypeId="33" type="int" value="1" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+                <Object TypeId="45" TName="hkGeometry::Triangle" type="Class">
+                  <Object Name="a" TypeId="33" type="int" value="1" />
+                  <Object Name="b" TypeId="33" type="int" value="7" />
+                  <Object Name="c" TypeId="33" type="int" value="6" />
+                  <Object Name="material" TypeId="33" type="int" value="4294967295" />
+                </Object>
+              </Object>
+            </Object>
+          </Object>
+        </Object>
+      </Object>
+      <Object Name="boundingVolumeData" TypeId="4" type="pointer">
+        <Object TypeId="48" TName="hknpExternMeshShapeData" type="Class">
+          <Object Name="aabbTree" TypeId="49" TName="hkcdStaticTree::Tree" type="Class">
+            <Object Name="nodes" TypeId="57" type="Array">
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="2" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="0" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="8" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="6" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="4" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="2" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="6" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="7" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="4" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="15" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="5" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="8" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="9" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="2" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="240" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="3" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="128" />
+                <Object Name="loData" TypeId="18" type="int" value="1" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="10" />
+              </Object>
+              <Object TypeId="56" TName="hkcdStaticTree::Codec3Axis6" type="Class">
+                <Object Name="xyz" TypeId="64" type="Tuple">
+                  <Object TypeId="13" type="int" value="15" />
+                  <Object TypeId="13" type="int" value="0" />
+                  <Object TypeId="13" type="int" value="0" />
+                </Object>
+                <Object Name="hiData" TypeId="13" type="int" value="0" />
+                <Object Name="loData" TypeId="18" type="int" value="11" />
+              </Object>
+            </Object>
+            <Object Name="domain" TypeId="53" TName="hkAabb" type="Class">
+              <Object Name="min" TypeId="43" type="Tuple">
+                <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                <Object TypeId="26" type="float" value="0.0" />
+              </Object>
+              <Object Name="max" TypeId="43" type="Tuple">
+                <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                <Object TypeId="26" type="float" value="0.0" />
+              </Object>
+            </Object>
+          </Object>
+          <Object Name="simdTree" TypeId="50" TName="hkcdSimdTree" type="Class">
+            <Object Name="nodes" TypeId="54" type="Array">
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="0" />
+                  <Object TypeId="7" type="int" value="0" />
+                  <Object TypeId="7" type="int" value="0" />
+                  <Object TypeId="7" type="int" value="0" />
+                </Object>
+              </Object>
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymin" />
+                  <Object TypeId="26" type="float" value="template_Ymin" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="1" />
+                  <Object TypeId="7" type="int" value="3" />
+                  <Object TypeId="7" type="int" value="6" />
+                  <Object TypeId="7" type="int" value="4" />
+                </Object>
+              </Object>
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin" />
+                  <Object TypeId="26" type="float" value="template_Xmin" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="21" />
+                  <Object TypeId="7" type="int" value="23" />
+                  <Object TypeId="7" type="int" value="0" />
+                  <Object TypeId="7" type="int" value="0" />
+                </Object>
+              </Object>
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymax" />
+                  <Object TypeId="26" type="float" value="template_Ymax" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="5" />
+                  <Object TypeId="7" type="int" value="7" />
+                  <Object TypeId="7" type="int" value="10" />
+                  <Object TypeId="7" type="int" value="8" />
+                </Object>
+              </Object>
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="3.40282002e+038" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                  <Object TypeId="26" type="float" value="-3.40282002e+038" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="17" />
+                  <Object TypeId="7" type="int" value="19" />
+                  <Object TypeId="7" type="int" value="0" />
+                  <Object TypeId="7" type="int" value="0" />
+                </Object>
+              </Object>
+              <Object TypeId="58" TName="hkcdSimdTree::Node" type="Class">
+                <Object Name="lx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax" />
+                  <Object TypeId="26" type="float" value="template_Xmax" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmin_sub_eps" />
+                </Object>
+                <Object Name="hx" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Xmax_add_eps" />
+                </Object>
+                <Object Name="ly" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymin_sub_eps" />
+                </Object>
+                <Object Name="hy" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Ymax_add_eps" />
+                </Object>
+                <Object Name="lz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin_sub_eps" />
+                </Object>
+                <Object Name="hz" TypeId="43" type="Tuple">
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmax_add_eps" />
+                  <Object TypeId="26" type="float" value="template_Zmin" />
+                  <Object TypeId="26" type="float" value="template_Zmin" />
+                </Object>
+                <Object Name="data" TypeId="63" type="Tuple">
+                  <Object TypeId="7" type="int" value="13" />
+                  <Object TypeId="7" type="int" value="15" />
+                  <Object TypeId="7" type="int" value="9" />
+                  <Object TypeId="7" type="int" value="11" />
+                </Object>
+              </Object>
+            </Object>
+          </Object>
+          <Object Name="hasBuildContext" TypeId="51" type="bool" value="false" />
+        </Object>
+      </Object>
+    </Object>
+  </Data>
+  <ListType>
+    <Type id="0" name="None" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="1" name="hknpExternMeshShape" parent="2" flags="45" subTypeFlags="7" version="2" byteSize="80" alignment="16">
+      <member name="geometry" flags="34" offset="64" type="3" />
+      <member name="boundingVolumeData" flags="34" offset="68" type="4" />
+    </Type>
+    <Type id="2" name="hknpCompositeShape" parent="5" flags="45" subTypeFlags="7" version="1" byteSize="64" alignment="16">
+      <member name="edgeWeldingMap" flags="34" offset="24" type="6" />
+      <member name="shapeTagCodecInfo" flags="32" offset="56" type="7" />
+      <member name="materialTable" flags="32" offset="60" type="8" />
+    </Type>
+    <Type id="3" name="T*" parent="0" pointer="9" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="9" />
+    </Type>
+    <Type id="4" name="T*" parent="0" pointer="10" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="10" />
+    </Type>
+    <Type id="5" name="hknpShape" parent="10" flags="45" subTypeFlags="7" version="4" byteSize="32" alignment="16">
+      <member name="flags" flags="34" offset="0" type="11" />
+      <member name="type" flags="34" offset="2" type="12" />
+      <member name="numShapeKeyBits" flags="34" offset="3" type="13" />
+      <member name="dispatchType" flags="32" offset="4" type="14" />
+      <member name="convexRadius" flags="32" offset="8" type="15" />
+      <member name="userData" flags="32" offset="12" type="16" />
+      <member name="properties" flags="34" offset="20" type="17" />
+    </Type>
+    <Type id="6" name="hknpSparseCompactMap" parent="0" flags="41" subTypeFlags="7" byteSize="32" alignment="4">
+      <template name="tStoreT" value="18" />
+      <member name="secondaryKeyMask" flags="32" offset="0" type="7" />
+      <member name="sencondaryKeyBits" flags="32" offset="4" type="7" />
+      <member name="primaryKeyToIndex" flags="32" offset="8" type="19" />
+      <member name="valueAndSecondaryKeys" flags="32" offset="20" type="19" />
+    </Type>
+    <Type id="7" name="hkUint32" parent="20" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="8" name="hkRefPtr" parent="0" pointer="10" flags="43" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tTYPE" value="10" />
+      <member name="ptr" flags="36" offset="0" type="4" />
+    </Type>
+    <Type id="9" name="hknpExternMeshShapeGeometry" parent="10" flags="57" subTypeFlags="7" byteSize="1" alignment="1" abstractValue="3" />
+    <Type id="10" name="hkReferencedObject" parent="21" flags="41" subTypeFlags="7" byteSize="1" alignment="1" />
+    <Type id="11" name="hkFlags" parent="18" flags="0" subTypeFlags="0" byteSize="0" alignment="0">
+      <template name="tBITS" value="22" />
+      <template name="tSTORAGE" value="18" />
+    </Type>
+    <Type id="12" name="hkEnum" parent="13" flags="0" subTypeFlags="0" byteSize="0" alignment="0">
+      <template name="tENUM" value="23" />
+      <template name="tSTORAGE" value="13" />
+    </Type>
+    <Type id="13" name="hkUint8" parent="24" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="14" name="hkEnum" parent="13" flags="0" subTypeFlags="0" byteSize="0" alignment="0">
+      <template name="tENUM" value="25" />
+      <template name="tSTORAGE" value="13" />
+    </Type>
+    <Type id="15" name="hkReal" parent="26" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="16" name="hkUint64" parent="27" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="17" name="hkRefPtr" parent="0" pointer="28" flags="43" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tTYPE" value="28" />
+      <member name="ptr" flags="36" offset="0" type="29" />
+    </Type>
+    <Type id="18" name="hkUint16" parent="30" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="19" name="hkArray" parent="0" pointer="18" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="18" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="32" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="20" name="unsigned int" parent="0" flags="9" subTypeFlags="32772" byteSize="4" alignment="4" />
+    <Type id="21" name="hkBaseObject" parent="0" flags="57" subTypeFlags="7" byteSize="1" alignment="1" abstractValue="16" />
+    <Type id="22" name="hknpShape::FlagsEnum" parent="0" flags="9" subTypeFlags="33284" byteSize="4" alignment="4" />
+    <Type id="23" name="hknpShapeType::Enum" parent="0" flags="9" subTypeFlags="33284" byteSize="4" alignment="4" />
+    <Type id="24" name="unsigned char" parent="0" flags="9" subTypeFlags="8196" byteSize="1" alignment="1" />
+    <Type id="25" name="hknpCollisionDispatchType::Enum" parent="0" flags="9" subTypeFlags="33284" byteSize="4" alignment="4" />
+    <Type id="26" name="float" parent="0" flags="9" subTypeFlags="1525253" byteSize="4" alignment="4" />
+    <Type id="27" name="unsigned long long" parent="0" flags="9" subTypeFlags="65540" byteSize="8" alignment="4" />
+    <Type id="28" name="hkRefCountedProperties" parent="10" flags="45" subTypeFlags="7" version="2" byteSize="12" alignment="4">
+      <member name="entries" flags="34" offset="0" type="34" />
+    </Type>
+    <Type id="29" name="T*" parent="0" pointer="28" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="28" />
+    </Type>
+    <Type id="30" name="unsigned short" parent="0" flags="9" subTypeFlags="16388" byteSize="2" alignment="2" />
+    <Type id="31" name="hkContainerHeapAllocator" parent="0" flags="57" subTypeFlags="7" byteSize="1" alignment="1" abstractValue="16" />
+    <Type id="32" name="T*" parent="0" pointer="18" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="18" />
+    </Type>
+    <Type id="33" name="int" parent="0" flags="9" subTypeFlags="33284" byteSize="4" alignment="4" />
+    <Type id="34" name="hkArray" parent="0" pointer="35" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="35" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="36" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="35" name="hkRefCountedProperties::Entry" parent="0" flags="41" subTypeFlags="7" byteSize="8" alignment="4">
+      <member name="object" flags="32" offset="0" type="8" />
+      <member name="key" flags="32" offset="4" type="18" />
+      <member name="flags" flags="32" offset="6" type="18" />
+    </Type>
+    <Type id="36" name="T*" parent="0" pointer="35" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="35" />
+    </Type>
+    <Type id="37" name="hknpDefaultExternMeshShapeGeometry" parent="9" flags="41" subTypeFlags="7" byteSize="16" alignment="16">
+      <member name="geometry" flags="32" offset="0" type="38" />
+    </Type>
+    <Type id="38" name="hkRefPtr" parent="0" pointer="39" flags="43" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tTYPE" value="39" />
+      <member name="ptr" flags="36" offset="0" type="40" />
+    </Type>
+    <Type id="39" name="hkGeometry" parent="10" flags="45" subTypeFlags="7" version="1" byteSize="24" alignment="4">
+      <member name="vertices" flags="32" offset="0" type="41" />
+      <member name="triangles" flags="32" offset="12" type="42" />
+    </Type>
+    <Type id="40" name="T*" parent="0" pointer="39" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="39" />
+    </Type>
+    <Type id="41" name="hkArray" parent="0" pointer="43" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="43" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="44" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="42" name="hkArray" parent="0" pointer="45" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="45" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="46" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="43" name="hkVector4" parent="47" flags="0" subTypeFlags="0" byteSize="0" alignment="0" />
+    <Type id="44" name="T*" parent="0" pointer="43" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="43" />
+    </Type>
+    <Type id="45" name="hkGeometry::Triangle" parent="0" flags="41" subTypeFlags="7" byteSize="16" alignment="4">
+      <member name="a" flags="32" offset="0" type="33" />
+      <member name="b" flags="32" offset="4" type="33" />
+      <member name="c" flags="32" offset="8" type="33" />
+      <member name="material" flags="32" offset="12" type="33" />
+    </Type>
+    <Type id="46" name="T*" parent="0" pointer="45" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="45" />
+    </Type>
+    <Type id="47" name="hkVector4f" parent="0" pointer="26" flags="11" subTypeFlags="1064" byteSize="16" alignment="16" />
+    <Type id="48" name="hknpExternMeshShapeData" parent="10" flags="45" subTypeFlags="7" version="1" byteSize="64" alignment="16">
+      <member name="aabbTree" flags="32" offset="0" type="49" />
+      <member name="simdTree" flags="32" offset="48" type="50" />
+      <member name="hasBuildContext" flags="32" offset="60" type="51" />
+    </Type>
+    <Type id="49" name="hkcdStaticTree::Tree" parent="52" flags="41" subTypeFlags="7" byteSize="48" alignment="16">
+      <template name="tSTORAGE" value="52" />
+      <member name="domain" flags="32" offset="16" type="53" />
+    </Type>
+    <Type id="50" name="hkcdSimdTree" parent="21" flags="45" subTypeFlags="7" version="1" byteSize="12" alignment="4">
+      <member name="nodes" flags="32" offset="0" type="54" />
+    </Type>
+    <Type id="51" name="hkBool" parent="0" flags="41" subTypeFlags="8194" byteSize="1" alignment="1">
+      <member name="bool" flags="36" offset="0" type="55" />
+    </Type>
+    <Type id="52" name="hkcdStaticTree::DynamicStorage" parent="0" flags="41" subTypeFlags="7" byteSize="12" alignment="4">
+      <template name="tCODEC" value="56" />
+      <member name="nodes" flags="32" offset="0" type="57" />
+    </Type>
+    <Type id="53" name="hkAabb" parent="0" flags="41" subTypeFlags="7" byteSize="32" alignment="16">
+      <member name="min" flags="32" offset="0" type="43" />
+      <member name="max" flags="32" offset="16" type="43" />
+    </Type>
+    <Type id="54" name="hkArray" parent="0" pointer="58" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="58" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="59" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="55" name="char" parent="0" flags="9" subTypeFlags="8196" byteSize="1" alignment="1" />
+    <Type id="56" name="hkcdStaticTree::Codec3Axis6" parent="60" flags="41" subTypeFlags="7" byteSize="6" alignment="2">
+      <member name="hiData" flags="32" offset="3" type="13" />
+      <member name="loData" flags="32" offset="4" type="18" />
+    </Type>
+    <Type id="57" name="hkArray" parent="0" pointer="56" flags="43" subTypeFlags="8" byteSize="12" alignment="4">
+      <template name="tT" value="56" />
+      <template name="tAllocator" value="31" />
+      <member name="m_data" flags="34" offset="0" type="61" />
+      <member name="m_size" flags="34" offset="4" type="33" />
+      <member name="m_capacityAndFlags" flags="34" offset="8" type="33" />
+    </Type>
+    <Type id="58" name="hkcdSimdTree::Node" parent="62" flags="41" subTypeFlags="7" byteSize="112" alignment="16">
+      <member name="data" flags="32" offset="96" type="63" />
+    </Type>
+    <Type id="59" name="T*" parent="0" pointer="58" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="58" />
+    </Type>
+    <Type id="60" name="hkcdStaticTree::Codec3Axis" parent="0" flags="41" subTypeFlags="7" byteSize="3" alignment="1">
+      <member name="xyz" flags="32" offset="0" type="64" />
+    </Type>
+    <Type id="61" name="T*" parent="0" pointer="56" flags="11" subTypeFlags="6" byteSize="4" alignment="4">
+      <template name="tT" value="56" />
+    </Type>
+    <Type id="62" name="hkcdFourAabb" parent="0" flags="41" subTypeFlags="7" byteSize="96" alignment="16">
+      <member name="lx" flags="32" offset="0" type="43" />
+      <member name="hx" flags="32" offset="16" type="43" />
+      <member name="ly" flags="32" offset="32" type="43" />
+      <member name="hy" flags="32" offset="48" type="43" />
+      <member name="lz" flags="32" offset="64" type="43" />
+      <member name="hz" flags="32" offset="80" type="43" />
+    </Type>
+    <Type id="63" name="T[N]" parent="0" pointer="7" flags="11" subTypeFlags="1064" byteSize="16" alignment="4">
+      <template name="tT" value="7" />
+      <template name="vN" value="4" />
+    </Type>
+    <Type id="64" name="T[N]" parent="0" pointer="13" flags="11" subTypeFlags="808" byteSize="3" alignment="1">
+      <template name="tT" value="13" />
+      <template name="vN" value="3" />
+    </Type>
+  </ListType>
+  <ListItem>
+    <!--ListItem is not necessary, it's just to have the same order in binary.-->
+    <Item type="0" isPtr="false" offset="0x20" count="0" />
+    <Item type="1" isPtr="true" offset="0x20" count="1" />
+    <Item type="37" isPtr="true" offset="0x70" count="1" />
+    <Item type="48" isPtr="true" offset="0x80" count="1" />
+    <Item type="39" isPtr="true" offset="0x3f0" count="1" />
+    <Item type="56" isPtr="false" offset="0xc0" count="23" />
+    <Item type="58" isPtr="false" offset="0x150" count="6" />
+    <Item type="43" isPtr="false" offset="0x410" count="8" />
+    <Item type="45" isPtr="false" offset="0x490" count="12" />
+  </ListItem>
+</Havok>

@@ -64,7 +64,7 @@ void EAN::read(File *file)
 	unsigned int animation_names_offset = 0;
 	unsigned short animation_count = 0;
 
-	file->readInt32E(&unknown_total);
+	file->readInt32E(&unknown_total);			//it's version Todo rename
 	file->moveAddress(4);
 	file->readInt16E(&type);
 	file->readInt16E(&animation_count);

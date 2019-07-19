@@ -196,6 +196,7 @@ public:
 	vector<EMDTriangles>	&getTriangles(void) { return triangles; }
 	vector<EMDSubmeshDefinition>	&getDefinitions(void) { return definitions; }
 	size_t	mergeVertex(EMDVertex &v);
+	void	mergeTriangles();
 
 	EMDTriangles*	getTriangleForBoneNameCombinaison(vector<string> bone_names, bool createIfDontExist = true);
 
@@ -206,7 +207,7 @@ public:
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
 	bool	importFBX_OldMethode(FbxNode* fbxNode, FbxMesh* fbxMesh, int material_index, FbxAMatrix transform_matrix, string material_names, vector<vector<pair<double, FbxNode *>>> &control_points_skin_bindings, bool compressedFlag = true);
-	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
+	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false, FbxNode* forceBoneNode = 0);
 	FbxSurfaceMaterial*	exportFBXMaterial(FbxScene *scene, string material_name, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
 	FbxTexture* getTexture(FbxSurfaceMaterial * mat, const char* typeMap);
 #endif
@@ -259,6 +260,7 @@ public:
 	void	replaceBonesNames(const string &oldName, const string &newName);
 			
 	vector<EMDSubmesh *>	&getSubmeshes(void)	{ return submeshes; }
+	void	mergeTriangles();
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
@@ -266,7 +268,7 @@ public:
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
 	void	importFBX_OldMethode(FbxNode* fbxNode, bool compressedFlag = true);
-	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false);
+	void	exportFBX(FbxScene* scene, std::vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentNode, std::vector<EMB*> listTexturePackEMB, EMM* emmMaterial = 0, bool wantNoTexture = false, FbxNode* forceBoneNode = 0);
 #endif
 };
 
@@ -301,6 +303,7 @@ public:
 	vector<EMDMesh *>	&getMeshes(void) { return meshes; }
 	void	getBonesNames(vector<string> &bones_names);
 	void	replaceBonesNames(const string &oldName, const string &newName);
+	void	mergeTriangles();
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
@@ -344,6 +347,7 @@ public:
 	vector<string>	getBonesNames(void);
 	void	replaceBonesNames(const string &oldName, const string &newName);
 	size_t	getNumberModel() { return models.size(); }
+	void	mergeTriangles();
 
 	bool	loadXml(string filename);
 	void	saveXml(string filename);

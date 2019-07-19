@@ -280,6 +280,22 @@ FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4 orient
 \-------------------------------------------------------------------------------*/
 void quadToRotationMatrix(FbxVector4 orient, FbxDouble3 &m0, FbxDouble3 &m1, FbxDouble3 &m2)
 {
+	//normalize quaternion as in https://www.andre-gaschler.com/rotationconverter/ , else we could have infinite + weird result on matrixToEulerAnglesZYX, because of float precision on quaternion.
+	double a = sqrt(orient[0] * orient[0] + orient[1] * orient[1] + orient[2] * orient[2] + orient[3] * orient[3]);
+	if (0 == a)
+	{
+		orient[0] = orient[1] = orient[2] = 0;
+		orient[3] = 1;
+	}else{
+		a = 1.0 / a;
+		orient[0] *= a;
+		orient[1] *= a;
+		orient[2] *= a;
+		orient[3] *= a;
+	}
+
+
+	
 	double fTx = orient[0] + orient[0];
 	double fTy = orient[1] + orient[1];
 	double fTz = orient[2] + orient[2];
@@ -312,6 +328,26 @@ bool matrixToEulerAnglesZYX(FbxDouble3 m0, FbxDouble3 m1, FbxDouble3 m2, FbxDoub
 	//        cy*sz           cx*cz+sx*sy*sz -cz*sx+cx*sy*sz
 	//       -sy              cy*sx           cx*cy
 
+	for (size_t i = 0; i < 3; i++)		//few corrections, due to the float precision on quaternion.
+	{
+		if ((m0[i] < -1) && (abs(m0[i] - (-1)) < 0.000001))
+			m0[i] = -1;
+		if ((m0[i] > 1) && (abs(m0[i] - 1) < 0.000001))
+			m0[i] = 1;
+
+		if ((m1[i] < -1) && (abs(m1[i] - (-1)) < 0.000001))
+			m1[i] = -1;
+		if ((m1[i] > 1) && (abs(m1[i] - 1) < 0.000001))
+			m1[i] = 1;
+		
+		if ((m2[i] < -1) && (abs(m2[i] - (-1)) < 0.000001))
+			m2[i] = -1;
+		if ((m2[i] > 1) && (abs(m2[i] - 1) < 0.000001))
+			m2[i] = 1;
+	}
+
+
+
 	YPR_angles[1] = FbxASin(-m2[0] ) * FBXSDK_180_DIV_PI;
 	if (YPR_angles[1] < 90.0)
 	{
@@ -324,7 +360,8 @@ bool matrixToEulerAnglesZYX(FbxDouble3 m0, FbxDouble3 m1, FbxDouble3 m2, FbxDoub
 			// WARNING.  Not a unique solution.
 			double fRmY = FbxATan(-m0[1], m0[2]) * FBXSDK_180_DIV_PI;
 			YPR_angles[2] = 0.0;  // any angle works
-			YPR_angles[0] = YPR_angles[2] - fRmY;
+			//YPR_angles[0] = YPR_angles[2] - fRmY;
+			YPR_angles[0] = fRmY - YPR_angles[2];
 			return false;
 		}
 	}else{

@@ -64,32 +64,87 @@ void EMDVertex::read(File *file, uint16_t flags)
 		file->readFloat32E(&pos_z);
 	}
 
-	if (flags & EMD_VTX_FLAG_NORM)
+	if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+		/*
+		if (flags & EMD_VTX_FLAG_NORM)
 		{
 			file->readFloat32E(&norm_x);
 			file->readFloat32E(&norm_y);
 			file->readFloat32E(&norm_z);
-		}else {
-
-			file->readFloat16E(&norm_x);
-			file->readFloat16E(&norm_y);
-			file->readFloat16E(&norm_z);
-			file->moveAddress(2);
 		}
-	}
 
-	if (flags & EMD_VTX_FLAG_TANGENT)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+		if (flags & EMD_VTX_FLAG_TANGENT)
 		{
 			file->readFloat32E(&tang_x);
 			file->readFloat32E(&tang_y);
 			file->readFloat32E(&tang_z);
 		}
-		else {
 
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->readFloat32E(&text_u);
+			file->readFloat32E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->readFloat32E(&text2_u);
+			file->readFloat32E(&text2_v);
+		}
+		*/
+
+		if (flags & EMD_VTX_FLAG_NORM)
+		{
+			file->readFloat32E(&norm_x);
+			file->readFloat32E(&norm_y);
+			file->readFloat32E(&norm_z);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->readFloat32E(&text_u);
+			file->readFloat32E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->readFloat32E(&text2_u);
+			file->readFloat32E(&text2_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TANGENT)
+		{
+			file->readFloat32E(&tang_x);
+			file->readFloat32E(&tang_y);
+			file->readFloat32E(&tang_z);
+		}
+
+	}else {
+
+		if (flags & EMD_VTX_FLAG_NORM)
+		{
+			file->readFloat16E(&norm_x);
+			file->readFloat16E(&norm_y);
+			file->readFloat16E(&norm_z);
+			file->moveAddress(2);
+		}
+
+		
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->readFloat16E(&text_u);
+			file->readFloat16E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->readFloat16E(&text2_u);
+			file->readFloat16E(&text2_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TANGENT)
+		{
 			file->readFloat16E(&tang_x);
 			file->readFloat16E(&tang_y);
 			file->readFloat16E(&tang_z);
@@ -97,33 +152,8 @@ void EMDVertex::read(File *file, uint16_t flags)
 		}
 	}
 
-	if (flags & EMD_VTX_FLAG_TEX)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
-		{
-			file->readFloat32E(&text_u);
-			file->readFloat32E(&text_v);
-		}
-		else {
 
-			file->readFloat16E(&text_u);
-			file->readFloat16E(&text_v);
-		}
-	}
-
-	if (flags & EMD_VTX_FLAG_TEX2)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
-		{
-			file->readFloat32E(&text2_u);
-			file->readFloat32E(&text2_v);
-		}
-		else {
-
-			file->readFloat16E(&text2_u);
-			file->readFloat16E(&text2_v);
-		}
-	}
+	
 
 	if (flags & EMD_VTX_FLAG_COLOR)
 		file->readInt32E(&color);
@@ -164,33 +194,86 @@ void EMDVertex::write(File *file, uint16_t flags)
 		file->writeFloat32E(&pos_z);
 	}
 
-	if (flags & EMD_VTX_FLAG_NORM)
+	if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+		/*
+		if (flags & EMD_VTX_FLAG_NORM)
 		{
 			file->writeFloat32E(&norm_x);
 			file->writeFloat32E(&norm_y);
 			file->writeFloat32E(&norm_z);
 		}
-		else {
 
-			file->writeFloat16E(&norm_x);
-			file->writeFloat16E(&norm_y);
-			file->writeFloat16E(&norm_z);
-			file->writeInt16E(&nullValue);
-		}
-	}
-
-	if (flags & EMD_VTX_FLAG_TANGENT)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+		if (flags & EMD_VTX_FLAG_TANGENT)
 		{
 			file->writeFloat32E(&tang_x);
 			file->writeFloat32E(&tang_y);
 			file->writeFloat32E(&tang_z);
 		}
-		else {
 
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->writeFloat32E(&text_u);
+			file->writeFloat32E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->writeFloat32E(&text2_u);
+			file->writeFloat32E(&text2_v);
+		}
+		*/
+
+		if (flags & EMD_VTX_FLAG_NORM)
+		{
+			file->writeFloat32E(&norm_x);
+			file->writeFloat32E(&norm_y);
+			file->writeFloat32E(&norm_z);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->writeFloat32E(&text_u);
+			file->writeFloat32E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->writeFloat32E(&text2_u);
+			file->writeFloat32E(&text2_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TANGENT)
+		{
+			file->writeFloat32E(&tang_x);
+			file->writeFloat32E(&tang_y);
+			file->writeFloat32E(&tang_z);
+		}
+
+	}else {
+
+		if (flags & EMD_VTX_FLAG_NORM)
+		{
+			file->writeFloat16E(&norm_x);
+			file->writeFloat16E(&norm_y);
+			file->writeFloat16E(&norm_z);
+			file->writeInt16E(&nullValue);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX)
+		{
+			file->writeFloat16E(&text_u);
+			file->writeFloat16E(&text_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TEX2)
+		{
+			file->writeFloat16E(&text2_u);
+			file->writeFloat16E(&text2_v);
+		}
+
+		if (flags & EMD_VTX_FLAG_TANGENT)
+		{
 			file->writeFloat16E(&tang_x);
 			file->writeFloat16E(&tang_y);
 			file->writeFloat16E(&tang_z);
@@ -198,33 +281,10 @@ void EMDVertex::write(File *file, uint16_t flags)
 		}
 	}
 
-	if (flags & EMD_VTX_FLAG_TEX)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
-		{
-			file->writeFloat32E(&text_u);
-			file->writeFloat32E(&text_v);
-		}
-		else {
 
-			file->writeFloat16E(&text_u);
-			file->writeFloat16E(&text_v);
-		}
-	}
 
-	if (flags & EMD_VTX_FLAG_TEX2)
-	{
-		if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
-		{
-			file->writeFloat32E(&text2_u);
-			file->writeFloat32E(&text2_v);
-		}
-		else {
-
-			file->writeFloat16E(&text2_u);
-			file->writeFloat16E(&text2_v);
-		}
-	}
+	
+	
 
 	if (flags & EMD_VTX_FLAG_COLOR)
 		file->writeInt32E(&color);

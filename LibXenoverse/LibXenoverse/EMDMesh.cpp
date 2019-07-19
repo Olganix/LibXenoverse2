@@ -153,6 +153,14 @@ void EMDMesh::replaceBonesNames(const string &oldName, const string &newName)
 	for (size_t i = 0; i < submeshes.size(); i++)
 		submeshes[i]->replaceBonesNames(oldName, newName);
 }
+/*-------------------------------------------------------------------------------\
+|                             mergeTriangles				                     |
+\-------------------------------------------------------------------------------*/
+void EMDMesh::mergeTriangles()
+{
+	for (size_t i = 0; i < submeshes.size(); i++)
+		submeshes[i]->mergeTriangles();
+}
 
 
 

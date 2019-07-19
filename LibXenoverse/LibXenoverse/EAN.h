@@ -10,6 +10,11 @@
 #define LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE     1794
 #define LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA    770
 
+//1792 = 700
+//1793 = 701
+//1794 = 702
+//770 = 302
+
 //Notice: Camera is x=Roll (in radian) y=Focal (Fov in radian) 
 //		  Rotation is case of animation of camera, is in reality Camera Target Position.
 
@@ -118,6 +123,7 @@ protected:
 class EANAnimationNode
 {
 	friend class EmaAnimation;
+	friend class EAN;
 
 protected:
 	unsigned short bone_index;
