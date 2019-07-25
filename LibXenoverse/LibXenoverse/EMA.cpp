@@ -565,6 +565,7 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 				else if (currComponent == 2)			//for Z axis
 					value = (float)angles[0];					//pitch
 
+				/*
 				//test TODO REMOVE ( this test <=>remove if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) in certain case )
 				if (currComponent == 0)					//rotation for X axis
 					value = kf.x;					//roll
@@ -572,6 +573,7 @@ void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vect
 					value = kf.y;					//yaw on disc from pitch.
 				else if (currComponent == 2)			//for Z axis
 					value = kf.z;					//pitch
+				*/
 
 			}else{									// force to have all keyframe for orientation, to avoid weird interpolation between result of the conversion from quaternion to EulerAngles XYZ.
 

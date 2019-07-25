@@ -1,52 +1,168 @@
 #include "EANOgre.h"
 
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                EANOgre										                 |
+\-------------------------------------------------------------------------------*/
 EANOgre::EANOgre()
 {
-	skeleton = NULL;
+	name = "";
+
+	ean = 0;
+	ema = 0;
+	ema_material = 0;
+
 	fps = 60.0f;
 	force_animation = 0;
 	force_animation2 = 0;
 }
-
-
 /*-------------------------------------------------------------------------------\
-|                giveAngleOrientationForThisOrientationTaitBryan                 |
+|                EANOgre										                 |
 \-------------------------------------------------------------------------------*/
-Ogre::Vector3 EANOgre::giveAngleOrientationForThisOrientationTaitBryan(Ogre::Quaternion orient)
+EANOgre::~EANOgre()
 {
-	Ogre::Vector3 q = Ogre::Vector3::ZERO;
+	clear();
+}
+/*-------------------------------------------------------------------------------\
+|                clear											                 |
+\-------------------------------------------------------------------------------*/
+void EANOgre::clear()
+{
+	if (ean)
+		delete ean;
+	if (ema)
+		delete ema;
+	if (ema_material)
+		delete ema_material;
 
-	Ogre::Vector3 dir = orient * Ogre::Vector3::UNIT_X;
+	ean = 0;
+	ema = 0;
+	ema_material = 0;
 
-	//1) calcul yaw
-	Ogre::Vector2 vectproj = Ogre::Vector2(dir.x, -dir.z);		//projection of the result on (O,x,-z) plane
-	if (vectproj.length() > 0.000001)							//else, if undefined => by defaut 0;
+	mListEANOgreAnimation.clear();
+}
+/*-------------------------------------------------------------------------------\
+|                load											                 |
+\-------------------------------------------------------------------------------*/
+bool EANOgre::load(string filename)
+{
+	clear();
+
+	string extension = LibXenoverse::extensionFromFilename(filename, true);
+	string basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
+	
+	
+	if (extension=="ean")
 	{
-		vectproj = vectproj.normalisedCopy();
+		ean = new EAN();
+		if (!ean->load(filename))
+		{
+			delete ean;
+			return false;
+		}
+		name = ean->getName();
 
-		q.x = Ogre::Math::ACos(vectproj.x).valueDegrees();
-		if (vectproj.y<0)
-			q.x = -q.x;
+		vector<EANAnimation> &animations = ean->getAnimations();
+		for (size_t i = 0, nb = animations.size(); i < nb; i++)
+			mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, &animations.at(i)));
+
+
+	}else if (extension == "ema") {
+
+		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
+		string basefilename2 = basefilename.substr(0, basefilename.length() - (extension2.size() + 1));
+
+		if (extension2 == "mat") 
+		{
+			ema_material = new EMA_Material();
+			if (!ema_material->load(filename))
+			{
+				delete ema_material;
+				return false;
+			}
+			name = ema_material->getName();
+
+			//todo the same for others case.
+			vector<EMA_Material_Animation> &animations = ema_material->getAnimations();
+			for (size_t i = 0, nb = animations.size(); i < nb; i++)
+				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, 0, &animations.at(i)));
+
+
+		}else if (extension2 == "light") {
+
+			return false;				//todo add this case.
+
+		}else{							//obj or no second extension
+
+			ema = new EMA();
+			if (!ema->LoadFromFile(filename))
+			{
+				delete ema;
+				return false;
+			}
+
+			//todo use direct values instead convert into ean.
+			ean = new EAN();
+			ema->writeEAN(ean);
+			
+			delete ema;
+			ema = 0;
+			name = ean->getName();
+
+			vector<EANAnimation> &animations = ean->getAnimations();
+			for (size_t i = 0, nb = animations.size(); i < nb; i++)
+				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, &animations.at(i)));
+		}
+
+	}else{
+		return false;
 	}
-
-	//2) calcul pitch
-	Ogre::Vector3 dir_tmp = (Ogre::Quaternion(Ogre::Degree(-q.x), Ogre::Vector3::UNIT_Y) * orient) * Ogre::Vector3::UNIT_X;		//we cancel the yaw rotation. normally, the point must be into (O,x,y) plane
-	q.y = Ogre::Math::ACos(dir_tmp.x).valueDegrees();
-	if (dir_tmp.y<0)
-		q.y = -q.y;
-
-
-	//3) calcul rool
-	dir_tmp = (Ogre::Quaternion(Ogre::Degree(-q.y), Ogre::Vector3::UNIT_Z) * Ogre::Quaternion(Ogre::Degree(-q.x), Ogre::Vector3::UNIT_Y) * orient) * Ogre::Vector3::UNIT_Z;		//we cancel the yaw rotation and after the pitch rotation. normally, the point Vector3::UNIT_Y, after rotation must be in (O,x,z) plane.
-	q.z = Ogre::Math::ACos(dir_tmp.z).valueDegrees();
-	if (dir_tmp.y>0)		// the direct direction is from Oy to Oz
-		q.z = -q.z;
-
-	return q;
 }
 
 
+/*-------------------------------------------------------------------------------\
+|                createOgreAnimations							                 |
+\-------------------------------------------------------------------------------*/
+void EANOgre::createOgreAnimations(ESKOgre *v)
+{
+	esk_skeleton = v;
 
+	if (ean)
+	{
+		vector<EANAnimation> &animations = ean->getAnimations();
+		for (size_t i = 0, nb=animations.size(); i < nb; i++)
+			createOgreAnimation(&animations[i]);
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                createOgreAnimation							                 |
+\-------------------------------------------------------------------------------*/
+Ogre::Animation *EANOgre::createOgreAnimation(EANAnimation *animation)
+{
+	int keyframes_count = animation->getFrameCount();
+	vector<Ogre::NodeAnimationTrack *> node_tracks;
+
+	Ogre::Skeleton *ogre_skeleton = esk_skeleton->getOgreSkeleton();
+	if (!ogre_skeleton) {
+		return NULL;
+	}
+
+	if (ogre_skeleton->hasAnimation(animation->getName())) {
+		return NULL;
+	}
+
+	Ogre::Animation* mAnim = ogre_skeleton->createAnimation(animation->getName(), (float)keyframes_count / fps);
+
+	LOG_DEBUG("********************************************************************************************************\n********************************************************************************************************\n********************************************************************************************************\n********************************************************************************************************\nAnimation %s \n", animation->getName().c_str());
+
+	createOgreAnimationTracks(mAnim, ogre_skeleton, animation);
+
+	return mAnim;
+}
 /*-------------------------------------------------------------------------------\
 |                createOgreAnimationTracks						                 |
 \-------------------------------------------------------------------------------*/
@@ -70,7 +186,7 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 
 	// To deal with hierarchy holes of scd, the hidden part is also move with animation, so we have to work on each frame.
 	//first, we will do the match between skeletons, to avoid to do that on each frame, and reduce number of operations
-	EskTreeNode* skeleton_tree = (skeleton) ? skeleton->getTreeOrganisation() : 0;
+	EskTreeNode* skeleton_tree = (ean->getSkeleton()) ? ean->getSkeleton()->getTreeOrganisation() : 0;
 
 	struct Bonelink
 	{
@@ -288,35 +404,58 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 
 
 
-Ogre::Animation *EANOgre::createOgreAnimation(EANAnimation *animation)
+/*-------------------------------------------------------------------------------\
+|                giveAngleOrientationForThisOrientationTaitBryan                 |
+\-------------------------------------------------------------------------------*/
+Ogre::Vector3 EANOgre::giveAngleOrientationForThisOrientationTaitBryan(Ogre::Quaternion orient)
 {
-	int keyframes_count = animation->getFrameCount();
-	vector<Ogre::NodeAnimationTrack *> node_tracks;
+	Ogre::Vector3 q = Ogre::Vector3::ZERO;
 
-	Ogre::Skeleton *ogre_skeleton = esk_skeleton->getOgreSkeleton();
-	if (!ogre_skeleton) {
-		return NULL;
+	Ogre::Vector3 dir = orient * Ogre::Vector3::UNIT_X;
+
+	//1) calcul yaw
+	Ogre::Vector2 vectproj = Ogre::Vector2(dir.x, -dir.z);		//projection of the result on (O,x,-z) plane
+	if (vectproj.length() > 0.000001)							//else, if undefined => by defaut 0;
+	{
+		vectproj = vectproj.normalisedCopy();
+
+		q.x = Ogre::Math::ACos(vectproj.x).valueDegrees();
+		if (vectproj.y < 0)
+			q.x = -q.x;
 	}
 
-	if (ogre_skeleton->hasAnimation(animation->getName())) {
-		return NULL;
-	}
+	//2) calcul pitch
+	Ogre::Vector3 dir_tmp = (Ogre::Quaternion(Ogre::Degree(-q.x), Ogre::Vector3::UNIT_Y) * orient) * Ogre::Vector3::UNIT_X;		//we cancel the yaw rotation. normally, the point must be into (O,x,y) plane
+	q.y = Ogre::Math::ACos(dir_tmp.x).valueDegrees();
+	if (dir_tmp.y < 0)
+		q.y = -q.y;
 
-	Ogre::Animation* mAnim = ogre_skeleton->createAnimation(animation->getName(), (float)keyframes_count / fps);
-	
-	LOG_DEBUG("********************************************************************************************************\n********************************************************************************************************\n********************************************************************************************************\n********************************************************************************************************\nAnimation %s \n", animation->getName().c_str());
 
-	createOgreAnimationTracks(mAnim, ogre_skeleton, animation);
+	//3) calcul rool
+	dir_tmp = (Ogre::Quaternion(Ogre::Degree(-q.y), Ogre::Vector3::UNIT_Z) * Ogre::Quaternion(Ogre::Degree(-q.x), Ogre::Vector3::UNIT_Y) * orient) * Ogre::Vector3::UNIT_Z;		//we cancel the yaw rotation and after the pitch rotation. normally, the point Vector3::UNIT_Y, after rotation must be in (O,x,z) plane.
+	q.z = Ogre::Math::ACos(dir_tmp.z).valueDegrees();
+	if (dir_tmp.y > 0)		// the direct direction is from Oy to Oz
+		q.z = -q.z;
 
-	return mAnim;
+	return q;
 }
 
 
 
-void EANOgre::createOgreAnimations(ESKOgre *v)
-{
-	esk_skeleton = v;
 
-	for (size_t i = 0; i < animations.size(); i++)
-		createOgreAnimation(&animations[i]);
+
+/*-------------------------------------------------------------------------------\
+|                toForceAnimation								                 |
+\-------------------------------------------------------------------------------*/
+EANOgreAnimation* EANOgre::toForceAnimation()
+{
+	EANOgreAnimation* c = force_animation;
+	force_animation = NULL;
+	return c;
+}
+EANOgreAnimation* EANOgre::toForceAnimation2()
+{
+	EANOgreAnimation* c = force_animation2;
+	force_animation2 = NULL;
+	return c;
 }

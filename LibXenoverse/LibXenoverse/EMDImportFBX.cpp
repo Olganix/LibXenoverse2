@@ -1265,8 +1265,8 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 
 	if (definitions.size() == 0)
 	{
-		definitions.push_back(EMDSubmeshDefinition(0));
-		definitions.push_back(EMDSubmeshDefinition(0));
+		definitions.push_back(EMDSubmeshDefinition(0, 1.0f));
+		definitions.push_back(EMDSubmeshDefinition(0, 1.0f));
 	}
 
 

@@ -2,6 +2,7 @@
 #define EMMOGRE_H_INCLUDED
 
 class EMBOgre;
+class EANOgreAnimation;
 
 class EMMOgre : public EMM
 {
@@ -39,6 +40,13 @@ protected:
 	std::vector<EmmMaterialCreated> created_materials;
 	bool emdPartVisible;
 
+	EANOgreAnimation *animation_to_change;
+	EANOgreAnimation *animation_to_change2;
+	bool animationLoopEnable;
+	EMA_Material_Animation* ema_Material_Anim;
+	EMA_Material_Animation* ema_Material_Anim2;
+
+
 public:
 	EMMOgre();
 	~EMMOgre();
@@ -68,6 +76,23 @@ public:
 	EMBOgre *getDYTTexturePack() { return texture_dyt_pack; }
 
 	void destroyResources();
+
+
+	void tagAnimationChange(EANOgreAnimation *new_animation) { animation_to_change = new_animation; }
+	void tagAnimationChange2(EANOgreAnimation *new_animation) { animation_to_change2 = new_animation; }
+	bool changedAnimation() { return animation_to_change; }
+	bool changedAnimation2() { return animation_to_change2; }
+
+	void changeAnimation();
+	void changeAnimation2();
+
+	void setLoop(bool enable) { animationLoopEnable = enable;}
+	void updateAnimations(Ogre::Real time);
+	void stopAnimation();
+	void stopAnimation_1();
+	void stopAnimation_2();
+
+	string getShaderParamNameFromEmmParamName(string paramName);
 };
 
 #endif

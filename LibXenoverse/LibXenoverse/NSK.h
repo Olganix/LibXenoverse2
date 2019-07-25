@@ -18,6 +18,8 @@ class NSK
 		NSK(void) { mEmd = 0; mEsk = 0; }
 
 		string	getName() { return mName; }
+		EMD* getEmd() { return mEmd; };
+		ESK* getEsk() { return mEsk; };
 
 		bool	load(string filename);
 		void	save(string filename, bool big_endian = false);

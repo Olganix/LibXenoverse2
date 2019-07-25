@@ -121,13 +121,24 @@ bool EMG_SubPart::InjectVertex(const std::vector<EMG_VertexCommon> &new_vertex, 
 			vtx->pos_z = vtx_inj.pos_z;
 		}
 
+
+
 		if (do_normal)
 		{
 			vtx->norm_x = vtx_inj.norm_x;
 			vtx->norm_y = vtx_inj.norm_y;
 			vtx->norm_z = vtx_inj.norm_z;
 		}
-
+		if (do_uvmap)
+		{
+			vtx->text_u = vtx_inj.text_u;
+			vtx->text_v = vtx_inj.text_v;
+		}
+		if (do_uvmap2)
+		{
+			vtx->text2_u = vtx_inj.text2_u;
+			vtx->text2_v = vtx_inj.text2_v;
+		}
 		if (do_tang)
 		{
 			vtx->tang_x = vtx_inj.tang_x;
@@ -135,18 +146,7 @@ bool EMG_SubPart::InjectVertex(const std::vector<EMG_VertexCommon> &new_vertex, 
 			vtx->tang_z = vtx_inj.tang_z;
 		}
 
-		if (do_uvmap)
-		{
-			vtx->text_u = vtx_inj.text_u;
-			vtx->text_v = vtx_inj.text_v;
-		}
-
-		if (do_uvmap2)
-		{
-			vtx->text2_u = vtx_inj.text2_u;
-			vtx->text2_v = vtx_inj.text2_v;
-		}
-
+		
 		if (do_color)
 			vtx->color = vtx_inj.color;
 
@@ -2761,9 +2761,12 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 				vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_POS, true);
 			}
 
-			if (subpart.flags & EMG_VTX_FLAG_NORM)
+			
+
+
+			if (!(subpart.flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 			{
-				if (!(subpart.flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+				if (subpart.flags & EMG_VTX_FLAG_NORM)
 				{
 					float_tmp = (float*)vertex_subpart;
 					vd.VertexUnion.norm_x = val_float(float_tmp[0]);
@@ -2772,22 +2775,26 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_NORM, true);
 				}
-				else{
 
-					// is about 3 x float16 + 1 x float16 empty.
-					p_uint16_tmp = (uint16_t*)vertex_subpart;
-					vd.VertexUnion.norm_x = float16ToFloat(p_uint16_tmp[0]);
-					vd.VertexUnion.norm_y = float16ToFloat(p_uint16_tmp[1]);
-					vd.VertexUnion.norm_z = float16ToFloat(p_uint16_tmp[2]);
+				if (subpart.flags & EMG_VTX_FLAG_TEX)
+				{
+					float_tmp = (float*)vertex_subpart;
+					vd.VertexUnion.text_u = val_float(float_tmp[0]);
+					vd.VertexUnion.text_v = val_float(float_tmp[1]);
 
-					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_NORM | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
+					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX, true);
 				}
-			}
 
+				if (subpart.flags & EMG_VTX_FLAG_TEX2)
+				{
+					float_tmp = (float*)vertex_subpart;
+					vd.VertexUnion.text2_u = val_float(float_tmp[0]);
+					vd.VertexUnion.text2_v = val_float(float_tmp[1]);
 
-			if (subpart.flags & EMG_VTX_FLAG_TANGENT)
-			{
-				if(! (subpart.flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX2, true);
+				}
+
+				if (subpart.flags & EMG_VTX_FLAG_TANGENT)
 				{
 					float_tmp = (float*)vertex_subpart;
 					vd.VertexUnion.tang_x = val_float(float_tmp[0]);
@@ -2796,31 +2803,23 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TANGENT, true);
 				}
-				else{
 
+			}else{
+
+				if (subpart.flags & EMG_VTX_FLAG_NORM)
+				{
 					// is about 3 x float16 + 1 x float16 empty.
 					p_uint16_tmp = (uint16_t*)vertex_subpart;
 					vd.VertexUnion.norm_x = float16ToFloat(p_uint16_tmp[0]);
 					vd.VertexUnion.norm_y = float16ToFloat(p_uint16_tmp[1]);
 					vd.VertexUnion.norm_z = float16ToFloat(p_uint16_tmp[2]);
 
-					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TANGENT | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
+					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_NORM | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
 				}
-			}
 
 
-			if (subpart.flags & EMG_VTX_FLAG_TEX)
-			{
-				if (!(subpart.flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+				if (subpart.flags & EMG_VTX_FLAG_TEX)
 				{
-					float_tmp = (float*)vertex_subpart;
-					vd.VertexUnion.text_u = val_float(float_tmp[0]);
-					vd.VertexUnion.text_v = val_float(float_tmp[1]);
-
-					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX, true);
-				}
-				else{
-
 					//is about 2 x float16 in compressed version
 					p_uint16_tmp = (uint16_t*)vertex_subpart;
 					vd.VertexUnion.text_u = float16ToFloat(p_uint16_tmp[0]);
@@ -2828,21 +2827,9 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
 				}
-			}
 
-
-			if (subpart.flags & EMG_VTX_FLAG_TEX2)
-			{
-				if(!(subpart.flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
+				if (subpart.flags & EMG_VTX_FLAG_TEX2)
 				{
-					float_tmp = (float*)vertex_subpart;
-					vd.VertexUnion.text2_u = val_float(float_tmp[0]);
-					vd.VertexUnion.text2_v = val_float(float_tmp[1]);
-
-					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX2, true);
-				}
-				else{
-
 					//is about 2 x float16 in compressed version
 					p_uint16_tmp = (uint16_t*)vertex_subpart;
 					vd.VertexUnion.text2_u = float16ToFloat(p_uint16_tmp[0]);
@@ -2850,7 +2837,20 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)
 
 					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TEX2 | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
 				}
+
+				if (subpart.flags & EMG_VTX_FLAG_TANGENT)
+				{
+					// is about 3 x float16 + 1 x float16 empty.
+					p_uint16_tmp = (uint16_t*)vertex_subpart;
+					vd.VertexUnion.tang_x = float16ToFloat(p_uint16_tmp[0]);
+					vd.VertexUnion.tang_y = float16ToFloat(p_uint16_tmp[1]);
+					vd.VertexUnion.tang_z = float16ToFloat(p_uint16_tmp[2]);
+
+					vertex_subpart += EMG_SubPart::getSizeFromFlags(EMG_VTX_FLAG_TANGENT | EMG_VTX_FLAG_COMPRESSED_FORMAT, true);
+				}
 			}
+
+
 
 			if (subpart.flags & EMG_VTX_FLAG_COLOR)
 			{

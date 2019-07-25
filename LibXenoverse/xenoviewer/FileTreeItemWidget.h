@@ -20,6 +20,7 @@ class FBXOgre;
 #include "OgreWidget.h"
 #include "EMDOgre.h"
 #include "EMMOgre.h"
+#include "EANOgre.h"
 
 
 class LibXenoverse::EMMMaterial;
@@ -312,11 +313,11 @@ public:
 class AnimationItemWidget : public FileTreeItemWidget
 {
 protected:
-	EANAnimation *data_ptr;
+	EANOgreAnimation *data_ptr;
 public:
-	AnimationItemWidget(EANAnimation *data, QTreeWidget *parent);
+	AnimationItemWidget(EANOgreAnimation *data, QTreeWidget *parent);
 
-	EANAnimation *getData() { return data_ptr; }
+	EANOgreAnimation *getData() { return data_ptr; }
 };
 
 class BoneItemWidget : public FileTreeItemWidget

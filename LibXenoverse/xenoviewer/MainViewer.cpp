@@ -242,7 +242,7 @@ void MainViewer::animationItemDoubleClicked(QTreeWidgetItem *item, int column)
 	if (item_cast->getType() == FileTreeItemWidget::ItemAnimation)
 	{
 		AnimationItemWidget *animation_item_cast = static_cast<AnimationItemWidget *>(item_cast);
-		EANAnimation *anim = animation_item_cast->getData();
+		EANOgreAnimation *anim = animation_item_cast->getData();
 		EANOgre *anim_pack = static_cast<EANOgre *>(anim->getParent());
 		anim_pack->tagForceAnimation(anim);
 	}
@@ -321,7 +321,7 @@ void MainViewer::contextMenuAnimationTree(const QPoint& point)
 		QAction* selectedItem = myMenu.exec(globalPos);
 		if (selectedItem == visibleAct)
 		{
-			EANAnimation *anim = item->getData();
+			EANOgreAnimation *anim = item->getData();
 			EANOgre *anim_pack = static_cast<EANOgre *>(anim->getParent());
 			anim_pack->tagForceAnimation2(anim);
 		}

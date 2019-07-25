@@ -160,7 +160,7 @@ protected:
 
 public:
 			
-	ESK(void);
+	ESK(ESK* esk = 0);
 	virtual ~ESK(void);
 
 	bool	load(string filename);

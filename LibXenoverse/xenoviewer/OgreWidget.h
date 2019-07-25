@@ -34,6 +34,8 @@ namespace QtOgre
 		void	addFileEAN(string filename, list<EANOgre *> &target_ean_list);
 		void	addFileESK(string filename, list<ESKOgre *> &target_esk_list);
 		void	addFileEMD(string filename, list<EMDOgre *> &target_emd_list);
+		void	addFileNSK(string filename, list<EMDOgre *> &target_emd_list, list<ESKOgre *> &target_esk_list);
+		void	addFileEMO(string filename, list<EMDOgre *> &target_emd_list, list<ESKOgre *> &target_esk_list);
 		void	addFiles(const QStringList& pathList, list<EMDOgre *> &target_emd_list, list<ESKOgre *> &target_esk_list, list<EANOgre *> &target_ean_list);
 
 		void	clear_boneList(void) { bone_list.clear(); }

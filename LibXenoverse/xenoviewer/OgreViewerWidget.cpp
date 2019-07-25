@@ -117,18 +117,22 @@ namespace QtOgre
 			if (file.suffix().toStdString() == "emb")
 			{
 				EMBOgre *shader_pack = new EMBOgre();
-				if (shader_pack->load("adam_shader/"+ filename))
+				if (shader_pack->load("adam_shader/" + filename))
+				{
 					shader_pack->createOgreShaders();
-				else
+				}else{
 					SHOW_ERROR(QString("Couldn't load Shader Pack %1. File is either aissing, open by another application, or corrupt.").arg(filename.c_str()));
+				}
 
 			}else if(file.suffix().toStdString() == "sds"){
 
 				SDS* sds = new SDS();
 				if (sds->load("adam_shader/" + filename))
+				{
 					sds_list.push_back(sds);
-				else
+				}else{
 					SHOW_ERROR(QString("Couldn't load ShaderProgram (SDS file) %1. File is either aissing, open by another application, or corrupt.").arg(filename.c_str()));
+				}
 			}
 		}
 	
@@ -189,6 +193,7 @@ namespace QtOgre
 
 	void OgreWidget::loadDebugModels()
 	{
+		/*
 		// Load Character Models/Skeletons/Animations/Materials/Textures
 		string folder = "";
 		string character_name = "GOK";
@@ -279,6 +284,7 @@ namespace QtOgre
 			delete texture_dyt_pack;
 			delete material;
 		}
+		*/
 	}
 
 	
@@ -299,20 +305,70 @@ namespace QtOgre
 
 			for (list<EANOgre *>::iterator it = ean_list.begin(); it != ean_list.end(); it++)
 			{
-				EANAnimation *force_animation = (*it)->toForceAnimation();
-				if (force_animation)
+				EANOgreAnimation *force_animation = (*it)->toForceAnimation();
+				EANOgreAnimation *force_animation2 = (*it)->toForceAnimation2();
+
+				if ((force_animation)&&(force_animation->getEANAnimation()))
 				{
 					for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
 						(*it)->tagAnimationChange(force_animation);
 				}
 
-				EANAnimation *force_animation2 = (*it)->toForceAnimation2();
-				if (force_animation2)
+				if ((force_animation2) && (force_animation2->getEANAnimation()))
 				{
 					for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
 						(*it)->tagAnimationChange2(force_animation2);
 				}
+
+				
+				if ((force_animation) && (force_animation->getEmaMaterialAnimation()))
+				{
+					EMMOgre* emmOgre = 0;
+					EMA_Material_Animation* ema_matAnim = force_animation->getEmaMaterialAnimation();
+					vector<EMA_Material_Material> &materials = ema_matAnim->getMaterials();
+
+					for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
+					{
+						emmOgre = (*it)->getMaterialPack();
+
+						for (size_t i = 0, nb = materials.size(); i < nb; i++)
+						{
+							if (emmOgre->getMaterial(materials.at(i).getName()))
+							{
+								emmOgre->tagAnimationChange(force_animation);
+								break;
+							}
+						}
+					}
+				}
+
+				if ((force_animation2) && (force_animation2->getEmaMaterialAnimation()))
+				{
+					EMMOgre* emmOgre = 0;
+					EMA_Material_Animation* ema_matAnim = force_animation2->getEmaMaterialAnimation();
+					vector<EMA_Material_Material> &materials = ema_matAnim->getMaterials();
+
+					for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
+					{
+						emmOgre = (*it)->getMaterialPack();
+
+						for (size_t i = 0, nb = materials.size(); i < nb; i++)
+						{
+							if (emmOgre->getMaterial(materials.at(i).getName()))
+							{
+								emmOgre->tagAnimationChange(force_animation2);
+								break;
+							}
+						}
+					}
+				}
 			}
+
+
+
+
+
+
 
 			for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end();)
 			{
@@ -327,7 +383,6 @@ namespace QtOgre
 								(*itm)->setSkeleton(NULL);
 								(*itm)->tagForRebuild();
 							}
-
 						}
 					}
 					delete *it;
@@ -394,7 +449,7 @@ namespace QtOgre
 				it++;
 			}
 
-			mAnimationForceOneUpdate = false;
+			
 
 			for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end();)
 			{
@@ -420,11 +475,29 @@ namespace QtOgre
 
 				}
 
+				EMMOgre* emmOgre = (*it)->getMaterialPack();
+
+				if (emmOgre->changedAnimation())
+				{
+					emmOgre->changeAnimation();
+					mCurrentTime = 0.0;
+				}
+
+				if (emmOgre->changedAnimation2())
+					emmOgre->changeAnimation2();
+
+				if (mAnimationStop)
+					emmOgre->stopAnimation();
+
+				emmOgre->setLoop(mAnimationLoopEnable);
+				if ((mAnimationPlaying) || (mAnimationForceOneUpdate))
+					emmOgre->updateAnimations(mCurrentTime);
+
 				it++;
 			}
 
 
-
+			mAnimationForceOneUpdate = false;
 
 			if ((!mSkeletonVisible) && (skeleton_debug2))
 			{
@@ -1092,19 +1165,23 @@ namespace QtOgre
 		string extension = LibXenoverse::extensionFromFilename(filename, true);
 
 		if (extension == "emd")
+		{
 			addFileEMD(filename, target_emd_list);
-		else if (extension == "esk")
+		}else if (extension == "esk"){
 			addFileESK(filename, target_esk_list);
-		else if (extension == "nsk")
-			addFileESK(filename, target_esk_list);
-		else if (extension == "ean")
+		}else if (extension == "nsk"){
+			addFileNSK(filename, target_emd_list, target_esk_list);
+		}else if (extension == "emo") {
+			addFileEMO(filename, target_emd_list, target_esk_list);
+		}else if ((extension == "ean")||(extension == "ema")){
 			addFileEAN(filename, target_ean_list);
-		else if (extension == "emb")
+		}else if (extension == "emb"){
 			SHOW_ERROR("EMB files are automatically loaded with the EMD file. Load the EMD file instead!");
-		else if (extension == "emm")
+		}else if (extension == "emm"){
 			SHOW_ERROR("EMM files are automatically loaded with the EMD file. Load the EMD file instead!");
-		else
+		}else{
 			SHOW_ERROR("File Extension " + QString(extension.c_str()) + " for file " + QString(filename.c_str()) + " not recognized. Xenoviewer can't read this format.");
+		}
 	}
 
 	
@@ -1297,6 +1374,333 @@ namespace QtOgre
 		return;
 	}
 
+
+
+
+
+
+	void OgreWidget::addFileNSK(string filename, list<EMDOgre *> &target_emd_list, list<ESKOgre *> &target_esk_list)
+	{
+		string emb_filename = LibXenoverse::filenameNoExtension(filename) + ".emb";
+		string emb_dyt_filename = LibXenoverse::filenameNoExtension(filename) + ".dyt.emb";
+		string emm_filename = LibXenoverse::filenameNoExtension(filename) + ".emm";
+		string emd_name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+		string esk_name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+
+	
+		// Search for an EMD with the same name
+		for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
+		{
+			if ((*it)->getName() == emd_name)
+			{
+				SHOW_ERROR("A EMD Model Pack with the name " + QString(emd_name.c_str()) + " already exists! (FIXME: Implement prompt for replacing already loaded files)");
+				return;
+			}
+		}
+		// Search for an ESK with the same name
+		for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
+		{
+			if ((*it)->getName() == esk_name)
+			{
+				SHOW_ERROR("A ESK Skeleton with the name " + QString(esk_name.c_str()) + " already exists! (FIXME: Implement prompt for replacing already loaded files)");
+				return;
+			}
+		}
+
+
+		EMBOgre *texture_pack = NULL;
+		EMBOgre *texture_dyt_pack = NULL;
+		EMMOgre *material = NULL;
+
+		if (!LibXenoverse::fileCheck(emb_filename))
+		{
+			emb_filename = "";
+			//SHOW_ERROR("No EMB Pack with the name " + QString(emb_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+
+		if (!LibXenoverse::fileCheck(emb_dyt_filename))
+		{
+			emb_dyt_filename = emb_filename;		//certain charac have only emb file , no dyt, or no need.
+			//SHOW_ERROR("No EMB DYT Pack with the name " + QString(emb_dyt_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+		if (!LibXenoverse::fileCheck(emm_filename))
+		{
+			emm_filename = "";
+			//SHOW_ERROR("No EMM Pack with the name " + QString(emm_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+		texture_pack = 0;
+
+		if (emb_filename.length() != 0)
+		{
+			texture_pack = new EMBOgre();
+			if (texture_pack->load(emb_filename))
+			{
+				texture_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB Texture Pack. Is " + QString(emb_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_pack;
+				texture_pack = 0;
+			}
+		}
+
+		texture_dyt_pack = 0;
+		if (emb_dyt_filename.length() != 0)
+		{
+			texture_dyt_pack = new EMBOgre();
+			if (texture_dyt_pack->load(emb_dyt_filename))
+			{
+				texture_dyt_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(emb_dyt_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_dyt_pack;
+				texture_dyt_pack = 0;
+			}
+		}
+
+
+		material = 0;
+
+		if (emm_filename.length() != 0)
+		{
+			material = new EMMOgre();
+			if (material->load(emm_filename))
+			{
+				material->setTexturePack(texture_pack);
+				material->setDYTTexturePack(texture_dyt_pack);
+				material->createOgreMaterials(sds_list);
+			}
+			else {
+				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete material;
+				material = 0;
+			}
+		}
+
+
+
+		NSK* nsk = new NSK();
+		if (!nsk->load(filename))
+		{
+			SHOW_ERROR("Invalid Nsk Model Pack. Is " + QString(filename.c_str()) + " valid?");
+			goto abort_clean;
+
+		}else{
+
+			ESKOgre *skeleton = new ESKOgre(nsk->getEsk());
+			skeleton->createOgreSkeleton(mSceneMgr);
+			esk_list.push_back(skeleton);
+			target_esk_list.push_back(skeleton);
+
+			for (list<EANOgre *>::iterator it = ean_list.begin(); it != ean_list.end(); it++)
+				(*it)->createOgreAnimations(skeleton);
+
+			skeleton->refreshAnimations();
+
+
+			EMDOgre* model = new EMDOgre(nsk->getEmd());
+			model->setMaterialPack(material);
+			
+			model->setSkeleton(skeleton);
+
+			Ogre::SceneNode *emd_root_node = model->build(mSceneMgr);
+			emd_list.push_back(model);
+			target_emd_list.push_back(model);
+
+			//todo update item in tree, but I think they are not created yet ... what a mess the organisation of the tool.
+			//src_model_pack_item->updateText();
+			//dest_skeleton_item->setExpanded(true);
+		}
+
+		return;
+
+	abort_clean:
+
+		if (material)
+			delete material;
+		if (texture_pack)
+			delete texture_pack;
+		if (texture_dyt_pack)
+			delete texture_dyt_pack;
+		if(nsk)
+			delete nsk;
+		return;
+	}
+
+
+
+
+
+	void OgreWidget::addFileEMO(string filename, list<EMDOgre *> &target_emd_list, list<ESKOgre *> &target_esk_list)
+	{
+		string emb_filename = LibXenoverse::filenameNoExtension(filename) + ".emb";
+		string emb_dyt_filename = LibXenoverse::filenameNoExtension(filename) + ".dyt.emb";
+		string emm_filename = LibXenoverse::filenameNoExtension(filename) + ".emm";
+		string emd_name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+		string esk_name = LibXenoverse::nameFromFilenameNoExtension(filename, true);
+
+
+		// Search for an EMD with the same name
+		for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
+		{
+			if ((*it)->getName() == emd_name)
+			{
+				SHOW_ERROR("A EMD Model Pack with the name " + QString(emd_name.c_str()) + " already exists! (FIXME: Implement prompt for replacing already loaded files)");
+				return;
+			}
+		}
+		// Search for an ESK with the same name
+		for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
+		{
+			if ((*it)->getName() == esk_name)
+			{
+				SHOW_ERROR("A ESK Skeleton with the name " + QString(esk_name.c_str()) + " already exists! (FIXME: Implement prompt for replacing already loaded files)");
+				return;
+			}
+		}
+
+
+		EMBOgre *texture_pack = NULL;
+		EMBOgre *texture_dyt_pack = NULL;
+		EMMOgre *material = NULL;
+
+		if (!LibXenoverse::fileCheck(emb_filename))
+		{
+			emb_filename = "";
+			//SHOW_ERROR("No EMB Pack with the name " + QString(emb_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+
+		if (!LibXenoverse::fileCheck(emb_dyt_filename))
+		{
+			emb_dyt_filename = emb_filename;		//certain charac have only emb file , no dyt, or no need.
+			//SHOW_ERROR("No EMB DYT Pack with the name " + QString(emb_dyt_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+		if (!LibXenoverse::fileCheck(emm_filename))
+		{
+			emm_filename = "";
+			//SHOW_ERROR("No EMM Pack with the name " + QString(emm_filename.c_str()) + " found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!");
+			//return;
+		}
+
+		texture_pack = 0;
+
+		if (emb_filename.length() != 0)
+		{
+			texture_pack = new EMBOgre();
+			if (texture_pack->load(emb_filename))
+			{
+				texture_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB Texture Pack. Is " + QString(emb_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_pack;
+				texture_pack = 0;
+			}
+		}
+
+		texture_dyt_pack = 0;
+		if (emb_dyt_filename.length() != 0)
+		{
+			texture_dyt_pack = new EMBOgre();
+			if (texture_dyt_pack->load(emb_dyt_filename))
+			{
+				texture_dyt_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(emb_dyt_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete texture_dyt_pack;
+				texture_dyt_pack = 0;
+			}
+		}
+
+
+		material = 0;
+
+		if (emm_filename.length() != 0)
+		{
+			material = new EMMOgre();
+			if (material->load(emm_filename))
+			{
+				material->setTexturePack(texture_pack);
+				material->setDYTTexturePack(texture_dyt_pack);
+				material->createOgreMaterials(sds_list);
+			}
+			else {
+				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
+				//goto abort_clean;
+				delete material;
+				material = 0;
+			}
+		}
+
+
+
+		EMO* emo = new EMO();
+		if (!emo->load(filename))
+		{
+			SHOW_ERROR("Invalid Emo Model Pack. Is " + QString(filename.c_str()) + " valid?");
+			goto abort_clean;
+
+		}else {
+
+			EMDOgre* model = new EMDOgre();
+			ESKOgre* skeleton = new ESKOgre();
+			emo->writeEmdEsk(model, skeleton);
+			delete emo;
+			emo = 0;
+
+			skeleton->createOgreSkeleton(mSceneMgr);
+			esk_list.push_back(skeleton);
+			target_esk_list.push_back(skeleton);
+
+			for (list<EANOgre *>::iterator it = ean_list.begin(); it != ean_list.end(); it++)
+				(*it)->createOgreAnimations(skeleton);
+
+			skeleton->refreshAnimations();
+
+
+			
+			model->setMaterialPack(material);
+			model->setSkeleton(skeleton);
+			Ogre::SceneNode *emd_root_node = model->build(mSceneMgr);
+			emd_list.push_back(model);
+			target_emd_list.push_back(model);
+
+			//todo update item in tree, but I think they are not created yet ... what a mess the organisation of the tool.
+			//src_model_pack_item->updateText();
+			//dest_skeleton_item->setExpanded(true);
+		}
+
+		return;
+
+	abort_clean:
+
+		if (material)
+			delete material;
+		if (texture_pack)
+			delete texture_pack;
+		if (texture_dyt_pack)
+			delete texture_dyt_pack;
+		if (emo)
+			delete emo;
+		return;
+	}
 
 
 	bool OgreWidget::installShaders()

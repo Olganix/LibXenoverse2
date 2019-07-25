@@ -93,7 +93,7 @@ AnimationPackItemWidget::AnimationPackItemWidget(EANOgre *data, QTreeWidget *par
 
 	type = ItemAnimationPack;
 
-	vector<EANAnimation> &animations = data->getAnimations();
+	vector<EANOgreAnimation> &animations = data->getAnimations();
 	for (size_t i = 0; i < animations.size(); i++) {
 		AnimationItemWidget *animation_item = new AnimationItemWidget(&animations[i], NULL);
 		addChild(animation_item);
@@ -102,7 +102,7 @@ AnimationPackItemWidget::AnimationPackItemWidget(EANOgre *data, QTreeWidget *par
 	setExpanded(true);
 }
 
-AnimationItemWidget::AnimationItemWidget(EANAnimation *data, QTreeWidget *parent) : FileTreeItemWidget(parent)
+AnimationItemWidget::AnimationItemWidget(EANOgreAnimation *data, QTreeWidget *parent) : FileTreeItemWidget(parent)
 {
 	data_ptr = data;
 	setText(0, (data->getName()).c_str());

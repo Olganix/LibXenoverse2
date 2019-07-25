@@ -2,7 +2,35 @@ namespace LibXenoverse
 {
 
 
+/*-------------------------------------------------------------------------------\
+|                             EMDMesh				                             |
+\-------------------------------------------------------------------------------*/
+EMDMesh::EMDMesh(EMDMesh* emdMesh)
+{
+	zero();
 
+	if (emdMesh)
+	{
+		name = emdMesh->name;
+		unknown_total = emdMesh->unknown_total;
+		
+		aabb_center_x = emdMesh->aabb_center_x;
+		aabb_center_y = emdMesh->aabb_center_y;
+		aabb_center_z = emdMesh->aabb_center_z;
+		aabb_center_w = emdMesh->aabb_center_w;
+		aabb_min_x = emdMesh->aabb_min_x;
+		aabb_min_y = emdMesh->aabb_min_y;
+		aabb_min_z = emdMesh->aabb_min_z;
+		aabb_min_w = emdMesh->aabb_min_w;
+		aabb_max_x = emdMesh->aabb_max_x;
+		aabb_max_y = emdMesh->aabb_max_y;
+		aabb_max_z = emdMesh->aabb_max_z;
+		aabb_max_w = emdMesh->aabb_max_w;
+		
+		for (size_t i = 0, nb = emdMesh->submeshes.size(); i < nb; i++)
+			submeshes.push_back(new EMDSubmesh(emdMesh->submeshes.at(i)));
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             EMDMesh				                             |
 \-------------------------------------------------------------------------------*/

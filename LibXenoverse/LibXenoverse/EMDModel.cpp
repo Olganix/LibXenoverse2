@@ -4,8 +4,23 @@ namespace LibXenoverse
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             EMDModel				                             |
+\-------------------------------------------------------------------------------*/
+EMDModel::EMDModel(EMDModel* emdModel)
+{
+	name = "";
+	unknown_total = 0;
 
+	if (emdModel)
+	{
+		name = emdModel->name;
+		unknown_total = emdModel->unknown_total;
 
+		for (size_t i = 0, nb = emdModel->meshes.size(); i < nb; i++)
+			meshes.push_back(new EMDMesh(emdModel->meshes.at(i)));
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             EMDModel				                             |
 \-------------------------------------------------------------------------------*/

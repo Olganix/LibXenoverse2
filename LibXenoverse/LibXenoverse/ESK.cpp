@@ -8,13 +8,19 @@ namespace LibXenoverse
 /*-------------------------------------------------------------------------------\
 |                             ESK					                             |
 \-------------------------------------------------------------------------------*/
-ESK::ESK(void)
+ESK::ESK(ESK* esk)
 {
 	name = "";
 	flag = 0;
 	unknown_offset_2 = 0;
 	unknown_offset_3 = 0;
 	mHaveExtraBytesOnEachBone = true;
+
+	if (esk)
+	{
+		name = esk->name;
+		clone(esk);
+	}
 }
 /*-------------------------------------------------------------------------------\
 |                             ESK					                             |
@@ -682,7 +688,7 @@ void ESK::merge_byAttach_recursive(EskTreeNode* skeleton_tree_toAdd, EskTreeNode
 \-------------------------------------------------------------------------------*/
 void ESK::clone(ESK *esk)
 {
-	clear();									//we are oblige to clear for 2 reasons : first, the funciton call a clone, but also because of index reference between parent, childs and sibling will not hae any sence after.
+	clear();									//we are oblige to clear for 2 reasons : first, the function call a clone, but also because of index reference between parent, childs and sibling will not hae any sence after.
 
 	vector<ESKBone*> &src_bones = esk->bones;
 	size_t nbBones = src_bones.size();

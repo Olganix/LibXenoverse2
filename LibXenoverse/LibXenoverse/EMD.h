@@ -68,7 +68,7 @@ public:
 	float blend_weight[4];			//same blend_weight[1] could be a float16 in certain files
 
 
-	EMDVertex(void) { zero(); }
+	EMDVertex(EMDVertex* emdVertex = 0);
 
 	void	zero(void);
 	bool	operator == (const EMDVertex& vertex);
@@ -98,7 +98,7 @@ public:
 	vector<string> bone_names;
 
 
-	EMDTriangles(void) { }
+	EMDTriangles(EMDTriangles* emdTriangles = 0);
 
 	void	read(File *file);
 	void	write(File *file);
@@ -127,7 +127,7 @@ public:
 	float textScale_v;
 
 
-	EMDSubmeshDefinition(void) { zero(); }
+	EMDSubmeshDefinition(EMDSubmeshDefinition* emdSubmeshDefinition = 0);
 	EMDSubmeshDefinition(unsigned char texIndex, float textScale_u = 1.0f, float textScale_v = 1.0f) { zero(); this->texIndex = texIndex; this->textScale_u = textScale_u; this->textScale_v = textScale_v; }
 
 	void	zero(void);
@@ -180,7 +180,7 @@ public:
 	
 
 public:
-	EMDSubmesh(void) { zero(); }
+	EMDSubmesh(EMDSubmesh* emdSubmesh = 0);
 	void	zero(void);
 
 
@@ -246,7 +246,7 @@ protected:
 
 
 public:
-	EMDMesh(void) { zero();  }
+	EMDMesh(EMDMesh* emdMesh = 0);
 	~EMDMesh(void);
 	void	zero(void);
 
@@ -291,7 +291,7 @@ protected:
 	
 
 public:
-	EMDModel(void) { name = ""; unknown_total = 0; }
+	EMDModel(EMDModel* emdModel = 0);
 	~EMDModel(void);
 
 	void	read(File *file);
@@ -331,7 +331,7 @@ protected:
 	vector<EMDModel*> models;
 
 public:
-	EMD(void) { name = ""; unknown_total = 0; }
+	EMD(EMD* emd = 0);
 	~EMD(void);
 
 	bool	load(string filename);

@@ -1,5 +1,13 @@
+
+
 #ifndef ESKOGRE_H_INCLUDED
 #define ESKOGRE_H_INCLUDED
+
+
+class EANOgre;
+class EANOgreAnimation;
+
+
 
 class ESKOgre : public ESK
 {
@@ -9,8 +17,8 @@ protected:
 	bool resources_created;
 	Ogre::SceneNode *skeleton_node;
 	Ogre::Entity *skeleton_entity;
-	EANAnimation *animation_to_change;
-	EANAnimation *animation_to_change2;
+	EANOgreAnimation *animation_to_change;
+	EANOgreAnimation *animation_to_change2;
 	Ogre::AnimationState *current_animation_state;
 	Ogre::AnimationState *current_animation_state2;
 	bool to_delete;
@@ -20,7 +28,7 @@ protected:
 	ESKOgre* mOriginalVersion;			//before merging (ex: scd)
 
 public:
-	ESKOgre();
+	ESKOgre(ESK* esk = 0);
 	virtual ~ESKOgre(void);
 
 	Ogre::Vector3 giveAngleOrientationForThisOrientationTaitBryan(Ogre::Quaternion orient);
@@ -33,8 +41,8 @@ public:
 	Ogre::Skeleton *getOgreSkeleton() { return skeleton; }
 	Ogre::Entity *getEntity() { return skeleton_entity; }
 
-	void tagAnimationChange(EANAnimation *new_animation) { animation_to_change = new_animation; }
-	void tagAnimationChange2(EANAnimation *new_animation) { animation_to_change2 = new_animation; }
+	void tagAnimationChange(EANOgreAnimation *new_animation) { animation_to_change = new_animation; }
+	void tagAnimationChange2(EANOgreAnimation *new_animation) { animation_to_change2 = new_animation; }
 	void tagForDeletion() { to_delete = true; }
 	bool toDelete() { return to_delete; }
 	bool changedAnimation() { return animation_to_change; }

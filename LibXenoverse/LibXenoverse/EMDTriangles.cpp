@@ -1,6 +1,22 @@
 namespace LibXenoverse
 {
 
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             EMDTriangles			                             |
+\-------------------------------------------------------------------------------*/
+EMDTriangles::EMDTriangles(EMDTriangles* emdTriangles)
+{
+	if (emdTriangles)
+	{		
+		for (size_t i = 0, nb = emdTriangles->faces.size(); i < nb; i++)
+			faces.push_back(emdTriangles->faces.at(i));
+		for (size_t i = 0, nb = emdTriangles->bone_names.size(); i < nb; i++)
+			bone_names.push_back(emdTriangles->bone_names.at(i));
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/

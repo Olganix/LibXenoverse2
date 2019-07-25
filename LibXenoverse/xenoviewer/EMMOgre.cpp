@@ -1,5 +1,6 @@
 #include "EMMOgre.h"
 #include "EMBOgre.h"
+#include "EANOgre.h"
 
 EMMOgre::EMMOgre()
 {
@@ -7,6 +8,11 @@ EMMOgre::EMMOgre()
 	texture_pack = NULL;
 	texture_dyt_pack = NULL;
 	emdPartVisible = true;
+
+	animation_to_change = 0;
+	animation_to_change2 = 0;
+	ema_Material_Anim = ema_Material_Anim2 = 0;
+	animationLoopEnable = true;
 }
 
 
@@ -347,15 +353,24 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 	//config of pass
 	EMMParameter* params = emm_material->getParameter("BackFace");
-	if((params)&& (params->uint_value == 1))
+	if ((params) && (params->uint_value == 1))
+	{
+		pass->setManualCullingMode(Ogre::MANUAL_CULL_NONE);				//culling software
 		pass->setCullingMode(Ogre::CULL_NONE);
-
+		//pass->setCullingMode(Ogre::CULL_CLOCKWISE);
+	}
+		
+	params = emm_material->getParameter("TwoSidedRender");
+	if ((params) && (params->uint_value == 1))
+		pass->setCullingMode(Ogre::CULL_NONE);							//culling hardware
 	
-
+	bool is_transparent = false;
 	params = emm_material->getParameter("AlphaBlend");
 	if ((params) && (params->uint_value == 1))
 	{
 		pass->setTransparentSortingEnabled(true);
+		is_transparent = true;
+		//is_transparent = false;					//for debug. Todo comment
 
 
 		params = emm_material->getParameter("AlphaBlendType");			// with the name of material, we could say : 0: nml (normal or multiply ?), 1: additive, 2: sub
@@ -373,7 +388,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 			break;
 
 		case 1:
-			pass->setSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE);
+			//pass->setSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ONE);
+			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE);		//
 			break;	//additive
 		case 2:
 			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_COLOUR, Ogre::SBF_ONE_MINUS_DEST_COLOUR, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_DEST_ALPHA);
@@ -391,6 +407,9 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 		
 	}
 
+	params = emm_material->getParameter("AlphaSortMask");
+	if ((params) && (params->uint_value == 1))
+		pass->setTransparentSortingForced(true);
 
 
 	params = emm_material->getParameter("AlphaTest");										//Dbxv1
@@ -398,15 +417,14 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 		pass->setAlphaRejectSettings(Ogre::CompareFunction::CMPF_GREATER, params->uint_value);
 
 
-	//todo : LowRez, AnimationChannel, MipMapLod0, CustomFlag, 
+	//todo : LowRez, AnimationChannel, MipMapLod0, CustomFlag
 
 	
 	params = emm_material->getParameter("ZWriteMask");
-	if (params)
-		pass->setDepthWriteEnabled(params->uint_value == 1);
-	else
-		pass->setDepthWriteEnabled(true);					//default value
+	pass->setDepthWriteEnabled((params) ? (params->uint_value == 1) : ((is_transparent) ? false : true) );
 
+	params = emm_material->getParameter("ZTestMask");
+	pass->setDepthCheckEnabled( (params) ? (params->uint_value == 1) : ((is_transparent) ? false : true) );
 
 
 
@@ -1012,7 +1030,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 
 
-				//Todo check g_vTexTile01_VS		, link to AnimationChannel ? 
+				
 
 
 
@@ -1133,7 +1151,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 				if (paramName == "g_vColor13_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					fp_parameters->setConstant(reg, Ogre::Vector4(0, 0, 0, 1));
 					isUsed = "float4";
 				}
 
@@ -1725,4 +1743,204 @@ EMMOgre::~EMMOgre()
 	list<Ogre::String> created_materials;
 	for (list<Ogre::String>::iterator it = created_materials.begin(); it != created_materials.end(); it++)
 		Ogre::MaterialManager::getSingleton().remove(*it);
+}
+
+
+
+
+
+void EMMOgre::changeAnimation()
+{
+	stopAnimation_1();
+
+	if (animation_to_change)
+		ema_Material_Anim = animation_to_change->getEmaMaterialAnimation();
+	
+	animation_to_change = NULL;
+}
+void EMMOgre::changeAnimation2()
+{
+	stopAnimation_2();
+
+	if (animation_to_change2)
+		ema_Material_Anim2 = animation_to_change2->getEmaMaterialAnimation();
+
+	animation_to_change2 = NULL;
+}
+
+
+
+string EMMOgre::getShaderParamNameFromEmmParamName(string paramName)
+{
+	if ((paramName.length() > 6) && (paramName.substr(0, 6) == "MatCol"))			//for g_MaterialCol0_PS, g_MaterialCol1_PS,  ...
+	{
+		return "g_MaterialCol" + paramName.substr(6, 1);
+
+	}else if ((paramName.length() > 7) && (paramName.substr(0, 7) == "TexScrl")){
+		return "g_TexScroll" + paramName.substr(7, 1);
+	}
+
+
+	//todo complete
+
+	return "";
+}
+
+
+
+
+void EMMOgre::stopAnimation()
+{
+	stopAnimation_1();
+	stopAnimation_2();
+}
+
+void EMMOgre::stopAnimation_1()
+{
+	if (!ema_Material_Anim)
+		return;
+
+	vector<EMA_Material_Material> &materials = ema_Material_Anim->getMaterials();
+	for (size_t i = 0, nb = materials.size(); i < nb; i++)
+	{
+		EMA_Material_Material& material = materials.at(i);
+		string ogreMatName = name + "_" + material.getName();
+		Ogre::StringUtil::toLowerCase(ogreMatName);
+
+		vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
+		for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
+		{
+			EMA_Material_MaterialParameter matParam = matParamlist.at(j);
+
+			string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+			if (shadeParamName.length() == 0)
+				continue;
+
+			EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
+			if (emmMatParam.name.length())
+				setShaderParameter(ogreMatName, emmMatParam.name, emmMatParam.defaultValue);
+
+			emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
+			if (emmMatParam.name.length())
+				setShaderParameter(ogreMatName, emmMatParam.name, emmMatParam.defaultValue);
+		}
+	}
+	ema_Material_Anim = 0;
+}
+void EMMOgre::stopAnimation_2()
+{
+	if (!ema_Material_Anim2)
+		return;
+
+	vector<EMA_Material_Material> &materials = ema_Material_Anim2->getMaterials();
+	for (size_t i = 0, nb = materials.size(); i < nb; i++)
+	{
+		EMA_Material_Material& material = materials.at(i);
+		string ogreMatName = name + "_" + material.getName();
+		Ogre::StringUtil::toLowerCase(ogreMatName);
+
+		vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
+		for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
+		{
+			EMA_Material_MaterialParameter matParam = matParamlist.at(j);
+
+			string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+			if (shadeParamName.length() == 0)
+				continue;
+
+			EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
+			if (emmMatParam.name.length())
+				setShaderParameter(ogreMatName, emmMatParam.name, emmMatParam.defaultValue);
+
+			emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
+			if (emmMatParam.name.length())
+				setShaderParameter(ogreMatName, emmMatParam.name, emmMatParam.defaultValue);
+		}
+	}
+	ema_Material_Anim2 = 0;
+}
+
+
+void EMMOgre::updateAnimations(Ogre::Real time)
+{
+	if (ema_Material_Anim)
+	{
+		Ogre::Real time_tmp = (time * 60.0);
+		if (time_tmp > ema_Material_Anim->getFrameCount())
+		{
+			Ogre::Real nbFrames = ema_Material_Anim->getFrameCount();
+			time_tmp = (animationLoopEnable) ? (time_tmp - Ogre::Math::Floor(time_tmp/ nbFrames) * nbFrames) : (nbFrames - 1);
+		}
+
+		vector<EMA_Material_Material> &materials = ema_Material_Anim->getMaterials();
+		for (size_t i = 0, nb = materials.size(); i < nb; i++)
+		{
+			EMA_Material_Material& material = materials.at(i);
+			string ogreMatName = name + "_" + material.getName();
+			Ogre::StringUtil::toLowerCase(ogreMatName);
+
+			vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
+			for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
+			{
+				EMA_Material_MaterialParameter matParam = matParamlist.at(j);
+
+				string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+				if (shadeParamName.length() == 0)
+					continue;
+
+				EMA_Material_KeyFrame interpolKf = matParam.getInterpolatedKeyframe(time_tmp);
+
+				Ogre::Vector4 value(interpolKf.x, interpolKf.y, interpolKf.z, interpolKf.w);
+
+				EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
+				if (emmMatParam.name.length())
+					setShaderParameter(ogreMatName, emmMatParam.name, value);
+
+				emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
+				if (emmMatParam.name.length())
+					setShaderParameter(ogreMatName, emmMatParam.name, value);
+			}
+		}
+	}
+
+	if (ema_Material_Anim2)
+	{
+		Ogre::Real time_tmp = (time * 60.0);
+		if (time_tmp > ema_Material_Anim2->getFrameCount())
+		{
+			Ogre::Real nbFrames = ema_Material_Anim2->getFrameCount();
+			time_tmp = (animationLoopEnable) ? (time_tmp - Ogre::Math::Floor(time_tmp / nbFrames) * nbFrames) : (nbFrames - 1);
+		}
+
+		vector<EMA_Material_Material> &materials = ema_Material_Anim2->getMaterials();
+		for (size_t i = 0, nb = materials.size(); i < nb; i++)
+		{
+			EMA_Material_Material& material = materials.at(i);
+			string ogreMatName = name + "_" + material.getName();
+			Ogre::StringUtil::toLowerCase(ogreMatName);
+
+			vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
+			for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
+			{
+				EMA_Material_MaterialParameter matParam = matParamlist.at(j);
+
+				string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+				if (shadeParamName.length() == 0)
+					continue;
+
+				EMA_Material_KeyFrame interpolKf = matParam.getInterpolatedKeyframe(time_tmp);
+
+				Ogre::Vector4 value(interpolKf.x, interpolKf.y, interpolKf.z, interpolKf.w);
+
+				EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
+				if (emmMatParam.name.length())
+					setShaderParameter(ogreMatName, emmMatParam.name, value);
+
+				emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
+				if (emmMatParam.name.length())
+					setShaderParameter(ogreMatName, emmMatParam.name, value);
+			}
+		}
+	}
+
 }

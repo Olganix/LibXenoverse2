@@ -1,7 +1,38 @@
 namespace LibXenoverse
 {
 
+/*-------------------------------------------------------------------------------\
+|                             EMDVertex									         |
+\-------------------------------------------------------------------------------*/
+EMDVertex::EMDVertex(EMDVertex* emdVertex)
+{
+	zero();
 
+	if (emdVertex)
+	{
+		flags = emdVertex->flags;
+		pos_x = emdVertex->pos_x;
+		pos_y = emdVertex->pos_y;
+		pos_z = emdVertex->pos_z;
+		norm_x = emdVertex->norm_x;
+		norm_y = emdVertex->norm_y;
+		norm_z = emdVertex->norm_z;
+		tang_x = emdVertex->tang_x;
+		tang_y = emdVertex->tang_y;
+		tang_z = emdVertex->tang_z;
+		text_u = emdVertex->text_u;
+		text_v = emdVertex->text_v;
+		text2_u = emdVertex->text2_u;
+		text2_v = emdVertex->text2_v;
+		color = emdVertex->color;
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			blend[i] = emdVertex->blend[i];
+			blend_weight[i] = emdVertex->blend_weight[i];
+		}
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             zero					                             |
 \-------------------------------------------------------------------------------*/

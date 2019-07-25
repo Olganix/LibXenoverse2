@@ -1,7 +1,23 @@
 namespace LibXenoverse
 {
 
+/*-------------------------------------------------------------------------------\
+|                             EMDSubmesh			                             |
+\-------------------------------------------------------------------------------*/
+EMDSubmeshDefinition::EMDSubmeshDefinition(EMDSubmeshDefinition* emdSubmeshDefinition)
+{
+	zero();
 
+	if (emdSubmeshDefinition)
+	{
+		flag0 = emdSubmeshDefinition->flag0;
+		texIndex = emdSubmeshDefinition->texIndex;
+		flag1 = emdSubmeshDefinition->flag1;
+		flag2 = emdSubmeshDefinition->flag2;
+		textScale_u = emdSubmeshDefinition->textScale_u;
+		textScale_v = emdSubmeshDefinition->textScale_v;
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             zero					                             |
 \-------------------------------------------------------------------------------*/

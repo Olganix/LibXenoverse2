@@ -9,7 +9,7 @@
 /*-------------------------------------------------------------------------------\
 |                             EMDOgre				                             |
 \-------------------------------------------------------------------------------*/
-EMDOgre::EMDOgre()
+EMDOgre::EMDOgre(EMD* emd) : EMD(emd)
 {
 	tag = "EMD";
 	mesh_resources_created = false;
@@ -716,7 +716,11 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 				{
 					if ((parameter.at(i).name.length() > 10) && (parameter.at(i).name.substr(0, 10) == "g_vTexTile"))
 					{
-						Ogre::Vector4 vector_tmp(listTileFloats.at(inc++), listTileFloats.at(inc++), 1, 1);
+						Ogre::Vector4 vector_tmp(1, 1, 1, 1);
+
+						vector_tmp.x = listTileFloats.at(inc++);
+						vector_tmp.y = listTileFloats.at(inc++);
+
 						if (inc < nbFloats)
 						{
 							vector_tmp.z = listTileFloats.at(inc++);

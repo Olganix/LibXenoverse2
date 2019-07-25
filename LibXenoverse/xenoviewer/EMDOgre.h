@@ -24,7 +24,7 @@ class EMDOgre : public EMD
 		Ogre::String tag;
 
 	public:
-		EMDOgre();
+		EMDOgre(EMD* emd = 0);
 		~EMDOgre();
 
 

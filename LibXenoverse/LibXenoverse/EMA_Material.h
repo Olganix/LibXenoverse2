@@ -51,7 +51,9 @@ public:
 	EMA_Material_MaterialParameter(string name = "unknow", EMA_MaterialParameter_Type emaParamType = EMPT_Float) { this->name = name;  this->emaParamType = emaParamType; }
 	virtual ~EMA_Material_MaterialParameter(void) { keyframes.clear(); }
 
+	string getName() { return name; }
 	vector<EMA_Material_KeyFrame> &getKeyframe() { return keyframes; }
+	EMA_Material_KeyFrame getInterpolatedKeyframe(double frame_f);
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
@@ -73,6 +75,7 @@ public:
 	EMA_Material_Material(string name = "unknow") { this->name = name;}
 	virtual ~EMA_Material_Material(void) { materialParamters.clear(); }
 
+	const string &getName() { return name; }
 	vector<EMA_Material_MaterialParameter> &getMaterialParamters(){ return materialParamters; }
 
 	void	readEmaEmm(EmaCommand* ema, std::vector<float>* values, EMM* emm);

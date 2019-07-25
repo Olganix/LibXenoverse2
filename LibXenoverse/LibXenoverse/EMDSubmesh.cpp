@@ -2,6 +2,42 @@ namespace LibXenoverse
 {
 
 
+
+
+/*-------------------------------------------------------------------------------\
+|                             EMDSubmesh			                             |
+\-------------------------------------------------------------------------------*/
+EMDSubmesh::EMDSubmesh(EMDSubmesh* emdSubmesh)
+{
+	zero();
+
+	if (emdSubmesh)
+	{
+		name = emdSubmesh->name;
+		vertex_type_flag = emdSubmesh->vertex_type_flag;
+		vertex_size = emdSubmesh->vertex_size;
+
+		aabb_center_x = emdSubmesh->aabb_center_x;
+		aabb_center_y = emdSubmesh->aabb_center_y;
+		aabb_center_z = emdSubmesh->aabb_center_z;
+		aabb_center_w = emdSubmesh->aabb_center_w;
+		aabb_min_x = emdSubmesh->aabb_min_x;
+		aabb_min_y = emdSubmesh->aabb_min_y;
+		aabb_min_z = emdSubmesh->aabb_min_z;
+		aabb_min_w = emdSubmesh->aabb_min_w;
+		aabb_max_x = emdSubmesh->aabb_max_x;
+		aabb_max_y = emdSubmesh->aabb_max_y;
+		aabb_max_z = emdSubmesh->aabb_max_z;
+		aabb_max_w = emdSubmesh->aabb_max_w;
+
+		for (size_t i = 0, nb = emdSubmesh->vertices.size(); i < nb; i++)
+			vertices.push_back(EMDVertex(&emdSubmesh->vertices.at(i)));
+		for (size_t i = 0, nb = emdSubmesh->triangles.size(); i < nb; i++)
+			triangles.push_back(EMDTriangles(&emdSubmesh->triangles.at(i)));
+		for (size_t i = 0, nb = emdSubmesh->definitions.size(); i < nb; i++)
+			definitions.push_back(EMDSubmeshDefinition(&emdSubmesh->definitions.at(i)));
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             zero					                             |
 \-------------------------------------------------------------------------------*/
@@ -10,7 +46,7 @@ void EMDSubmesh::zero(void)
 	aabb_center_x = aabb_center_y = aabb_center_z = aabb_center_w = aabb_min_x = aabb_min_y = aabb_min_z = aabb_min_w = aabb_max_x = aabb_max_y = aabb_max_z = aabb_max_w = 0.0f;
 	vertex_type_flag = 0;
 	vertex_size = 0;
-	name = "";
+	name = uniqName = "";
 }
 /*-------------------------------------------------------------------------------\
 |                             read					                             |

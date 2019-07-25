@@ -1,7 +1,8 @@
 #include "ESKOgre.h"
+#include "EANOgre.h"
 #include "OgreCommon.h"
 
-ESKOgre::ESKOgre()
+ESKOgre::ESKOgre(ESK* esk) : ESK(esk)
 {
 	skeleton = NULL;
 	resources_created = false;
