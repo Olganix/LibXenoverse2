@@ -472,21 +472,18 @@ Ogre::SubMesh* EMDOgre::createOgreIndexBuffer_EmdSubMesh(EMDTriangles* triangles
 {
 	Ogre::SubMesh *sub = mesh->createSubMesh();
 
-
 	size_t ibufCount = triangles->faces.size();
 	unsigned short* faces = (unsigned short*)malloc(sizeof(unsigned short) * ibufCount);
-	size_t i_rest_tmp = 0;
-	size_t i_tmp = 0;
 	for (size_t i = 0; i < ibufCount; i++)
 		faces[i] = triangles->faces.at(i);
-
+	
 	Ogre::HardwareIndexBufferSharedPtr ibuf = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT, ibufCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
 	ibuf->writeData(0, ibuf->getSizeInBytes(), faces, true);
 	sub->useSharedVertices = true;
 	sub->indexData->indexBuffer = ibuf;
 	sub->indexData->indexCount = ibufCount;
 	sub->indexData->indexStart = 0;
-	free(faces);
+	::free(faces);
 	return sub;
 }
 /*-------------------------------------------------------------------------------\

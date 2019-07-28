@@ -19,6 +19,16 @@ namespace QtOgre
 		Q_OBJECT
 
 	public:
+		struct NamedColor
+		{
+			string name;
+			Ogre::ColourValue color;
+
+			NamedColor(string name, Ogre::ColourValue color) { this->name = name; this->color = color; };
+		};
+
+
+
 		OgreWidget(QWidget* pParentWidget=0, Qt::WindowFlags f=0);
 		~OgreWidget();
 
@@ -146,6 +156,8 @@ namespace QtOgre
 		EMDRenderObjectListener *emd_render_object_listener;
 		Ogre::SceneNode* mRepereNode;
 		Ogre::SceneNode* mGridNode;
+
+		std::vector<NamedColor> mListBackgroundColor;
 
 	public:
 		list<EMDOgre *> emd_list;

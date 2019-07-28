@@ -184,6 +184,67 @@ namespace QtOgre
 		
 
 
+		Ogre::ConfigFile cfg;
+
+		try {
+			// Don't trim whitespace
+			cfg.load("resources/xenoConfig.cfg", "\t:=", false);
+		}catch (Ogre::Exception& e){
+			return;
+		}
+
+		string cfg_str = cfg.getSetting("Grid_visible", Ogre::StringUtil::BLANK, "true");
+		mGridNode->setVisible( cfg_str == "true" );
+
+		cfg_str = cfg.getSetting("Repere_visible", Ogre::StringUtil::BLANK, "true");
+		mRepereNode->setVisible(cfg_str == "true");
+
+		cfg_str = cfg.getSetting("AmbientColor", Ogre::StringUtil::BLANK, "");
+		if(cfg_str.length()!=0)
+			mSceneMgr->setAmbientLight( Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0) );
+
+
+		cfg_str = cfg.getSetting("Light_DifuseColor", Ogre::StringUtil::BLANK, "");
+		if (cfg_str.length() != 0)
+			direct_light->setDiffuseColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0));
+
+		cfg_str = cfg.getSetting("Light_SpecularColor", Ogre::StringUtil::BLANK, "");
+		if (cfg_str.length() != 0)
+			direct_light->setSpecularColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0));
+
+
+
+
+
+		cfg_str = cfg.getSetting("ListBackgroundColors", Ogre::StringUtil::BLANK, "Grey_0.5[128, 128, 128]; Empty[0, 0, 0, 0]");
+		
+		Ogre::String tmp = "";
+		Ogre::StringVector sv = Ogre::StringUtil::split(cfg_str, ";");
+		for (size_t i = 0, nb = sv.size(); i < nb; i++)
+		{
+			tmp = sv.at(i);
+			Ogre::StringUtil::trim(tmp);
+			if (tmp[tmp.length() - 1] == ']')
+				tmp = tmp.substr(0, tmp.length() - 1);
+
+			Ogre::StringVector sv_b = Ogre::StringUtil::split(tmp, "[");
+			if (sv_b.size() != 2)
+				continue;
+
+			mListBackgroundColor.push_back( NamedColor(sv_b.at(0), Ogre::StringConverter::parseColourValue(sv_b.at(1)) * Ogre::ColourValue(1.0/255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0)  ));
+		}
+		
+
+		cfg_str = cfg.getSetting("Background_color", Ogre::StringUtil::BLANK, "");
+		if (cfg_str.length() != 0)
+		{
+			for (size_t i = 0, nb = mListBackgroundColor.size(); i < nb; i++)
+			{
+				if(cfg_str== mListBackgroundColor.at(i).name)
+					mViewport->setBackgroundColour(mListBackgroundColor.at(i).color);
+			}
+		}
+
 		//loadDebugModels();				//redondant test.
 	}
 
@@ -559,6 +620,8 @@ namespace QtOgre
 				layout->setMargin(0);
 			}
 
+			
+
 			mIsFullscreen = true;
 
 		}
@@ -748,6 +811,8 @@ namespace QtOgre
 				displayMenu->addAction(displayRepereAct);
 
 
+				
+
 				//////////////////////// debug of mesh by using adapted materials
 				QMenu* displayMenu_materials = displayMenu->addMenu("Material");
 
@@ -831,6 +896,29 @@ namespace QtOgre
 				displayMenu_Light_Z->addAction(displayLightAct_Z_n1);
 				displayMenu_Light_Z->addAction(displayLightAct_Z_0);
 				displayMenu_Light_Z->addAction(displayLightAct_Z_1);
+
+
+				////////////////////////		Background
+				
+				QMenu* displayMenu_Bg = displayMenu->addMenu("Backgrd");
+
+				struct actionColor_tmp
+				{
+					QAction* action;
+					Ogre::ColourValue color;
+
+					actionColor_tmp(QAction* action, Ogre::ColourValue color) { this->action = action; this->color = color; }
+				};
+
+
+				std::vector<actionColor_tmp> listBkColorAction;
+			
+				for (size_t i = 0, nb = mListBackgroundColor.size(); i < nb; i++)
+				{
+					listBkColorAction.push_back(actionColor_tmp(new QAction(tr( (Ogre::String("&") + mListBackgroundColor.at(i).name).c_str()) , this), mListBackgroundColor.at(i).color));
+					displayMenu_Bg->addAction(listBkColorAction.back().action);
+				}
+				
 
 				
 
@@ -1041,6 +1129,19 @@ namespace QtOgre
 						light->setDirection(-lightPosition.normalisedCopy());
 						light->setPosition( lightPosition.normalisedCopy() * scalefactor );
 					}
+
+
+				}else {
+
+					for (size_t i = 0, nb = listBkColorAction.size(); i < nb; i++)
+					{
+						if (selectedItem == listBkColorAction.at(i).action)
+						{
+							mViewport->setBackgroundColour(listBkColorAction.at(i).color);
+							break;
+						}
+					}
+
 				}
 				
 

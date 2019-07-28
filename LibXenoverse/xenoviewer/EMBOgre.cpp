@@ -50,16 +50,18 @@ EMBOgre::EMBOgre()
 
 void EMBOgre::createOgreTexture(EMBFile *file, size_t index)
 {
-	string ogre_emb_name = name + "_";
+	string ogre_emb_name = name + "_"+ ToString(index);					//alway do taht because of the way texture is used after.;
 	string emb_texture_name = file->getName();
 
-	if (emb_texture_name.size())
+	/*
+	if (emb_texture_name.size())				//todo remove
 	{
 		ogre_emb_name += emb_texture_name;
 	}
 	else {
 		ogre_emb_name += ToString(index);
 	}
+	*/
 
 	Ogre::DataStreamPtr data_stream(new EMBOgreDataStream(file));
 	Ogre::TexturePtr texture = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().create(ogre_emb_name, XENOVIEWER_RESOURCE_GROUP);
@@ -84,6 +86,8 @@ void EMBOgre::createOgreShader(EMBFile *file)
 	string extension = extensionFromFilename(file->getName());
 	bool vertex_shader = false;
 
+	Ogre::String name_tmp = Ogre::StringUtil::replaceAll(Ogre::StringUtil::replaceAll(Ogre::StringUtil::replaceAll(name, "shader_", ""), "_ps", ""), "_vs", "");	//personnalize shaders, to avoid shader with same name in many shader type (age of default)
+
 	if (extension == "xpu");
 	else if (extension == "xvu") vertex_shader = true;
 	else return;
@@ -93,11 +97,11 @@ void EMBOgre::createOgreShader(EMBFile *file)
 
 	if (vertex_shader)
 	{
-		Ogre::GpuProgramPtr program = Ogre::GpuProgramManager::getSingletonPtr()->createProgramFromString(shader_name, XENOVIEWER_RESOURCE_GROUP, Ogre::String(new_data), Ogre::GPT_VERTEX_PROGRAM, "vs_3_0");
+		Ogre::GpuProgramPtr program = Ogre::GpuProgramManager::getSingletonPtr()->createProgramFromString(name_tmp +"_"+ shader_name, XENOVIEWER_RESOURCE_GROUP, Ogre::String(new_data), Ogre::GPT_VERTEX_PROGRAM, "vs_3_0");
 		ogre_shaders.push_back(program);
 	}
 	else {
-		Ogre::GpuProgramPtr program = Ogre::GpuProgramManager::getSingletonPtr()->createProgramFromString(shader_name, XENOVIEWER_RESOURCE_GROUP, Ogre::String(new_data), Ogre::GPT_FRAGMENT_PROGRAM, "ps_3_0");
+		Ogre::GpuProgramPtr program = Ogre::GpuProgramManager::getSingletonPtr()->createProgramFromString(name_tmp + "_" + shader_name, XENOVIEWER_RESOURCE_GROUP, Ogre::String(new_data), Ogre::GPT_FRAGMENT_PROGRAM, "ps_3_0");
 		ogre_shaders.push_back(program);
 	}
 

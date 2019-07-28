@@ -204,8 +204,6 @@ public:
 	string	getName(void) { return name; }
 	void	setName(string newName){ name = newName; }
 	vector<EANAnimationNode>	&getNodes(void) { return nodes; }
-	unsigned char	&getFrameIndexSize(void) { return frame_index_size; }
-	unsigned char	&getFrameFloatSize(void) { return frame_index_size; }
 	string	getFilenameOriginList_str(void);
 	std::vector<string>	&getFilenameOriginList(void) { return mListFilenameOrigin; }
 

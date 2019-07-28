@@ -157,6 +157,7 @@ protected:
 	string name;									//it's also the materialName
 	unsigned int vertex_type_flag;
 	unsigned int vertex_size;
+	uint8_t unknow_0;
 
 	vector<EMDVertex> vertices;
 	vector<EMDTriangles> triangles;

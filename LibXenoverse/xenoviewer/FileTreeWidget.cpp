@@ -245,6 +245,7 @@ void FileTreeWidget::processContextMenuModelPack(ModelPackItemWidget *item, cons
 	if (endOgre->getTag() == "EMD")
 	{
 		QAction* visibleAct = myMenu.addAction(((endOgre->getVisible()) ? "Hide" : "Show"));
+		QAction* zMaskTransDefVal = myMenu.addAction(( ((endOgre->getMaterialPack())&&(endOgre->getMaterialPack()->getZMaskReadWrite_defaultValue_for_transparent())) ? "Trp.Depth.Def. Off" : "Trp.Depth.Def. On"));
 
 		QAction* selectedItem = myMenu.exec(point);
 		if (selectedItem == deleteAct)
@@ -252,6 +253,10 @@ void FileTreeWidget::processContextMenuModelPack(ModelPackItemWidget *item, cons
 			delete item;
 		}else if (selectedItem == visibleAct){
 			endOgre->setVisible(!endOgre->getVisible());
+
+		}else if (selectedItem == zMaskTransDefVal) {
+
+			endOgre->getMaterialPack()->setZMaskReadWrite_defaultValue_for_transparent( !endOgre->getMaterialPack()->getZMaskReadWrite_defaultValue_for_transparent() );
 		}
 	}
 }

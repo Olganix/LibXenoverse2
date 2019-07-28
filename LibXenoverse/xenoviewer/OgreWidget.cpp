@@ -184,9 +184,9 @@ namespace QtOgre
 
 	void OgreWidget::createViewports(void)
 	{
-		Ogre::Viewport* viewport = mWindow->addViewport(mCamera);
-		viewport->setBackgroundColour(Ogre::ColourValue(0.5, 0.5, 0.5, 0.0));
-		mCamera->setAspectRatio(Ogre::Real(viewport->getActualWidth()) / Ogre::Real(viewport->getActualHeight()));
+		mViewport = mWindow->addViewport(mCamera);
+		mViewport->setBackgroundColour(Ogre::ColourValue(0.5, 0.5, 0.5, 0.0));
+		mCamera->setAspectRatio(Ogre::Real(mViewport->getActualWidth()) / Ogre::Real(mViewport->getActualHeight()));
 	}
 
 	void OgreWidget::loadResources(void)

@@ -46,6 +46,7 @@ protected:
 	EMA_Material_Animation* ema_Material_Anim;
 	EMA_Material_Animation* ema_Material_Anim2;
 
+	bool zMaskReadWrite_defaultValue_for_transparent;
 
 public:
 	EMMOgre();
@@ -93,6 +94,9 @@ public:
 	void stopAnimation_2();
 
 	string getShaderParamNameFromEmmParamName(string paramName);
+
+	bool getZMaskReadWrite_defaultValue_for_transparent() { return zMaskReadWrite_defaultValue_for_transparent; }
+	void setZMaskReadWrite_defaultValue_for_transparent(bool enable);
 };
 
 #endif

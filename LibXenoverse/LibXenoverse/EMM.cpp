@@ -21,10 +21,19 @@ EMM::~EMM(void)
 \-------------------------------------------------------------------------------*/
 EMMMaterial* EMM::getMaterial(string name)
 {
-	size_t nbMaterial = materials.size();
-	for (size_t i = 0; i < nbMaterial; i++)
-		if (materials.at(i)->getName() == name)
+	
+	string name_tmp = name;
+	std::transform(name_tmp.begin(), name_tmp.end(), name_tmp.begin(), tolower);
+
+	string name_tmp_b = "";
+	for (size_t i = 0, nbMaterial = materials.size(); i < nbMaterial; i++)
+	{
+		name_tmp_b = materials.at(i)->getName();
+		std::transform(name_tmp_b.begin(), name_tmp_b.end(), name_tmp_b.begin(), tolower);
+
+		if (name_tmp_b == name_tmp_b)
 			return materials.at(i);
+	}
 	return nullptr;
 }
 /*-------------------------------------------------------------------------------\

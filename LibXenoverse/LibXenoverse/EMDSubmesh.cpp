@@ -16,6 +16,7 @@ EMDSubmesh::EMDSubmesh(EMDSubmesh* emdSubmesh)
 		name = emdSubmesh->name;
 		vertex_type_flag = emdSubmesh->vertex_type_flag;
 		vertex_size = emdSubmesh->vertex_size;
+		unknow_0 = emdSubmesh->unknow_0;
 
 		aabb_center_x = emdSubmesh->aabb_center_x;
 		aabb_center_y = emdSubmesh->aabb_center_y;
@@ -46,6 +47,7 @@ void EMDSubmesh::zero(void)
 	aabb_center_x = aabb_center_y = aabb_center_z = aabb_center_w = aabb_min_x = aabb_min_y = aabb_min_z = aabb_min_w = aabb_max_x = aabb_max_y = aabb_max_z = aabb_max_w = 0.0f;
 	vertex_type_flag = 0;
 	vertex_size = 0;
+	unknow_0 = 0;
 	name = uniqName = "";
 }
 /*-------------------------------------------------------------------------------\
@@ -89,7 +91,7 @@ void EMDSubmesh::read(File *file)
 	file->readInt32E(&vertex_count);
 	file->readInt32E(&vertex_address);
 	file->readInt32E(&submesh_name_address);
-	file->moveAddress(1);
+	file->readUChar(&unknow_0);
 	file->readUChar(&submesh_definition_count);
 	file->readInt16E(&submesh_triangles_count);
 	file->readInt32E(&submesh_offset_1);
@@ -233,7 +235,7 @@ void EMDSubmesh::write(File *file)
 	file->writeInt32E(&vertex_count);
 	file->writeInt32E(&vertex_address);
 	file->writeInt32E(&submesh_name_address);
-	file->writeNull(1);
+	file->writeUChar(&unknow_0);
 	file->writeUChar(&definition_count);
 	file->writeInt16E(&triangles_count);
 	file->writeInt32E(&submesh_offset_1);
@@ -340,8 +342,6 @@ void EMDSubmesh::mergeTriangles()
 				vertex.blend[k] += startBoneNameIndex;
 		}
 	}
-
-	int aa = 42;
 }
 /*-------------------------------------------------------------------------------\
 |                             getTriangleForBoneNameCombinaison					 |

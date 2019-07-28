@@ -45,16 +45,27 @@ void EMDTriangles::read(File *file)
 	// Read Face Indices
 	faces.resize(face_count);
 
+	bool testUint32 = false;							//Todo  find how to have indication about this. it's not the number of vertex saddely
+
 	for (size_t n = 0; n < face_count; n++)
 	{
-		file->goToAddress(base_face_address + face_table_address + n * 2);
-		unsigned short face = 0;
-		file->readInt16E(&face);
-		faces[n] = face;
+		if (!testUint32)
+		{
+			file->goToAddress(base_face_address + face_table_address + n * sizeof(uint16_t));
+			unsigned short face = 0;
+			file->readInt16E(&face);
+			faces[n] = face;
+
+		}else {
+			file->goToAddress(base_face_address + face_table_address + n * sizeof(uint32_t));
+			unsigned int face = 0;
+			file->readInt32E(&face);
+			faces[n] = (unsigned short)face;
+		}
 	}
 
-	// Recalculate the value of face name table address because some files literally lie about the value for some reason
-	face_name_table_address = face_table_address + face_count * 2;
+	// Recalculate the value of face name table address because some files literally lie about the value for some reason => maybe uint16 vs uint32 ? Todo check
+	face_name_table_address = face_table_address + face_count * (testUint32 ? sizeof(uint32_t) : sizeof(uint16_t)) ;
 	if ((face_name_table_address % 4) == 2)
 		face_name_table_address += 2;
 

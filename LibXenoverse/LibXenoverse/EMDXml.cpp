@@ -183,7 +183,10 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 bool EMDSubmesh::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
-
+	unsigned int tmp = 0;
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
+	unknow_0 = (uint8_t)tmp;
+	
 
 	// Vertex Definition
 	TiXmlElement* flagsNode = xmlCurrentNode->FirstChildElement("VertexDefinition");
@@ -567,6 +570,7 @@ TiXmlElement* EMDSubmesh::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EMDSubmesh");
 
 	xmlCurrentNode->SetAttribute("name", name);
+	xmlCurrentNode->SetAttribute("unknow_0", unknow_0);
 	
 
 
@@ -628,6 +632,7 @@ TiXmlElement* EMDSubmesh::exportXml(void)
 
 	TiXmlElement* vertexNode = new TiXmlElement("Vertices");
 	size_t nbVertex = vertices.size();
+	vertexNode->SetAttribute("nbVertex", nbVertex);							//test todo remove
 	for (size_t i = 0; i < nbVertex; i++)
 		vertexNode->LinkEndChild(vertices.at(i).exportXml());
 	xmlCurrentNode->LinkEndChild(vertexNode);

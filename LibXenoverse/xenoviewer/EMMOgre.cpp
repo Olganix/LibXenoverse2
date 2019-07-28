@@ -13,6 +13,8 @@ EMMOgre::EMMOgre()
 	animation_to_change2 = 0;
 	ema_Material_Anim = ema_Material_Anim2 = 0;
 	animationLoopEnable = true;
+
+	zMaskReadWrite_defaultValue_for_transparent = true;
 }
 
 
@@ -237,6 +239,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 	
 	//on a lire les SDS et shaders pour savoir ou se trouve les textureUnit a utilser.
 	string shader_name = emm_material->getShaderName();
+	string sds_name = "";
 	SDSShaderProgram *sdsShaderProgram = nullptr;
 
 	size_t nbSdsfiles = sds_list.size();
@@ -249,6 +252,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 			if (listShaderProg.at(j)->getName() == shader_name)
 			{
 				sdsShaderProgram = listShaderProg.at(j);
+				sds_name = sds_list.at(i)->getName();
 				break;
 			}
 		}
@@ -275,10 +279,10 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 	pass->setAmbient(1.0, 1.0, 1.0);
 
 
+	Ogre::String name_tmp = Ogre::StringUtil::replaceAll(Ogre::StringUtil::replaceAll(sds_name, "technique_", ""), "_sds", "");	//personnalize shaders, to avoid shader with same name in many shader type (age of default)
 
-
-	string vertex_shader_name = sdsShaderProgram->getVertexShaderName();
-	string pixel_shader_name = sdsShaderProgram->getPixelShaderName();
+	string vertex_shader_name = name_tmp +"_"+ sdsShaderProgram->getVertexShaderName();
+	string pixel_shader_name = name_tmp +"_"+ sdsShaderProgram->getPixelShaderName();
 
 	Ogre::LogManager::getSingleton().logMessage("MatName: " + name + " emmMaterial: " + emm_material->getName() + " VertexShader: " + vertex_shader_name + " pixel_shader_name:" + pixel_shader_name);
 	
@@ -370,7 +374,6 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 	{
 		pass->setTransparentSortingEnabled(true);
 		is_transparent = true;
-		//is_transparent = false;					//for debug. Todo comment
 
 
 		params = emm_material->getParameter("AlphaBlendType");			// with the name of material, we could say : 0: nml (normal or multiply ?), 1: additive, 2: sub
@@ -421,10 +424,10 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 	
 	params = emm_material->getParameter("ZWriteMask");
-	pass->setDepthWriteEnabled((params) ? (params->uint_value == 1) : ((is_transparent) ? false : true) );
+	pass->setDepthWriteEnabled((params) ? (params->uint_value == 1) : ((is_transparent) ? zMaskReadWrite_defaultValue_for_transparent : true ) );
 
 	params = emm_material->getParameter("ZTestMask");
-	pass->setDepthCheckEnabled( (params) ? (params->uint_value == 1) : ((is_transparent) ? false : true) );
+	pass->setDepthCheckEnabled( (params) ? (params->uint_value == 1) : ((is_transparent) ? zMaskReadWrite_defaultValue_for_transparent : true ) );
 
 
 
@@ -847,11 +850,72 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					if (params)
 						vect_tmp.y = params->float_value;
 
+
+					params = emm_material->getParameter("gScrollU" + paramName.substr(11, 1));
+					if (params)
+						vect_tmp.x = params->float_value;
+
+					params = emm_material->getParameter("gScrollV" + paramName.substr(11, 1));
+					if (params)
+						vect_tmp.y = params->float_value;
+
+					if (paramName.substr(11, 1) == "0")
+					{
+						params = emm_material->getParameter("gScrollU");
+						if (params)
+							vect_tmp.x = params->float_value;
+
+						params = emm_material->getParameter("gScrollV");
+						if (params)
+							vect_tmp.y = params->float_value;
+					}
+
+
 					fp_parameters->setConstant(reg, vect_tmp);
 
 					defaultValue = vect_tmp;
 					isUsed = "float4";
 				}
+
+
+				if (paramName == "g_AlphaFade_VS")
+				{
+					Ogre::Vector4 vect_tmp(0.0, 1.0, 0, 0);
+
+					params = emm_material->getParameter("FadeInit");
+					if (params)
+						vect_tmp.x = params->float_value;
+
+					params = emm_material->getParameter("FadeSpeed");
+					if (params)
+						vect_tmp.y = params->float_value;
+
+
+					fp_parameters->setConstant(reg, vect_tmp);
+
+					defaultValue = vect_tmp;
+					isUsed = "float4";
+				}
+
+				if (paramName == "g_Gradient_VS")
+				{
+					Ogre::Vector4 vect_tmp(0.0, 1.0, 0, 0);
+
+					params = emm_material->getParameter("GradientInit");
+					if (params)
+						vect_tmp.x = params->float_value;
+
+					params = emm_material->getParameter("GradientSpeed");
+					if (params)
+						vect_tmp.y = params->float_value;
+
+
+					fp_parameters->setConstant(reg, vect_tmp);
+
+					defaultValue = vect_tmp;
+					isUsed = "float4";
+				}
+
 
 				if (paramName == "g_Incidence_VS")
 				{
@@ -1943,4 +2007,35 @@ void EMMOgre::updateAnimations(Ogre::Real time)
 		}
 	}
 
+}
+
+void EMMOgre::setZMaskReadWrite_defaultValue_for_transparent(bool enable)
+{
+	zMaskReadWrite_defaultValue_for_transparent = enable;
+
+
+	Ogre::MaterialPtr compile_material;
+	Ogre::Pass *pass = 0;
+	for (size_t i = 0, nb = created_materials.size(); i < nb; i++)
+	{
+		compile_material = (Ogre::MaterialPtr)Ogre::MaterialManager::getSingleton().getByName(created_materials.at(i).name, XENOVIEWER_RESOURCE_GROUP);
+		if (compile_material.isNull())
+			continue;
+
+		pass = compile_material->getTechnique(0)->getPass(0);
+		if (!pass->getTransparentSortingEnabled())
+			continue;
+
+		string emm_materialName = created_materials.at(i).name.substr(name.length() + 1);				// ogre_material_name = name + "_" + emm_material->getName()
+
+		EMMMaterial* emm_material = getMaterial(emm_materialName);
+
+		EMMParameter* params = emm_material->getParameter("ZWriteMask");
+		pass->setDepthWriteEnabled((params) ? (params->uint_value == 1) : zMaskReadWrite_defaultValue_for_transparent);
+
+		params = emm_material->getParameter("ZTestMask");
+		pass->setDepthCheckEnabled((params) ? (params->uint_value == 1) : zMaskReadWrite_defaultValue_for_transparent);
+	}
+	
+	
 }
