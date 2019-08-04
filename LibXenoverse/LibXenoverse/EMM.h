@@ -14,15 +14,14 @@ class EMMParameter
 {
 	public:
 		string name;
-		unsigned int type;
+		uint16_t type;
+		uint16_t unknow_0;
 
-		int int_value;
 		size_t uint_value;
-		bool bool_value;
 		float float_value;
 
 		EMMParameter(void);
-		EMMParameter(string name, unsigned int type = 0x10001, int int_value = 0, size_t uint_value = 0, bool bool_value = false, float float_value = 0.0f ) { this->name = name; this->type = type; this->int_value = int_value; this->uint_value = uint_value; this->bool_value = bool_value; this->float_value = float_value; }
+		EMMParameter(string name, uint16_t type = 0x1, uint16_t unknow_0 = 0x0, size_t uint_value = 0, float float_value = 0.0f) { this->name = name; this->type = type; this->unknow_0 = unknow_0; this->uint_value = uint_value; this->float_value = float_value; }
 
 		void	read(File *file);
 		void	write(File *file);

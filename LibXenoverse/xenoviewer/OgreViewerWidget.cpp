@@ -39,6 +39,7 @@ namespace QtOgre
 		mGridNode = 0;
 		mGridVisible = true;
 		mRepereVisible = true;
+		
 	
 		
 
@@ -138,13 +139,13 @@ namespace QtOgre
 	
 
 		// Create a grid
-		mGridNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+		mGridNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Grid");
 		Ogre::Entity* ent = mSceneMgr->createEntity("Grid.mesh");
 		mGridNode->attachObject(ent);
 
 
 		//create repere
-		mRepereNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+		mRepereNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Repere");
 
 		Ogre::SceneNode* repNode = mRepereNode->createChildSceneNode();
 		
@@ -181,6 +182,10 @@ namespace QtOgre
 		ent->setRenderQueueGroup(70);
 		mRepereNode->attachObject(ent);
 
+
+
+		mTexture_player_dyt_pack = 0;
+		
 		
 
 
@@ -189,7 +194,7 @@ namespace QtOgre
 		try {
 			// Don't trim whitespace
 			cfg.load("resources/xenoConfig.cfg", "\t:=", false);
-		}catch (Ogre::Exception& e){
+		}catch (...){
 			return;
 		}
 
@@ -201,16 +206,16 @@ namespace QtOgre
 
 		cfg_str = cfg.getSetting("AmbientColor", Ogre::StringUtil::BLANK, "");
 		if(cfg_str.length()!=0)
-			mSceneMgr->setAmbientLight( Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0) );
+			mSceneMgr->setAmbientLight( Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0f / 255.0f, 1.0f / 255.0f, 1.0f / 255.0f, 1.0f) );
 
 
 		cfg_str = cfg.getSetting("Light_DifuseColor", Ogre::StringUtil::BLANK, "");
 		if (cfg_str.length() != 0)
-			direct_light->setDiffuseColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0));
+			direct_light->setDiffuseColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0f / 255.0f, 1.0f / 255.0f, 1.0f / 255.0f, 1.0f));
 
 		cfg_str = cfg.getSetting("Light_SpecularColor", Ogre::StringUtil::BLANK, "");
 		if (cfg_str.length() != 0)
-			direct_light->setSpecularColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0));
+			direct_light->setSpecularColour(Ogre::StringConverter::parseColourValue(cfg_str) * Ogre::ColourValue(1.0f / 255.0f, 1.0f / 255.0f, 1.0f / 255.0f, 1.0f));
 
 
 
@@ -231,7 +236,7 @@ namespace QtOgre
 			if (sv_b.size() != 2)
 				continue;
 
-			mListBackgroundColor.push_back( NamedColor(sv_b.at(0), Ogre::StringConverter::parseColourValue(sv_b.at(1)) * Ogre::ColourValue(1.0/255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0)  ));
+			mListBackgroundColor.push_back( NamedColor(sv_b.at(0), Ogre::StringConverter::parseColourValue(sv_b.at(1)) * Ogre::ColourValue(1.0f/255.0f, 1.0f / 255.0f, 1.0f / 255.0f, 1.0f)  ));
 		}
 		
 
@@ -320,6 +325,7 @@ namespace QtOgre
 			{
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
+				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
 				material->createOgreMaterials(sds_list);
 			}else {
 				delete material;
@@ -537,23 +543,24 @@ namespace QtOgre
 				}
 
 				EMMOgre* emmOgre = (*it)->getMaterialPack();
-
-				if (emmOgre->changedAnimation())
+				if (emmOgre)
 				{
-					emmOgre->changeAnimation();
-					mCurrentTime = 0.0;
+					if (emmOgre->changedAnimation())
+					{
+						emmOgre->changeAnimation();
+						mCurrentTime = 0.0;
+					}
+
+					if (emmOgre->changedAnimation2())
+						emmOgre->changeAnimation2();
+
+					if (mAnimationStop)
+						emmOgre->stopAnimation();
+
+					emmOgre->setLoop(mAnimationLoopEnable);
+					if ((mAnimationPlaying) || (mAnimationForceOneUpdate))
+						emmOgre->updateAnimations(mCurrentTime);
 				}
-
-				if (emmOgre->changedAnimation2())
-					emmOgre->changeAnimation2();
-
-				if (mAnimationStop)
-					emmOgre->stopAnimation();
-
-				emmOgre->setLoop(mAnimationLoopEnable);
-				if ((mAnimationPlaying) || (mAnimationForceOneUpdate))
-					emmOgre->updateAnimations(mCurrentTime);
-
 				it++;
 			}
 
@@ -766,6 +773,9 @@ namespace QtOgre
 				QMenu myMenu;
 				QMenu* displayMenu = myMenu.addMenu("Display");
 
+				QAction* getRayCastInfoAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&getInfo"), this);
+				myMenu.addAction(getRayCastInfoAct);
+
 				QAction* displayFullscreen = NULL;
 				if (mIsFullscreen)
 					displayFullscreen = new QAction(QIcon(":/resources/icons/pause.png"), tr("&Windowed"), this);
@@ -927,6 +937,7 @@ namespace QtOgre
 
 				QAction* selectedItem = myMenu.exec(event->globalPos());
 
+				
 				if (selectedItem == displayFullscreen)
 				{
 					if (!mIsFullscreen)
@@ -1072,40 +1083,50 @@ namespace QtOgre
 
 
 
-				}else if ( (selectedItem == displayLightAct_XenoClassic) 
-						|| (selectedItem == displayLightAct_CharacSelection)
-						|| (selectedItem == displayLightAct_StageXeno)
-						|| (selectedItem == displayLightAct_X_n1)
-						|| (selectedItem == displayLightAct_X_0)
-						|| (selectedItem == displayLightAct_X_1)
-						|| (selectedItem == displayLightAct_Y_n1)
-						|| (selectedItem == displayLightAct_Y_0)
-						|| (selectedItem == displayLightAct_Y_1)
-						|| (selectedItem == displayLightAct_Z_n1)
-						|| (selectedItem == displayLightAct_Z_0)
-						|| (selectedItem == displayLightAct_Z_1)
-						)
+				}
+				else if ((selectedItem == displayLightAct_XenoClassic)
+					|| (selectedItem == displayLightAct_CharacSelection)
+					|| (selectedItem == displayLightAct_StageXeno)
+					|| (selectedItem == displayLightAct_X_n1)
+					|| (selectedItem == displayLightAct_X_0)
+					|| (selectedItem == displayLightAct_X_1)
+					|| (selectedItem == displayLightAct_Y_n1)
+					|| (selectedItem == displayLightAct_Y_0)
+					|| (selectedItem == displayLightAct_Y_1)
+					|| (selectedItem == displayLightAct_Z_n1)
+					|| (selectedItem == displayLightAct_Z_0)
+					|| (selectedItem == displayLightAct_Z_1)
+					)
 				{
 					Ogre::Light* light = mSceneMgr->getLight("Xenoviewer Direct Light");
 					if (light)
 					{
 						Ogre::Vector3 lightPosition = -light->getDirection();
 						Ogre::Real scalefactor = (lightPosition.length() > 10.0) ? 1000.0 : 1.0;
-						if (lightPosition.x > 0.0001) { lightPosition.x = 1.0; } else if (lightPosition.x < 0.0001) { lightPosition.x = -1.0; } else { lightPosition.x = 0.0; }
-						if (lightPosition.y > 0.0001) { lightPosition.y = 1.0; } else if (lightPosition.y < 0.0001) { lightPosition.y = -1.0; } else { lightPosition.y = 0.0; }
-						if (lightPosition.z > 0.0001) { lightPosition.z = 1.0; } else if (lightPosition.z < 0.0001) { lightPosition.z = -1.0; } else { lightPosition.z = 0.0; }
+						if (lightPosition.x > 0.0001) { lightPosition.x = 1.0; }
+						else if (lightPosition.x < 0.0001) { lightPosition.x = -1.0; }
+						else { lightPosition.x = 0.0; }
+						if (lightPosition.y > 0.0001) { lightPosition.y = 1.0; }
+						else if (lightPosition.y < 0.0001) { lightPosition.y = -1.0; }
+						else { lightPosition.y = 0.0; }
+						if (lightPosition.z > 0.0001) { lightPosition.z = 1.0; }
+						else if (lightPosition.z < 0.0001) { lightPosition.z = -1.0; }
+						else { lightPosition.z = 0.0; }
 
 						if (selectedItem == displayLightAct_XenoClassic)
 						{
 							lightPosition = Ogre::Vector3(-1, 1, -1);
 							scalefactor = 1.0;
-						}else if (selectedItem == displayLightAct_CharacSelection){
+						}
+						else if (selectedItem == displayLightAct_CharacSelection) {
 							lightPosition = Ogre::Vector3(1, -1, -1);
 							scalefactor = 1.0;
-						}else if (selectedItem == displayLightAct_StageXeno) {
+						}
+						else if (selectedItem == displayLightAct_StageXeno) {
 							lightPosition = Ogre::Vector3(1, -1, -1);
 							scalefactor = 1000.0;
-						}else if (selectedItem == displayLightAct_X_n1)
+						}
+						else if (selectedItem == displayLightAct_X_n1)
 							lightPosition.x = -1.0;
 						else if (selectedItem == displayLightAct_X_0)
 							lightPosition.x = 0.0;
@@ -1124,12 +1145,95 @@ namespace QtOgre
 						else if (selectedItem == displayLightAct_Z_1)
 							lightPosition.z = 1.0;
 
-						
+
 
 						light->setDirection(-lightPosition.normalisedCopy());
-						light->setPosition( lightPosition.normalisedCopy() * scalefactor );
+						light->setPosition(lightPosition.normalisedCopy() * scalefactor);
 					}
 
+
+				}else if (selectedItem == getRayCastInfoAct){
+
+					Ogre::Ray mouseRay = mCamera->getCameraToViewportRay((event->x() - this->pos().rx()) / (double)(mViewport->getActualWidth()), (event->y() - this->pos().ry()) / (double)(mViewport->getActualHeight()));
+
+					Ogre::RaySceneQuery *raySceneQuery = mSceneMgr->createRayQuery(mouseRay);
+					raySceneQuery->setSortByDistance(true);
+
+					Ogre::RaySceneQueryResult& rayResult = raySceneQuery->execute();
+					
+					
+					struct EntityOrder
+					{
+						Ogre::Entity* ent;
+						Ogre::Real dist;
+						EntityOrder(Ogre::Entity* ent, Ogre::Real dist) { this->ent = ent; this->dist = dist; }
+
+						bool operator<(const EntityOrder &m) const { return (this->dist < m.dist); }
+						bool operator>(const EntityOrder &m) const { return (this->dist > m.dist); }
+						bool operator==(const EntityOrder &m) const { return (this->dist == m.dist); }
+					};
+
+
+					std::vector<EntityOrder> listEntityOrder;
+					for(Ogre::RaySceneQueryResult::iterator itr = rayResult.begin(); itr != rayResult.end(); ++itr)
+					{
+						if ((itr->worldFragment) ||
+							(!itr->movable->isVisible()) ||
+							(itr->movable->getName() == "") ||
+							(itr->movable->getName()=="Repere") ||
+							((itr->movable->getName().length()>4) && (itr->movable->getName().substr(0,4) == "Ogre")) ||
+							(itr->movable->getMovableType() != "Entity")
+							)
+						{
+							continue;
+						}
+
+						Ogre::Entity* ent = (Ogre::Entity*)itr->movable;
+						
+
+						size_t vertex_count;											// https://46.43.2.142/Raycasting+to+the+polygon+level
+						size_t index_count;
+						Ogre::Vector3* vertices;
+						unsigned long* indices;
+						Ogre::Real closest_distance = -1.0;
+
+						// get the mesh information
+						GetMeshInformation(ent, vertex_count, vertices, index_count, indices, ent->getParentNode()->_getDerivedPosition(), ent->getParentNode()->_getDerivedOrientation(), ent->getParentNode()->_getDerivedScale() );
+
+						bool new_closest_found = false;
+						for (int i = 0; i < static_cast<int>(index_count); i += 3)							// test for hitting individual triangles on the mesh
+						{
+							// check for a hit against this triangle
+							std::pair<bool, Ogre::Real> hit = Ogre::Math::intersects(mouseRay, vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]], true, false);
+
+							if (hit.first && (closest_distance < 0.0f || hit.second < closest_distance))	// if it was a hit check if its the closest
+							{
+								closest_distance = hit.second;												// this is the closest so far, save it off
+								new_closest_found = true;
+							}
+						}
+
+						if (new_closest_found)
+							listEntityOrder.push_back(EntityOrder(ent, closest_distance));
+							
+						
+						delete[] vertices;																	// free the verticies and indicies memory
+						delete[] indices;
+					}
+
+
+					std::sort(listEntityOrder.begin(), listEntityOrder.end());
+
+					string str = "";
+					for(size_t i=0,nb = listEntityOrder.size();i<nb;i++)
+						str += "'" + listEntityOrder.at(i).ent->getName() + "' with material : '" + listEntityOrder.at(i).ent->getSubEntity(0)->getMaterialName() + "'\n";
+
+					if (str.length()==0)
+						str = "No Object found.";
+					else 
+						str = "Sorted by distance: \n"+ str;
+
+					SHOW_SMSG(str);
 
 				}else {
 
@@ -1209,7 +1313,7 @@ namespace QtOgre
 		rotation_y.FromAngleAxis(Ogre::Radian(viewer_angle_y), Ogre::Vector3::UNIT_X);
 
 		Ogre::Vector3 new_position = viewer_center + ((rotation_x * rotation_y) * Ogre::Vector3(0, 0, 3.0 * zoom));
-		mCamera->setPosition(new_position);
+		mCamera->getParentSceneNode()->setPosition(new_position);
 		mCamera->lookAt(viewer_center);
 	}
 
@@ -1428,6 +1532,24 @@ namespace QtOgre
 			}
 		}
 
+
+		string texture_player_dyt_pack_filename = "resources/player_colors.dyt.emb";
+		if ((!mTexture_player_dyt_pack) && (LibXenoverse::fileCheck(texture_player_dyt_pack_filename)))
+		{
+			mTexture_player_dyt_pack = new EMBOgre();
+			if (mTexture_player_dyt_pack->load(texture_player_dyt_pack_filename))
+			{
+				mTexture_player_dyt_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(texture_player_dyt_pack_filename.c_str()) + " valid ? else remove it from ressources file");
+
+				delete mTexture_player_dyt_pack;
+				mTexture_player_dyt_pack = 0;
+			}
+		}
+		
+
 		
 		material = 0;
 
@@ -1438,6 +1560,7 @@ namespace QtOgre
 			{
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
+				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
 				material->createOgreMaterials(sds_list);
 			}else {
 				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
@@ -1568,6 +1691,22 @@ namespace QtOgre
 			}
 		}
 
+		string texture_player_dyt_pack_filename = "resources/player_colors.dyt.emb";
+		if ((!mTexture_player_dyt_pack) && (LibXenoverse::fileCheck(texture_player_dyt_pack_filename)))
+		{
+			mTexture_player_dyt_pack = new EMBOgre();
+			if (mTexture_player_dyt_pack->load(texture_player_dyt_pack_filename))
+			{
+				mTexture_player_dyt_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(texture_player_dyt_pack_filename.c_str()) + " valid ? else remove it from ressources file");
+
+				delete mTexture_player_dyt_pack;
+				mTexture_player_dyt_pack = 0;
+			}
+		}
+
 
 		material = 0;
 
@@ -1578,6 +1717,7 @@ namespace QtOgre
 			{
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
+				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
 				material->createOgreMaterials(sds_list);
 			}
 			else {
@@ -1731,6 +1871,23 @@ namespace QtOgre
 		}
 
 
+		string texture_player_dyt_pack_filename = "resources/player_colors.dyt.emb";
+		if((!mTexture_player_dyt_pack)&&(LibXenoverse::fileCheck(texture_player_dyt_pack_filename)))
+		{
+			mTexture_player_dyt_pack = new EMBOgre();
+			if (mTexture_player_dyt_pack->load(texture_player_dyt_pack_filename))
+			{
+				mTexture_player_dyt_pack->createOgreTextures();
+			}
+			else {
+				SHOW_ERROR("Invalid EMB DYT Texture Pack. Is " + QString(texture_player_dyt_pack_filename.c_str()) + " valid ? else remove it from ressources file");
+
+				delete mTexture_player_dyt_pack;
+				mTexture_player_dyt_pack = 0;
+			}
+		}
+
+
 		material = 0;
 
 		if (emm_filename.length() != 0)
@@ -1740,6 +1897,7 @@ namespace QtOgre
 			{
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
+				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
 				material->createOgreMaterials(sds_list);
 			}
 			else {
@@ -1877,5 +2035,335 @@ namespace QtOgre
 		target_ean_list = ean_list;
 	}
 
-	
+
+
+
+
+
+
+	void OgreWidget::GetMeshInformation(const Ogre::Entity* entity, size_t& vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale)
+	{
+		bool added_shared = false;
+		size_t current_offset = 0;
+		size_t shared_offset = 0;
+		size_t next_offset = 0;
+		size_t index_offset = 0;
+		vertex_count = index_count = 0;
+
+		Ogre::MeshPtr mesh = entity->getMesh();
+
+
+		bool useSoftwareBlendingVertices = entity->hasSkeleton();
+
+		if (useSoftwareBlendingVertices)
+			const_cast<Ogre::Entity*>(entity)->_updateAnimation();
+
+		// Calculate how many vertices and indices we're going to need
+		for (unsigned short i = 0, size = mesh->getNumSubMeshes(); i < size; ++i)
+		{
+			Ogre::SubMesh* submesh = mesh->getSubMesh(i);
+
+			// We only need to add the shared vertices once
+			if (submesh->useSharedVertices) {
+				if (!added_shared) {
+					vertex_count += mesh->sharedVertexData->vertexCount;
+					added_shared = true;
+				}
+			}
+			else {
+				vertex_count += submesh->vertexData->vertexCount;
+			}
+
+			// Add the indices
+			index_count += submesh->indexData->indexCount;
+		}
+
+
+		// Allocate space for the vertices and indices
+		vertices = new Ogre::Vector3[vertex_count];
+		indices = new unsigned long[index_count];
+
+		added_shared = false;
+
+		// Run through the submeshes again, adding the data into the arrays
+		for (unsigned short i = 0, size = mesh->getNumSubMeshes(); i < size; ++i)
+		{
+			Ogre::SubMesh* submesh = mesh->getSubMesh(i);
+
+			//----------------------------------------------------------------
+			// GET VERTEXDATA
+			//----------------------------------------------------------------
+
+			//Ogre::VertexData* vertex_data = submesh->useSharedVertices ? mesh->sharedVertexData : submesh->vertexData;
+			Ogre::VertexData* vertex_data;
+
+			//When there is animation:
+			if (useSoftwareBlendingVertices)
+				vertex_data = submesh->useSharedVertices ? entity->_getSkelAnimVertexData() : entity->getSubEntity(i)->_getSkelAnimVertexData();
+			else
+				vertex_data = submesh->useSharedVertices ? mesh->sharedVertexData : submesh->vertexData;
+
+
+			if ((!submesh->useSharedVertices) || (submesh->useSharedVertices && !added_shared))
+			{
+				if (submesh->useSharedVertices) {
+					added_shared = true;
+					shared_offset = current_offset;
+				}
+
+				const Ogre::VertexElement* posElem = vertex_data->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
+
+				Ogre::HardwareVertexBufferSharedPtr vbuf = vertex_data->vertexBufferBinding->getBuffer(posElem->getSource());
+
+				unsigned char* vertex = static_cast<unsigned char*>(vbuf->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+
+				// There is _no_ baseVertexPointerToElement() which takes an Ogre::Real or a double
+				//  as second argument. So make it float, to avoid trouble when Ogre::Real will
+				//  be comiled/typedefed as double:
+				//      Ogre::Real* pReal;
+				float* pReal = 0;
+
+				for (size_t j = 0; j < vertex_data->vertexCount; ++j, vertex += vbuf->getVertexSize())
+				{
+					posElem->baseVertexPointerToElement(vertex, &pReal);
+					Ogre::Vector3 pt(pReal[0], pReal[1], pReal[2]);
+					vertices[current_offset + j] = (orient * (pt * scale)) + position;
+				}
+
+				vbuf->unlock();
+				next_offset += vertex_data->vertexCount;
+			}
+
+
+			Ogre::IndexData* index_data = submesh->indexData;
+			size_t numTris = index_data->indexCount / 3;
+			Ogre::HardwareIndexBufferSharedPtr ibuf = index_data->indexBuffer;
+
+			bool use32bitindexes = (ibuf->getType() == Ogre::HardwareIndexBuffer::IT_32BIT);
+
+			unsigned long*  pLong = static_cast<unsigned long*>(ibuf->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+			unsigned short* pShort = reinterpret_cast<unsigned short*>(pLong);
+
+
+			size_t offset = (submesh->useSharedVertices) ? shared_offset : current_offset;
+			size_t index_start = index_data->indexStart;
+			size_t last_index = numTris * 3 + index_start;
+
+			if (use32bitindexes) {
+				for (size_t k = index_start; k < last_index; ++k)
+					indices[index_offset++] = pLong[k] + static_cast<unsigned long>(offset);
+			}
+			else {
+				for (size_t k = index_start; k < last_index; ++k)
+					indices[index_offset++] =
+					static_cast<unsigned long>(pShort[k]) +
+					static_cast<unsigned long>(offset);
+			}
+
+			ibuf->unlock();
+			current_offset = next_offset;
+		}
+	}
+
+	// Get the mesh information for the given mesh.
+	// Code found in Wiki: www.ogre3d.org/wiki/index.php/RetrieveVertexData
+	void OgreWidget::GetMeshInformation(const Ogre::MeshPtr mesh, size_t &vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale)
+	{
+		bool added_shared = false;
+		size_t current_offset = 0;
+		size_t shared_offset = 0;
+		size_t next_offset = 0;
+		size_t index_offset = 0;
+
+		vertex_count = index_count = 0;
+
+		// Calculate how many vertices and indices we're going to need
+		for (unsigned short i = 0, size = mesh->getNumSubMeshes(); i < size; ++i)
+		{
+			Ogre::SubMesh* submesh = mesh->getSubMesh(i);
+
+			// We only need to add the shared vertices once
+			if (submesh->useSharedVertices) {
+				if (!added_shared) {
+					vertex_count += mesh->sharedVertexData->vertexCount;
+					added_shared = true;
+				}
+			}
+			else {
+				vertex_count += submesh->vertexData->vertexCount;
+			}
+
+			// Add the indices
+			index_count += submesh->indexData->indexCount;
+		}
+
+
+		// Allocate space for the vertices and indices
+		vertices = new Ogre::Vector3[vertex_count];
+		indices = new unsigned long[index_count];
+
+		added_shared = false;
+
+		// Run through the submeshes again, adding the data into the arrays
+		for (unsigned short i = 0, size = mesh->getNumSubMeshes(); i < size; ++i)
+		{
+			Ogre::SubMesh* submesh = mesh->getSubMesh(i);
+			Ogre::VertexData* vertex_data = submesh->useSharedVertices ? mesh->sharedVertexData : submesh->vertexData;
+
+			if ((!submesh->useSharedVertices) || (submesh->useSharedVertices && !added_shared))
+			{
+				if (submesh->useSharedVertices) {
+					added_shared = true;
+					shared_offset = current_offset;
+				}
+
+				const Ogre::VertexElement* posElem = vertex_data->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
+				Ogre::HardwareVertexBufferSharedPtr vbuf = vertex_data->vertexBufferBinding->getBuffer(posElem->getSource());
+
+				unsigned char* vertex = static_cast<unsigned char*>(vbuf->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+
+				// There is _no_ baseVertexPointerToElement() which takes an Ogre::Real or a double
+				//  as second argument. So make it float, to avoid trouble when Ogre::Real will
+				//  be comiled/typedefed as double:
+				//      Ogre::Real* pReal;
+				float* pReal;
+
+				for (size_t j = 0; j < vertex_data->vertexCount; ++j, vertex += vbuf->getVertexSize())
+				{
+					posElem->baseVertexPointerToElement(vertex, &pReal);
+					Ogre::Vector3 pt(pReal[0], pReal[1], pReal[2]);
+					vertices[current_offset + j] = (orient * (pt * scale)) + position;
+				}
+
+				vbuf->unlock();
+				next_offset += vertex_data->vertexCount;
+			}
+
+
+			Ogre::IndexData* index_data = submesh->indexData;
+			size_t numTris = index_data->indexCount / 3;
+			Ogre::HardwareIndexBufferSharedPtr ibuf = index_data->indexBuffer;
+			if (ibuf.isNull()) continue; // need to check if index buffer is valid (which will be not if the mesh doesn't have triangles like a pointcloud)
+
+			bool use32bitindexes = (ibuf->getType() == Ogre::HardwareIndexBuffer::IT_32BIT);
+
+			unsigned long*  pLong = static_cast<unsigned long*>(ibuf->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+			unsigned short* pShort = reinterpret_cast<unsigned short*>(pLong);
+
+
+			size_t offset = (submesh->useSharedVertices) ? shared_offset : current_offset;
+			size_t index_start = index_data->indexStart;
+			size_t last_index = numTris * 3 + index_start;
+
+			if (use32bitindexes) {
+				for (size_t k = index_start; k < last_index; ++k)
+				{
+					indices[index_offset++] = pLong[k] + static_cast<unsigned long>(offset);
+				}
+
+			}
+			else {
+				for (size_t k = index_start; k < last_index; ++k)
+				{
+					indices[index_offset++] =
+						static_cast<unsigned long>(pShort[k]) +
+						static_cast<unsigned long>(offset);
+				}
+			}
+
+			ibuf->unlock();
+			current_offset = next_offset;
+		}
+	}
+
+
+	void OgreWidget::GetMeshInformation(const Ogre::ManualObject* manual, size_t& vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale)
+	{
+		std::vector<Ogre::Vector3> returnVertices;
+		std::vector<unsigned long> returnIndices;
+		unsigned long thisSectionStart = 0;
+		for (unsigned int i = 0, size = manual->getNumSections(); i < size; ++i)
+		{
+			Ogre::ManualObject::ManualObjectSection* section = manual->getSection(i);
+			Ogre::RenderOperation* renderOp = section->getRenderOperation();
+
+			std::vector<Ogre::Vector3> pushVertices;
+			//Collect the vertices
+			{
+				const Ogre::VertexElement* vertexElement = renderOp->vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
+				Ogre::HardwareVertexBufferSharedPtr vertexBuffer = renderOp->vertexData->vertexBufferBinding->getBuffer(vertexElement->getSource());
+
+				char* verticesBuffer = static_cast<char*>(vertexBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+				float* positionArrayHolder;
+
+				thisSectionStart = returnVertices.size() + pushVertices.size();
+
+				pushVertices.reserve(renderOp->vertexData->vertexCount);
+
+				for (unsigned int j = 0; j < renderOp->vertexData->vertexCount; ++j)
+				{
+					vertexElement->baseVertexPointerToElement(verticesBuffer + j * vertexBuffer->getVertexSize(), &positionArrayHolder);
+					Ogre::Vector3 vertexPos = Ogre::Vector3(positionArrayHolder[0], positionArrayHolder[1], positionArrayHolder[2]);
+					vertexPos = (orient * (vertexPos * scale)) + position;
+					pushVertices.push_back(vertexPos);
+				}
+
+				vertexBuffer->unlock();
+			}
+			//Collect the indices
+			{
+				if (renderOp->useIndexes) {
+					Ogre::HardwareIndexBufferSharedPtr indexBuffer = renderOp->indexData->indexBuffer;
+
+					if (indexBuffer.isNull() || renderOp->operationType != Ogre::RenderOperation::OT_TRIANGLE_LIST) {
+						//No triangles here, so we just drop the collected vertices and move along to the next section.
+						continue;
+					}
+					else {
+						returnVertices.reserve(returnVertices.size() + pushVertices.size());
+						returnVertices.insert(returnVertices.end(), pushVertices.begin(), pushVertices.end());
+					}
+
+					unsigned int* pLong = static_cast<unsigned int*>(indexBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+					unsigned short* pShort = reinterpret_cast<unsigned short*>(pLong);
+
+					returnIndices.reserve(returnIndices.size() + renderOp->indexData->indexCount);
+
+					for (size_t j = 0; j < renderOp->indexData->indexCount; ++j)
+					{
+						unsigned long index;
+						//We also have got to remember that for a multi section object, each section has
+						//different vertices, so the indices will not be correct. To correct this, we
+						//have to add the position of the first vertex in this section to the index
+
+						//(At least I think so...)
+						if (indexBuffer->getType() == Ogre::HardwareIndexBuffer::IT_32BIT)
+							index = static_cast<unsigned long>(pLong[j]) + thisSectionStart;
+						else
+							index = static_cast<unsigned long>(pShort[j]) + thisSectionStart;
+
+						returnIndices.push_back(index);
+					}
+
+					indexBuffer->unlock();
+				}
+			}
+		}
+
+		//Now we simply return the data.
+		index_count = returnIndices.size();
+		vertex_count = returnVertices.size();
+		vertices = new Ogre::Vector3[vertex_count];
+		for (unsigned long i = 0; i < vertex_count; ++i)
+			vertices[i] = returnVertices[i];
+		indices = new unsigned long[index_count];
+		for (unsigned long i = 0; i < index_count; ++i)
+			indices[i] = returnIndices[i];
+
+		//All done.
+		return;
+	}
+
+
+
 }

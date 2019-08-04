@@ -46,6 +46,7 @@ namespace Ogre {
         , mHideBoundingBox(false)
         , mCreator(creator)
         , mYawFixed(false)
+		, mYawFixed_b(false)
         , mAutoTrackTarget(0)
         , mIsInSceneGraph(false)
     {
@@ -59,6 +60,7 @@ namespace Ogre {
         , mHideBoundingBox(false)
         , mCreator(creator)
         , mYawFixed(false)
+		, mYawFixed_b(false)
         , mAutoTrackTarget(0)
         , mIsInSceneGraph(false)
     {
@@ -487,6 +489,12 @@ namespace Ogre {
         mYawFixed = useFixed;
         mYawFixedAxis = fixedAxis;
     }
+	//-----------------------------------------------------------------------
+	void SceneNode::setFixedYawAxis_b(bool useFixed, const Vector3& fixedAxis)
+	{
+		mYawFixed_b = useFixed;
+		mYawFixedAxis = fixedAxis;
+	}
 
 	//-----------------------------------------------------------------------
 	void SceneNode::yaw(const Radian& angle, TransformSpace relativeTo)
@@ -562,7 +570,30 @@ namespace Ogre {
                 targetOrientation = unitZToTarget * localToUnitZ;
             }
         }
-        else
+        else if (mYawFixed_b)				//for real axis rotation (avoid some yaw to make perfect point rotation witch look good)
+		{
+			// Calculate the quaternion for rotate local Z to target direction
+			Vector3 xVec = mYawFixedAxis.crossProduct(targetDir);
+			xVec.normalise();
+			Vector3 yVec = mYawFixedAxis.normalisedCopy();
+			Vector3 zVec = xVec.crossProduct(yVec);
+			zVec.normalise();
+			Quaternion unitZToTarget = Quaternion(xVec, yVec, zVec);
+
+			if (localDirectionVector == Vector3::NEGATIVE_UNIT_Z)
+			{
+				// Specail case for avoid calculate 180 degree turn
+				targetOrientation =
+					Quaternion(-unitZToTarget.y, -unitZToTarget.z, unitZToTarget.w, unitZToTarget.x);
+			}
+			else
+			{
+				// Calculate the quaternion for rotate local direction to target direction
+				Quaternion localToUnitZ = localDirectionVector.getRotationTo(Vector3::UNIT_Z);
+				targetOrientation = unitZToTarget * localToUnitZ;
+			}
+		}
+		else
         {
             const Quaternion& currentOrient = _getDerivedOrientation();
 

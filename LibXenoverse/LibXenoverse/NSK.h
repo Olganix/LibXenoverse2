@@ -24,6 +24,8 @@ class NSK
 		bool	load(string filename);
 		void	save(string filename, bool big_endian = false);
 		void	extract(string folder, bool big_endian = false);
+		bool	direct_extract(string filename);
+		bool	direct_import(string filename_esk, string filename_emd);
 
 		bool	loadXml(string filename);
 		void	saveXml(string filename);

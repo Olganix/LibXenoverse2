@@ -316,7 +316,7 @@ public:
 
 				/*
 				if (
-					(name == "AABB") || (name == "Vertices") || (name == "TriangleList")				//case too much data for emd. Todo comment.
+					(name == "AABB") || (name == "vertex") || (name == "TriangleList")				//case too much data for emd. Todo comment.
 					)
 				{
 					pass = true;
@@ -716,8 +716,18 @@ int main(int argc, char** argv)
 			continue;
 		}
 		
-		string mess_debug = string(buf);
-		mess_debug[size] = '\0';
+		buf[size-1] = '\0';
+
+		string mess_debug = "";
+		try
+		{
+			mess_debug = string(buf);
+		}catch (...) {
+			printf("Error parsing string of file \"%s\". skipped\n", filename.c_str());
+			LibXenoverse::notifyError();
+			continue;
+		}
+		
 
 		try
 		{

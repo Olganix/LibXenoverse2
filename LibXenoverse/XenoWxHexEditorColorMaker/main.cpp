@@ -87,6 +87,13 @@ int main(int argc, char** argv)
 			LibXenoverse::Scd* scd = new LibXenoverse::Scd();
 			scd->save_Coloration(filename);
 		}
+
+		/////////////////////////////////////////////////////////////
+		if (extension == "emd")							// particules/mappedPlanes for effects.
+		{
+			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
+			emd->save_Coloration(filename);
+		}
 	}
 
 	printf("finished.\n");

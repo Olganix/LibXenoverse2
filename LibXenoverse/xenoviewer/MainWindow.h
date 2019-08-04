@@ -69,6 +69,7 @@ protected:
 	void	about();
 	void	resetCamera_Charac();
 	void	resetCamera_Stage();
+public:
 	bool	openFiles(const QStringList& pathList);
 
 private:

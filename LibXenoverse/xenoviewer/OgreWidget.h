@@ -1,6 +1,8 @@
 #ifndef QTOGRE_OGREWIDGET_H_
 #define QTOGRE_OGREWIDGET_H_
 
+#include "EMBOgre.h"
+
 class EMDOgre;
 class ESKOgre;
 class EANOgre;
@@ -9,6 +11,7 @@ class SkeletonDebug;
 class SkeletonDebug2;
 class EMDRenderObjectListener;
 class OgreWidget;
+
 
 namespace QtOgre
 {
@@ -95,6 +98,11 @@ namespace QtOgre
 		void	panCamera(float delta_x, float delta_y);
 		void	zoomCamera(float delta);
 
+		static void GetMeshInformation(const Ogre::MeshPtr mesh, size_t &vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale);
+		static void GetMeshInformation(const Ogre::ManualObject* manual, size_t& vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale);
+		static void GetMeshInformation(const Ogre::Entity* entity, size_t& vertex_count, Ogre::Vector3*& vertices, size_t& index_count, unsigned long*& indices, const Ogre::Vector3& position, const Ogre::Quaternion& orient, const Ogre::Vector3& scale);
+
+
 	private slots:
 		void	swapGeometryVisible(void);
 		void	swapSkeletonVisible(void);
@@ -156,6 +164,7 @@ namespace QtOgre
 		EMDRenderObjectListener *emd_render_object_listener;
 		Ogre::SceneNode* mRepereNode;
 		Ogre::SceneNode* mGridNode;
+		EMBOgre* mTexture_player_dyt_pack;
 
 		std::vector<NamedColor> mListBackgroundColor;
 

@@ -96,10 +96,10 @@ void EMD::save(File *file, bool big_endian)
 void EMD::read(File *file)
 {
 	size_t startAdress = file->getCurrentAddress();
+	file->goToAddress(startAdress + 0x10);
 	
 	unsigned short model_total = 0;
-
-	file->goToAddress(startAdress + 0x10);
+	
 	file->readInt16E(&unknown_total);
 	file->readInt16E(&model_total);
 

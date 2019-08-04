@@ -2180,9 +2180,8 @@ void EMG_Texture::readEmdDef(EMDSubmeshDefinition* emd)
 {
 	unk_00 = emd->flag0;
 	emb_TextureIndex = emd->texIndex;
-	unk_02[0] = emd->flag1;
-	unk_02[1] = emd->flag2;
-
+	unk_02[0] = emd->adressMode_u + (emd->adressMode_v << 4);
+	unk_02[1] = emd->filtering_minification + (emd->filtering_magnification << 4);
 	textScale_u = emd->textScale_u;
 	textScale_v = emd->textScale_v;
 }
@@ -2193,9 +2192,10 @@ void EMG_Texture::writeEmdDef(EMDSubmeshDefinition* emd)
 {
 	emd->flag0 = unk_00;
 	emd->texIndex = emb_TextureIndex;
-	emd->flag1 = unk_02[0];
-	emd->flag2 = unk_02[1];
-
+	emd->adressMode_u = unk_02[0] & 0x0F;									//Todo correct Emo
+	emd->adressMode_v = (unk_02[0] & 0xF0) >> 4;									//Todo correct Emo
+	emd->filtering_minification = unk_02[1] & 0x0F;									//Todo correct Emo
+	emd->filtering_magnification = (unk_02[1] & 0xF0) >> 4;									//Todo correct Emo
 	emd->textScale_u = textScale_u;
 	emd->textScale_v = textScale_v;
 }

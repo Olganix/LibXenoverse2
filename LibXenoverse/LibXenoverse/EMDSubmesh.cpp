@@ -217,7 +217,7 @@ void EMDSubmesh::write(File *file)
 		file->goToAddress(base_submesh_address + submesh_offset_triangle_table + k * 4);
 		file->writeInt32E(&triangles_address);
 		file->goToAddress(base_submesh_address + triangles_address);
-		triangles[k].write(file);
+		triangles[k].write(file, vertices.size());
 	}
 
 	// Write Vertices
@@ -303,7 +303,7 @@ void EMDSubmesh::mergeTriangles()
 	//triangles.push_back(old_triangles.at(0));
 	triangles.push_back(EMDTriangles());
 	vector<string> &bone_names = triangles.at(0).bone_names;
-	vector<unsigned short> &faces = triangles.at(0).faces;
+	vector<unsigned int> &faces = triangles.at(0).faces;
 
 	size_t nbVertices = vertices.size();
 	std::vector<bool> verticeAllreadyModified;

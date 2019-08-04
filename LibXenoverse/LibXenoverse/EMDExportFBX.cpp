@@ -242,7 +242,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 	size_t nbTriangles = triangles.size();
 	for (size_t i = 0; i < nbTriangles; i++)
 	{
-		std::vector<unsigned short> &faces = triangles.at(i).faces;
+		std::vector<unsigned int> &faces = triangles.at(i).faces;
 
 
 		// Skinning prepartion part : make a list of bones for triangle.

@@ -103,9 +103,8 @@ EMMParameter::EMMParameter(void)
 {
 	name = "";
 	type = 1;
-	int_value = 0;
+	unknow_0 = 0;
 	uint_value = 0;
-	bool_value = false; 
 	float_value = 0.0f;
 }
 
@@ -207,10 +206,13 @@ void EMM::saveXML(string filename)
 
 	if (listUnknowValues.size())
 	{
+		size_t nbParams = listUnknowValues.size();
+		
 		TiXmlElement* defaultValuesNode = new TiXmlElement("UnknowValues");
+		defaultValuesNode->SetAttribute("nbValues", nbParams);
 
 		TiXmlElement* xmlNode;
-		size_t nbParams = listUnknowValues.size();
+		
 		for (size_t i = 0; i < nbParams; i++)
 		{
 			xmlNode = new TiXmlElement("Value");
@@ -317,24 +319,14 @@ void EMMParameter::read(File *file)
 	file->read(buffer, 32);
 	name = string(buffer);
 
-	file->readInt32E(&type);
+	file->readInt16E(&type);
+	file->readInt16E(&unknow_0);
 	
-
 	if (type == 0x0)						//Float
 	{
 		file->readFloat32E(&float_value);
 
-	}else if (type == 0x1) {				//Bool
-
-		size_t tmp = 0;
-		file->readInt32E(&tmp);
-		bool_value = (tmp != 0);
-
-	}else if (type == 0x10000) {			//Unknow, is for MipMapLod0, MipMapLod1, MipMapLod2
-
-		file->readInt32E(&uint_value);
-	
-	}else if (type == 0x10001) {			//UInt
+	}else if (type == 0x1) {				//Uint
 
 		file->readInt32E(&uint_value);
 
@@ -433,28 +425,17 @@ void EMMParameter::write(File *file)
 		buffer[i] = (i < nbChar) ? name.at(i) : 0;
 	file->write(&buffer, 32);
 	
-	file->writeInt32E(&type);
 
+	file->writeInt16E(&type);
+	file->writeInt16E(&unknow_0);
 
 	if (type == 0x0)						//Float
 	{
 		file->writeFloat32E(&float_value);
 
-	}else if (type == 0x1) {				//Bool
-
-		size_t tmp = (bool_value) ? 1 : 0;
-		file->writeInt32E(&tmp);
-
-	}else if (type == 0x10000) {			//Unknow, is for MipMapLod0, MipMapLod1, MipMapLod2
-
+	}else if (type == 0x1) {				//Uint
 		file->writeInt32E(&uint_value);
-
-	}else if (type == 0x10001) {			//UInt
-
-		file->writeInt32E(&uint_value);
-
 	}else {
-
 		file->writeInt32E(&uint_value);
 	}
 }
@@ -491,43 +472,30 @@ void EMMParameter::readXML(TiXmlElement *root)
 {
 	root->QueryStringAttribute("name", &name);
 
+	unsigned int tmp = 0;
+	root->QueryUnsignedAttribute("unknow_0", &tmp);
+	unknow_0 = (uint16_t)tmp;
+
+
+
 	string str_tmp = "";
 	root->QueryStringAttribute("type", &str_tmp);
-
 
 	if (str_tmp == "Float")
 	{
 		type = 0x0;
 		root->QueryFloatAttribute("value", &float_value);
 
-
-	}else if (str_tmp == "Bool") {
-		
-		type = 0x1;
-		root->QueryStringAttribute("value", &str_tmp);
-		std::transform(str_tmp.begin(), str_tmp.end(), str_tmp.begin(), ::tolower);
-		bool_value = ((str_tmp == "true") ? 1 : 0);
-
-
-	}else if (str_tmp == "Unknow_0x10000"){
-
-		type = 0x10000;
-
-		root->QueryStringAttribute("value", &str_tmp);
-		uint_value = parseHexaUnsignedInt((str_tmp.substr(0, 2) == "0x") ? str_tmp : str_tmp.substr(2));
-
 	}else if (str_tmp == "UInt") {
-		
-		type = 0x10001;
+		type = 0x1;
 		root->QueryUnsignedAttribute("value", &uint_value);
 	
-
-	}else if (str_tmp.substr(0,9) == "Unknow_0x") {
+	}else if (str_tmp.substr(0, 9) == "Unknow_0x") {
 
 		type = parseHexaUnsignedInt(str_tmp.substr(9));
 
 		root->QueryStringAttribute("value", &str_tmp);
-		uint_value = parseHexaUnsignedInt( (str_tmp.substr(0,2)=="0x") ? str_tmp : str_tmp.substr(2));
+		uint_value = parseHexaUnsignedInt((str_tmp.substr(0, 2) == "0x") ? str_tmp : str_tmp.substr(2));
 
 	}else {
 		printf("Unknown Parameter Flag %s\n", str_tmp);
@@ -561,8 +529,11 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 {
 	TiXmlElement* parameterRoot = new TiXmlElement("EMMParameter");
 
+
 	parameterRoot->SetAttribute("name", name);
-	
+	parameterRoot->SetAttribute("unknow_0", unknow_0);
+
+	parameterRoot->SetAttribute("type_test", type);
 
 	if (type == 0x0)
 	{
@@ -570,22 +541,10 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 		parameterRoot->SetDoubleAttribute("value", float_value);
 
 	}else if (type == 0x1){
-		parameterRoot->SetAttribute("type", "Bool");
-		parameterRoot->SetAttribute("value", ((bool_value) ? "true" : "false"));
-
-	}else if (type == 0x10000) {
-
-		parameterRoot->SetAttribute("type", "Unknow_0x10000");
-
-		string tmp = "0x" + toStringHexa(uint_value);
-		parameterRoot->SetAttribute("value", tmp);
-		
-	}else if (type == 0x10001){
 		parameterRoot->SetAttribute("type", "UInt");
 		parameterRoot->SetAttribute("value", uint_value);
 
 	}else {
-
 		string tmp = "Unknow_0x" + toStringHexa(type);
 		parameterRoot->SetAttribute("type", tmp);
 

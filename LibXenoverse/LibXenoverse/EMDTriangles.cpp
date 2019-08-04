@@ -45,27 +45,41 @@ void EMDTriangles::read(File *file)
 	// Read Face Indices
 	faces.resize(face_count);
 
-	bool testUint32 = false;							//Todo  find how to have indication about this. it's not the number of vertex saddely
+	file->goToAddress(base_face_address + face_table_address);
+	unsigned short face0 = 0;
+	unsigned short face1 = 0;
+	unsigned short face2 = 0;
+	if (face_count > 5)
+	{
+		file->readInt16E(&face0);
+		file->readInt16E(&face0);
+		file->readInt16E(&face1);
+		file->readInt16E(&face1);
+		file->readInt16E(&face2);
+		file->readInt16E(&face2);
+	}
+	bool is32bits = ((face_count > 5)&&(face0==0)&&(face1==0) && (face2 == 0));			//find how to choose 16 or 32 bits. => number of vertex don't work (check on files), and tehre no other value hide in padding or else.
+
 
 	for (size_t n = 0; n < face_count; n++)
 	{
-		if (!testUint32)
+		if (!is32bits)
 		{
 			file->goToAddress(base_face_address + face_table_address + n * sizeof(uint16_t));
 			unsigned short face = 0;
 			file->readInt16E(&face);
-			faces[n] = face;
+			faces[n] = (unsigned int)face;
 
 		}else {
 			file->goToAddress(base_face_address + face_table_address + n * sizeof(uint32_t));
 			unsigned int face = 0;
 			file->readInt32E(&face);
-			faces[n] = (unsigned short)face;
+			faces[n] = face;
 		}
 	}
 
 	// Recalculate the value of face name table address because some files literally lie about the value for some reason => maybe uint16 vs uint32 ? Todo check
-	face_name_table_address = face_table_address + face_count * (testUint32 ? sizeof(uint32_t) : sizeof(uint16_t)) ;
+	face_name_table_address = face_table_address + face_count * (is32bits ? sizeof(uint32_t) : sizeof(uint16_t)) ;
 	if ((face_name_table_address % 4) == 2)
 		face_name_table_address += 2;
 
@@ -88,15 +102,25 @@ void EMDTriangles::read(File *file)
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDTriangles::write(File *file)
+void EMDTriangles::write(File *file, size_t numberVertex)
 {
 	unsigned int base_face_address = file->getCurrentAddress();
 	file->writeNull(16);
 
 	// Write Indices
 	unsigned int face_table_address = file->getCurrentAddress() - base_face_address;
+	bool is32bits = (numberVertex > 20000);				// natural limit of DBxv2, but it's average, because : <19080 -> 16 bits, 19080 -> 32 bits, 19900 -> 16 bits, >20000 -> 32 bits.
+
 	for (size_t i = 0; i < faces.size(); i++)
-		file->writeInt16E(&faces[i]);
+	{
+		if (!is32bits)
+		{
+			unsigned short face = faces[i];
+			file->writeInt16E(&face);
+		}else {
+			file->writeInt32E(&faces[i]);
+		}
+	}
 
 	file->fixPadding(0x4);
 

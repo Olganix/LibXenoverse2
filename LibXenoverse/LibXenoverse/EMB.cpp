@@ -69,9 +69,9 @@ namespace LibXenoverse {
 	void EMB::extract(string folder)
 	{
 		//add a Xml to keep files orders
-		TiXmlDocument doc;
+		TiXmlDocument *doc = new TiXmlDocument();
 		TiXmlDeclaration *decl = new TiXmlDeclaration("1.0", "", "");
-		doc.LinkEndChild(decl);
+		doc->LinkEndChild(decl);
 
 		TiXmlElement* rootNode = new TiXmlElement("EMB");
 
@@ -83,11 +83,27 @@ namespace LibXenoverse {
 		{
 			string name = files[i]->getName();
 
-			char suffix[] = "000";
-			sprintf(suffix, "%03d", i);
-
 			if (!name.size())							//if no name, it's dds texture.
-				name = "DATA" + ToString(suffix) + ".dds";
+			{
+				if (i < 1000)
+				{
+					char suffix[] = "000";
+					sprintf(suffix, "%03d", i);
+					name = "DATA" + ToString(suffix) + ".dds";
+
+				}else if(i < 10000){
+					char suffix[] = "0000";
+					sprintf(suffix, "%04d", i);
+					name = "DATA" + ToString(suffix) + ".dds";
+
+				}else{
+					char suffix[] = "00000";
+					sprintf(suffix, "%05d", i);
+					name = "DATA" + ToString(suffix) + ".dds";
+				}
+			}
+
+				
 
 			string filename = name;
 
@@ -129,9 +145,10 @@ namespace LibXenoverse {
 			rootNode->LinkEndChild(xmlNode);
 		}
 
-		doc.LinkEndChild(rootNode);
+		doc->LinkEndChild(rootNode);
 
-		doc.SaveFile(folder +"embFiles.xml");
+		doc->SaveFile(folder +"embFiles.xml");
+		delete doc;
 	}
 
 

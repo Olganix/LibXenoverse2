@@ -95,6 +95,8 @@ namespace Ogre {
 
         /// Whether to yaw around a fixed axis.
         bool mYawFixed;
+		/// Whether to yaw around a fixed axis.
+		bool mYawFixed_b;
         /// Fixed axis to yaw around
         Vector3 mYawFixedAxis;
 
@@ -358,6 +360,7 @@ namespace Ogre {
         fixedAxis The axis to use if the first parameter is true.
         */
         virtual void setFixedYawAxis( bool useFixed, const Vector3& fixedAxis = Vector3::UNIT_Y );
+		virtual void setFixedYawAxis_b(bool useFixed, const Vector3& fixedAxis = Vector3::UNIT_Y);
 
 		/** Rotate the node around the Y-axis.
 		*/

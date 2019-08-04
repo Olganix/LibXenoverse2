@@ -171,8 +171,11 @@ namespace QtOgre
 
 	void OgreWidget::createCamera(void)
 	{
+		Ogre::SceneNode* node = mSceneMgr->getRootSceneNode()->createChildSceneNode("PlayerCam");
 		mCamera = mSceneMgr->createCamera("PlayerCam");
-		mCamera->setPosition(Ogre::Vector3(0, 0.5, -3));
+		node->attachObject(mCamera);
+
+		node->setPosition(Ogre::Vector3(0, 0.5, -3));
 		mCamera->lookAt(Ogre::Vector3(0, 0.5, 0));
 		mCamera->setFOVy(Ogre::Degree(45));
 		mCamera->setNearClipDistance(0.01f);

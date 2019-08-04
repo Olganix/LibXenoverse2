@@ -171,6 +171,9 @@
     <ClInclude Include="obl.h">
       <Filter>OBL</Filter>
     </ClInclude>
+    <ClInclude Include="BinColorTag.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="tinyxml\tinyxml.cpp">
@@ -328,6 +331,12 @@
     </ClCompile>
     <ClCompile Include="obl.cpp">
       <Filter>OBL</Filter>
+    </ClCompile>
+    <ClCompile Include="EMDBinColor.cpp">
+      <Filter>EMD</Filter>
+    </ClCompile>
+    <ClCompile Include="BinColorTag.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

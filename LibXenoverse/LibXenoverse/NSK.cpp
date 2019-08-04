@@ -46,6 +46,8 @@ void NSK::extract(string folder, bool big_endian)
 	if(mEmd)
 		mEmd->save(folder + "/" + mName + ".emd", big_endian);
 }
+
+
 /*-------------------------------------------------------------------------------\
 |                             loadXml											 |
 \-------------------------------------------------------------------------------*/
@@ -236,6 +238,123 @@ void NSK::addEskFile(const std::string filename)
 		if (esk)
 			delete esk;
 	}
+}
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             direct_extract				                     |
+\-------------------------------------------------------------------------------*/
+bool NSK::direct_extract(string filename)
+{
+	mName = nameFromFilenameNoExtension(filename, true);
+	string folder = folderFromFilename(filename);
+
+	File file(filename, LIBXENOVERSE_FILE_READ_BINARY);
+	if ((!file.valid()) || (!file.readHeader(LIBXENOVERSE_NSK_SIGNATURE)))
+		return false;
+
+	size_t startAddress_Esk = 0;
+	size_t startAddress_Emd = 0;
+
+	file.goToAddress(startAddress_Esk + 0x14);					//the first adresse, witch is in 0x10, it's for Esk, but, it will be readed directly by the read from the begining of the file. by contrerary,  0x14 adress, it's for emd.
+	file.readInt32E(&startAddress_Emd);
+
+
+
+	File file_Esk(folder + "/" + mName + ".esk", LIBXENOVERSE_FILE_WRITE_BINARY);
+	if (file_Esk.valid())
+	{
+		file.goToAddress(startAddress_Esk);
+
+		size_t size_esk = startAddress_Emd - startAddress_Esk;
+		char* buf = (char*)malloc(size_esk);
+		file.read(buf, size_esk);
+
+		buf[0x14] = buf[0x15] = buf[0x16] = buf[0x17] = 0;					//cancel offset_emd, now it's a single esk
+
+		file_Esk.write(buf, size_esk);
+		file_Esk.close();
+		::free(buf);
+	}
+	File file_Emd(folder + "/" + mName + ".emd", LIBXENOVERSE_FILE_WRITE_BINARY);
+	if (file_Emd.valid())
+	{
+		file.goToAddress(startAddress_Emd);
+
+		size_t size_emd = file.getFileSize() - startAddress_Emd;
+		char* buf = (char*)malloc(size_emd);
+		file.read(buf, size_emd);
+
+		file_Emd.write(buf, size_emd);
+		file_Emd.close();
+		::free(buf);
+	}
+
+	file.close();
+
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             direct_import					                     |
+\-------------------------------------------------------------------------------*/
+bool NSK::direct_import(string filename_esk, string filename_emd)
+{
+	mName = nameFromFilenameNoExtension(filename_emd, true);
+	string folder = folderFromFilename(filename_emd);
+
+	File file_Esk(filename_esk, LIBXENOVERSE_FILE_READ_BINARY);
+	if ((!file_Esk.valid()) || (!file_Esk.readHeader(LIBXENOVERSE_ESK_SIGNATURE)))
+		return false;
+
+	File file_Emd(filename_emd, LIBXENOVERSE_FILE_READ_BINARY);
+	if ((!file_Emd.valid()) || (!file_Emd.readHeader(LIBXENOVERSE_EMD_SIGNATURE)))
+		return false;
+
+
+
+	File file(folder + "/" + mName + ".nsk", LIBXENOVERSE_FILE_WRITE_BINARY);
+	if (!file.valid())
+		return false;
+
+
+
+	size_t startAddress_Esk = 0;
+	size_t size_esk = file_Esk.getFileSize();
+	size_t startAddress_Emd = size_esk;
+	size_t size_emd = file_Emd.getFileSize();
+	
+
+	
+	file.goToAddress(startAddress_Esk);
+	file_Esk.goToAddress(0);
+
+	char* buf = (char*)malloc(size_esk);
+	file_Esk.read(buf, size_esk);
+
+	file.write(buf, size_esk);
+	::free(buf);
+
+	file.goToAddress(startAddress_Esk + 0x14);
+	file.writeInt32E(&startAddress_Emd);							//add offset adress for begin of Emd.
+
+	file_Esk.close();
+	
+	file_Emd.goToAddress(0);
+	file.goToAddress(startAddress_Emd);
+
+	buf = (char*)malloc(size_emd);
+	file_Emd.read(buf, size_emd);
+
+	file.write(buf, size_emd);
+	::free(buf);
+	file_Emd.close();
+
+
+	file.close();
+
+	return true;
 }
 
 

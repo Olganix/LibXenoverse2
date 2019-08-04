@@ -41,27 +41,31 @@ int main(int argc, char** argv)
 	if (extension == "nsk")
 	{
 		LibXenoverse::NSK *nsk_pack = new LibXenoverse::NSK();
-		if(nsk_pack->load(filename))
-			nsk_pack->extract(folder);
+		nsk_pack->direct_extract(filename);
 		delete nsk_pack;
 
-	}else {
+	}else if(nbArg==2) {
 		
-		LibXenoverse::NSK *nsk_pack = new LibXenoverse::NSK();
+		string esk_filename = "";
+		string emd_filename = "";
 
-		string parameter;
-		string extension;
 		for (size_t i = 0; i < nbArg; i++)
 		{
 			extension = LibXenoverse::extensionFromFilename(arguments.at(i));
-
-			if (extension == "emd")
-				nsk_pack->addEmdFile(arguments.at(i));
-			else if (extension == "esk")
-				nsk_pack->addEskFile(arguments.at(i));
+			if (extension == "esk")
+				esk_filename = arguments.at(i);
+			else if (extension == "emd")
+				emd_filename = arguments.at(i);
 		}
 
-		nsk_pack->save(filename +".nsk");
+		if ((esk_filename.length() != 0) && (emd_filename.length() != 0))
+		{
+			LibXenoverse::NSK *nsk_pack = new LibXenoverse::NSK();
+
+			nsk_pack->direct_import(esk_filename, emd_filename);
+
+			delete nsk_pack;
+		}
 	}
 
 

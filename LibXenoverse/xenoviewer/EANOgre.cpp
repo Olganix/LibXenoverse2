@@ -121,6 +121,8 @@ bool EANOgre::load(string filename)
 	}else{
 		return false;
 	}
+
+	return true;
 }
 
 

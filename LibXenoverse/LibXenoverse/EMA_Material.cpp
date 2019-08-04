@@ -1054,7 +1054,7 @@ TiXmlElement* EMA_Material_KeyFrame::exportXml(size_t emaParamType)
 \-------------------------------------------------------------------------------*/
 EMA_Material_KeyFrame EMA_Material_MaterialParameter::getInterpolatedKeyframe(double frame_f)
 {
-	EMA_Material_KeyFrame interpolKf(floor(frame_f));
+	EMA_Material_KeyFrame interpolKf((size_t)floor(frame_f));
 	if (keyframes.size() == 0)
 		return interpolKf;
 
@@ -1089,14 +1089,16 @@ EMA_Material_KeyFrame EMA_Material_MaterialParameter::getInterpolatedKeyframe(do
 		if ((double)(keyframes.at(i).frameIndex) > frame_f)
 		{
 			double factor = (frame_f - (double)(keyframes.at(i - 1).frameIndex)) / ((double)(keyframes.at(i).frameIndex) - (double)(keyframes.at(i - 1).frameIndex));
-			interpolKf.x = (keyframes.at(i).x - keyframes.at(i - 1).x) * factor + keyframes.at(i - 1).x;
-			interpolKf.y = (keyframes.at(i).y - keyframes.at(i - 1).y) * factor + keyframes.at(i - 1).y;
-			interpolKf.z = (keyframes.at(i).z - keyframes.at(i - 1).z) * factor + keyframes.at(i - 1).z;
-			interpolKf.w = (keyframes.at(i).w - keyframes.at(i - 1).w) * factor + keyframes.at(i - 1).w;
+			interpolKf.x = (float)((keyframes.at(i).x - keyframes.at(i - 1).x) * factor + keyframes.at(i - 1).x);
+			interpolKf.y = (float)((keyframes.at(i).y - keyframes.at(i - 1).y) * factor + keyframes.at(i - 1).y);
+			interpolKf.z = (float)((keyframes.at(i).z - keyframes.at(i - 1).z) * factor + keyframes.at(i - 1).z);
+			interpolKf.w = (float)((keyframes.at(i).w - keyframes.at(i - 1).w) * factor + keyframes.at(i - 1).w);
 
 			return interpolKf;
 		}
 	}
+
+	return interpolKf;
 }
 
 

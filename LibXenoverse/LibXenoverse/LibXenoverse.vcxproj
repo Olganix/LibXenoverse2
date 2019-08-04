@@ -92,6 +92,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AUR.h" />
+    <ClInclude Include="BinColorTag.h" />
     <ClInclude Include="EAN.h" />
     <ClInclude Include="EMA.h" />
     <ClInclude Include="EMA_Material.h" />
@@ -126,6 +127,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AUR.cpp" />
+    <ClCompile Include="BinColorTag.cpp" />
     <ClCompile Include="EAN.cpp" />
     <ClCompile Include="EANAnimation.cpp" />
     <ClCompile Include="EANKeyframedAnimation.cpp" />
@@ -138,6 +140,7 @@
     <ClCompile Include="EMBExportFx.cpp" />
     <ClCompile Include="EMBFile.cpp" />
     <ClCompile Include="EMD.cpp" />
+    <ClCompile Include="EMDBinColor.cpp" />
     <ClCompile Include="EMDExportFBX.cpp" />
     <ClCompile Include="EMDSubmeshDefinition.cpp" />
     <ClCompile Include="EMDImportFBX.cpp" />

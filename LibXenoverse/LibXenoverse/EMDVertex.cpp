@@ -97,34 +97,6 @@ void EMDVertex::read(File *file, uint16_t flags)
 
 	if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 	{
-		/*
-		if (flags & EMD_VTX_FLAG_NORM)
-		{
-			file->readFloat32E(&norm_x);
-			file->readFloat32E(&norm_y);
-			file->readFloat32E(&norm_z);
-		}
-
-		if (flags & EMD_VTX_FLAG_TANGENT)
-		{
-			file->readFloat32E(&tang_x);
-			file->readFloat32E(&tang_y);
-			file->readFloat32E(&tang_z);
-		}
-
-		if (flags & EMD_VTX_FLAG_TEX)
-		{
-			file->readFloat32E(&text_u);
-			file->readFloat32E(&text_v);
-		}
-
-		if (flags & EMD_VTX_FLAG_TEX2)
-		{
-			file->readFloat32E(&text2_u);
-			file->readFloat32E(&text2_v);
-		}
-		*/
-
 		if (flags & EMD_VTX_FLAG_NORM)
 		{
 			file->readFloat32E(&norm_x);
@@ -227,34 +199,6 @@ void EMDVertex::write(File *file, uint16_t flags)
 
 	if (!(flags & EMG_VTX_FLAG_COMPRESSED_FORMAT))
 	{
-		/*
-		if (flags & EMD_VTX_FLAG_NORM)
-		{
-			file->writeFloat32E(&norm_x);
-			file->writeFloat32E(&norm_y);
-			file->writeFloat32E(&norm_z);
-		}
-
-		if (flags & EMD_VTX_FLAG_TANGENT)
-		{
-			file->writeFloat32E(&tang_x);
-			file->writeFloat32E(&tang_y);
-			file->writeFloat32E(&tang_z);
-		}
-
-		if (flags & EMD_VTX_FLAG_TEX)
-		{
-			file->writeFloat32E(&text_u);
-			file->writeFloat32E(&text_v);
-		}
-
-		if (flags & EMD_VTX_FLAG_TEX2)
-		{
-			file->writeFloat32E(&text2_u);
-			file->writeFloat32E(&text2_v);
-		}
-		*/
-
 		if (flags & EMD_VTX_FLAG_NORM)
 		{
 			file->writeFloat32E(&norm_x);

@@ -154,6 +154,12 @@ uint8_t *EMO_BaseFile::GetOffsetPtr(const void *base, uint32_t *offsets_table, u
 	return ((uint8_t *)base + val32(offsets_table[idx]));
 }
 
+uint8_t *EMO_BaseFile::GetOffsetPtr_native(const void *base, uint32_t offset)
+{
+	return ((uint8_t *)base + offset);
+}
+
+
 void EMO_BaseFile::ModTable(uint32_t *offsets, unsigned int count, int mod_by)
 {
 	for (unsigned int i = 0; i < count; i++)

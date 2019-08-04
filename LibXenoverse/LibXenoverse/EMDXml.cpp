@@ -60,9 +60,9 @@ bool EMD::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	size_t unknown_total_tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
-	unknown_total = (unsigned short)unknown_total_tmp;
+	//size_t unknown_total_tmp = 0;
+	//xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
+	//unknown_total = (unsigned short)unknown_total_tmp;
 
 	TiXmlElement* modelsNode = xmlCurrentNode->FirstChildElement("EmdModels");
 	if (!modelsNode)
@@ -90,9 +90,9 @@ bool EMDModel::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	size_t unknown_total_tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
-	unknown_total = (unsigned short)unknown_total_tmp;
+	//size_t unknown_total_tmp = 0;
+	//xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
+	//unknown_total = (unsigned short)unknown_total_tmp;
 
 
 	TiXmlElement* meshNode = xmlCurrentNode->FirstChildElement("EmdMeshs");
@@ -121,9 +121,9 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	size_t unknown_total_tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
-	unknown_total = (unsigned short)unknown_total_tmp;
+	//size_t unknown_total_tmp = 0;
+	//xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
+	//unknown_total = (unsigned short)unknown_total_tmp;
 
 	TiXmlElement* aabb = xmlCurrentNode->FirstChildElement("AABB");			//axis boundingBox
 	if (aabb)
@@ -183,9 +183,9 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 bool EMDSubmesh::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
-	unsigned int tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
-	unknow_0 = (uint8_t)tmp;
+	//unsigned int tmp = 0;
+	//xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
+	//unknow_0 = (uint8_t)tmp;
 	
 
 	// Vertex Definition
@@ -447,21 +447,29 @@ bool EMDSubmeshDefinition::importXml(TiXmlElement* xmlCurrentNode)
 {
 
 	size_t tmp;
-	if (xmlCurrentNode->QueryUnsignedAttribute("unknow0", &tmp) == TIXML_SUCCESS)
-		flag0 = (unsigned char)tmp;
-
 	if (xmlCurrentNode->QueryUnsignedAttribute("textureindex", &tmp) == TIXML_SUCCESS)
 		texIndex = (unsigned char)tmp;
-
-	if (xmlCurrentNode->QueryUnsignedAttribute("unknow1", &tmp) == TIXML_SUCCESS)
-		flag1 = (unsigned char)tmp;
-
-	if (xmlCurrentNode->QueryUnsignedAttribute("unknow2", &tmp) == TIXML_SUCCESS)
-		flag2 = (unsigned char)tmp;
 
 	xmlCurrentNode->QueryFloatAttribute("textScale_u", &textScale_u);
 	xmlCurrentNode->QueryFloatAttribute("textScale_v", &textScale_v);
 
+
+
+
+	string str = "";
+	if (xmlCurrentNode->QueryStringAttribute("adressMode_u", &str) == TIXML_SUCCESS)
+		adressMode_u = ((str=="Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str) )));
+	if (xmlCurrentNode->QueryStringAttribute("adressMode_v", &str) == TIXML_SUCCESS)
+		adressMode_v = ((str == "Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str))));
+
+
+	if (xmlCurrentNode->QueryStringAttribute("filtering_minification", &str) == TIXML_SUCCESS)
+		filtering_minification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
+	if (xmlCurrentNode->QueryStringAttribute("filtering_magnification", &str) == TIXML_SUCCESS)
+		filtering_magnification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
+
+	if (xmlCurrentNode->QueryUnsignedAttribute("unknow0", &tmp) == TIXML_SUCCESS)
+		flag0 = (unsigned char)tmp;
 
 	return true;
 }
@@ -479,7 +487,7 @@ TiXmlElement* EMD::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EMD");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
+	//xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
 	
 	TiXmlElement* modelsNode = new TiXmlElement("EmdModels");
 	size_t nbmodel = models.size();
@@ -499,7 +507,7 @@ TiXmlElement* EMDModel::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EmdModel");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
+	//xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
 
 	TiXmlElement* meshNode = new TiXmlElement("EmdMeshs");
 	size_t nbMesh = meshes.size();
@@ -519,8 +527,8 @@ TiXmlElement* EMDMesh::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EmdMesh");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
-
+	//xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
+	
 
 
 	// AABB
@@ -570,12 +578,14 @@ TiXmlElement* EMDSubmesh::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EMDSubmesh");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("unknow_0", unknow_0);
+	//xmlCurrentNode->SetAttribute("unknow_0", unknow_0);
 	
 
 
 	//vertex Definition
 	TiXmlElement* flagsNode = new TiXmlElement("VertexDefinition");
+	//xmlCurrentNode->SetAttribute("vertex_type_flag", EMO_BaseFile::UnsignedToString(vertex_type_flag, true));
+
 	size_t flags = vertex_type_flag;
 	string flagsStr = "";
 	if (flags & EMD_VTX_FLAG_POS)
@@ -776,14 +786,20 @@ TiXmlElement* EMDTriangles::exportXml(void)
 \-------------------------------------------------------------------------------*/
 TiXmlElement* EMDSubmeshDefinition::exportXml(void)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("EMDSubmeshDefinition");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("TextureUnitState");
 
-	xmlCurrentNode->SetAttribute("unknow0", flag0);
+	
 	xmlCurrentNode->SetAttribute("textureindex", texIndex);
-	xmlCurrentNode->SetAttribute("unknow1", flag1);
-	xmlCurrentNode->SetAttribute("unknow2", flag2);
 	xmlCurrentNode->SetDoubleAttribute("textScale_u", textScale_u);
 	xmlCurrentNode->SetDoubleAttribute("textScale_v", textScale_v);
+
+	xmlCurrentNode->SetAttribute("adressMode_u", ((adressMode_u & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_u & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) );
+	xmlCurrentNode->SetAttribute("adressMode_v", ((adressMode_v & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_v & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")));
+
+	xmlCurrentNode->SetAttribute("filtering_minification", ((filtering_minification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_minification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_minification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_minification)))));
+	xmlCurrentNode->SetAttribute("filtering_magnification", ((filtering_magnification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_magnification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_magnification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_magnification)))));
+
+	xmlCurrentNode->SetAttribute("unknow0", flag0);
 
 	return xmlCurrentNode;
 }

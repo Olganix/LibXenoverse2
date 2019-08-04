@@ -6071,7 +6071,7 @@ bool FMP_Hitbox::import_Xml(TiXmlElement* node, std::vector<Havok_File*> &listHa
 				if (((submesh->vertex_type_flag & (EMD_VTX_FLAG_POS | EMD_VTX_FLAG_NORM)) != 0) && (submesh->vertices.size() != 0) && (submesh->triangles.size() != 0) && (submesh->triangles.at(0).faces.size() != 0))
 				{
 					vector<EMDVertex> &vertices = submesh->vertices;
-					vector<unsigned short> &faces = submesh->triangles.at(0).faces;
+					vector<unsigned int> &faces = submesh->triangles.at(0).faces;
 
 					size_t nbVertex = vertices.size();
 					for (size_t i = 0; i < nbVertex; i++)

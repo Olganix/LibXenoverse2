@@ -7,6 +7,7 @@ EMMOgre::EMMOgre()
 	material_resources_created = false;
 	texture_pack = NULL;
 	texture_dyt_pack = NULL;
+	texture_player_dyt_pack = NULL;
 	emdPartVisible = true;
 
 	animation_to_change = 0;
@@ -276,7 +277,8 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 	// Force it to use 16 total texture units and full ambient lighting
 	for (size_t i = 0; i<16; i++)
 		Ogre::TextureUnitState *texture_unit_state = pass->createTextureUnitState("Blank");
-	pass->setAmbient(1.0, 1.0, 1.0);
+
+	
 
 
 	Ogre::String name_tmp = Ogre::StringUtil::replaceAll(Ogre::StringUtil::replaceAll(sds_name, "technique_", ""), "_sds", "");	//personnalize shaders, to avoid shader with same name in many shader type (age of default)
@@ -311,7 +313,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 
 	
 
-	created_materials.push_back(EmmMaterialCreated(ogre_material_name, materialParameters));
+	created_materials.push_back(EmmMaterialCreated(ogre_material_name, emm_material, materialParameters));
 	return compile_material.getPointer();
 }
 
@@ -404,10 +406,9 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				//assert(false);
 			}
 		}
-
-		//pass->setSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ZERO);			//test todo remove.
-
 		
+	}else {
+		pass->setSeparateSceneBlending(Ogre::SBF_ONE, Ogre::SBF_ZERO, Ogre::SBF_ONE, Ogre::SBF_ZERO);			//full opaque by default
 	}
 
 	params = emm_material->getParameter("AlphaSortMask");
@@ -415,12 +416,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 		pass->setTransparentSortingForced(true);
 
 
-	params = emm_material->getParameter("AlphaTest");										//Dbxv1
-	if (params)
-		pass->setAlphaRejectSettings(Ogre::CompareFunction::CMPF_GREATER, params->uint_value);
-
-
 	//todo : LowRez, AnimationChannel, MipMapLod0, CustomFlag
+
 
 	
 	params = emm_material->getParameter("ZWriteMask");
@@ -612,9 +609,6 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				//case givent by material
 				if (paramName == "g_bOutputGlareMRT_PS")
 				{
-					//params = emm_material->getParameter("Glare");
-					//if (params)
-					//	fp_parameters->setConstant(reg, (params->valueFloat()==1.0f) );		//todo check if crash because of using a second rendering texture for effect.
 					fp_parameters->setConstant(reg, 0.0f);								//for not crahsing
 
 					isUsed = "bool";
@@ -623,16 +617,7 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				{
 					
 					params = emm_material->getParameter("VsFlag"+ paramName.substr(12, 1));
-					bool test = (params) ? (params->bool_value) : false;
-					//fp_parameters->setConstant(reg, &test, (size_t)1);
-
-					/*
-					const Ogre::GpuConstantDefinition *def = fp_parameters->_findNamedConstantDefinition(paramName);
-					if (def)
-					{
-						fp_parameters->setNamedConstant(paramName, (params) ? (params->valueFloat() == 1.0f) : 0.0f);
-					}
-					*/
+					bool test = (params) ? (params->uint_value != 0) : false;
 
 					fp_parameters->setConstant(reg, test ? 1.0f : 0.0f);
 
@@ -643,31 +628,22 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				if (paramName == "g_bFog_PS")
 				{
 
-					params = emm_material->getParameter("Fog");			//Todo check
-					fp_parameters->setConstant(reg, ((params) && (params->bool_value == 1)) ? 1.0f : 0.0f);
+					params = emm_material->getParameter("Fog");
+					fp_parameters->setConstant(reg, ((params) && (params->uint_value != 0)) ? 1.0f : 0.0f);
 
-					defaultValue = Ogre::Vector4(((params) && (params->bool_value == 1)) ? 1.0f : 0.0f, 0, 0, 0);
+					defaultValue = Ogre::Vector4(((params) && (params->uint_value != 0)) ? 1.0f : 0.0f, 0, 0, 0);
 					isUsed = "bool";
 				}
 
 				if (paramName == "g_bOutputDepthMRT_PS")
 				{
 
-					params = emm_material->getParameter("OutputDept");			//Todo check
-					fp_parameters->setConstant(reg, ((params) && (params->bool_value == 1)) ? 1.0f : 0.0f);
+					params = emm_material->getParameter("OutputDept");
+					fp_parameters->setConstant(reg, ((params) && (params->uint_value != 0)) ? 1.0f : 0.0f);
 
-					defaultValue = Ogre::Vector4(((params) && (params->bool_value == 1)) ? 1.0f : 0.0f, 0, 0, 0);
+					defaultValue = Ogre::Vector4(((params) && (params->uint_value != 0)) ? 1.0f : 0.0f, 0, 0, 0);
 					isUsed = "bool";
 				}
-
-				if (paramName == "ps_bool_padding0")						//DBxv2. ??
-				{
-					//params = emm_material->getParameter("OutputDept");			//Todo check
-					//fp_parameters->setConstant(reg, ((params) && (params->bool_value == 1)) ? 1.0f : 0.0f);
-
-					isUsed = "bool";
-				}
-				
 				
 
 				isDone = true;
@@ -736,24 +712,45 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 
 
+				if (paramName.substr(0, 7) == "g_vEdge")			//for g_vEdge_PS, g_vEdge_VS,  ...
+				{
+					string indexMatCol = "NoEdge";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+
+					params = emm_material->getParameter(indexMatCol);
+					if ((params)&&(params->uint_value == 1))
+						vect_tmp *= 0;
+
+					fp_parameters->setConstant(reg, vect_tmp);
+
+					defaultValue = vect_tmp;
+					isUsed = "float4";
+				}
+
+				if (paramName.substr(0, 11) == "g_EdgeColor")			//for g_EdgeColor_VS, g_EdgeColor_PS,  ...
+				{
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+					fp_parameters->setConstant(reg, vect_tmp);
+					defaultValue = vect_tmp;
+					isUsed = "float4";
+				}
+				
+
+
 				if (paramName.substr(0, 16) == "g_MaterialOffset")			//for g_MaterialOffset0_VS, g_MaterialOffset1_VS, g_MaterialOffset0_PS, g_MaterialOffset1_PS,  ...
 				{
 					string indexMatCol = "MatOffset" + paramName.substr(16, 1);
 					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
 
+					EMMParameter* params_tmp = emm_material->getParameter("g_MaterialOffset" + indexMatCol + "_VS");			// for HUF_835, we have "g_MaterialOffset0_VS" directly, instead of "MatOffset0"
+					if (!params_tmp)
+						params_tmp = emm_material->getParameter("g_MaterialOffset" + indexMatCol + "_PS");
+					if (params_tmp)
+						vect_tmp.x = vect_tmp.y = vect_tmp.z = params->float_value;
+
 					params = emm_material->getParameter(indexMatCol + "X");
 					if (params)
-					{
 						vect_tmp.x = params->float_value;
-					}else {
-
-						EMMParameter* params_tmp = emm_material->getParameter("g_MaterialOffset"+ indexMatCol +"_VS");			// for HUF_835, we have "g_MaterialOffset0_VS" directly, instead of "MatOffset0"
-						if (!params_tmp)
-							params_tmp = emm_material->getParameter("g_MaterialOffset" + indexMatCol + "_PS");
-						
-						if (params_tmp)
-							vect_tmp.x = params->float_value;
-					}
 
 					params = emm_material->getParameter(indexMatCol + "Y");
 					if (params)
@@ -1081,11 +1078,11 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vAlphaTest_PS")							//DBXv2
 				{
-					Ogre::Vector4 vect_tmp(0.001, 0.001, 0.001, 0.001);
+					Ogre::Vector4 vect_tmp(0.0, 0.0, 0.0, 0.0);
 
 					params = emm_material->getParameter("AlphaTest");
 					if (params)
-						vect_tmp = Ogre::Vector4( ((float)(params->uint_value)) / 255.0 );
+						vect_tmp = Ogre::Vector4( ((float)(params->uint_value)) / 255.0, ((float)(params->uint_value)) / 255.0, ((float)(params->uint_value)) / 255.0, 1.0);
 
 					fp_parameters->setConstant(reg, vect_tmp);
 
@@ -1106,22 +1103,12 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				{
 					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
 					
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_POSITION_OBJECT_SPACE, index);
-					isUsed = "float4";
-				}
-				if(paramName.substr(0,11) == "g_vLightDif")															//g_vLightDif0_VS, g_vLightDif0_PS, g_vLightDif1_VS, g_vLightDif1_PS, etc ...
-				{
-					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR, index);
-					isUsed = "float4";
-				}
-				if(paramName.substr(0, 11) == "g_vLightSpc")													//g_vLightSpc0_VS, g_vLightSpc0_PS, g_vLightSpc1_VS, g_vLightSpc1_PS, etc ...
-				{
-					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
-
-					string indexMatCol = "MatSpc";
-					Ogre::Vector4 vect_tmp(0, 0, 0, 1);
+					string indexMatCol = "gLightDir";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
 					bool useMatParam = false;
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp.x = vect_tmp.y = vect_tmp.z = params->float_value; useMatParam = true; }
 
 					params = emm_material->getParameter(indexMatCol + "R");
 					if (params) { vect_tmp.x = params->float_value; useMatParam = true; }
@@ -1139,6 +1126,78 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					{
 						fp_parameters->setConstant(reg, vect_tmp);
 						defaultValue = vect_tmp;
+					}
+					else {
+						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_POSITION_OBJECT_SPACE, index);
+					}
+					isUsed = "float4";
+				}
+				if(paramName.substr(0,11) == "g_vLightDif")															//g_vLightDif0_VS, g_vLightDif0_PS, g_vLightDif1_VS, g_vLightDif1_PS, etc ...
+				{
+					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
+					
+					string indexMatCol = "MatDif";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+					bool useMatParam = false;
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter("MatDifScale");
+					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+
+					if (useMatParam)
+					{
+						fp_parameters->setConstant(reg, vect_tmp);
+						defaultValue = vect_tmp;
+					}else {
+						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR, index);
+					}
+					isUsed = "float4";
+				}
+				if(paramName.substr(0, 11) == "g_vLightSpc")													//g_vLightSpc0_VS, g_vLightSpc0_PS, g_vLightSpc1_VS, g_vLightSpc1_PS, etc ...
+				{
+					size_t index = Ogre::StringConverter::parseUnsignedInt(paramName.substr(11, 1));
+
+					string indexMatCol = "MatSpc";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+					bool useMatParam = false;
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter("MatSpcScale");
+					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+
+
+					if (useMatParam)
+					{
+						fp_parameters->setConstant(reg, vect_tmp);
+						defaultValue = vect_tmp;
 					}else{
 						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR, index);
 					}
@@ -1149,7 +1208,33 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vEyePos_VS")
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_CAMERA_POSITION_OBJECT_SPACE);
+					string indexMatCol = "gCamPosR";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+					bool useMatParam = false;
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp.x = vect_tmp.y = vect_tmp.z = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; useMatParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
+
+					if (useMatParam)
+					{
+						fp_parameters->setConstant(reg, vect_tmp);
+						defaultValue = vect_tmp;
+					}
+					else {
+						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_CAMERA_POSITION_OBJECT_SPACE);
+					}
 					isUsed = "float4";
 				}
 				
@@ -1168,7 +1253,22 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				
 				if ((paramName == "g_SystemTime_VS") || (paramName == "g_ElapsedTime_VS") ||(paramName == "g_SystemTime_PS") || (paramName == "g_ElapsedTime_PS"))
 				{
-					fp_parameters->setAutoConstantReal(reg, Ogre::GpuProgramParameters::ACT_TIME, 1.0f);
+					bool useMatParam = false;
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+
+
+					params = emm_material->getParameter("gTime");
+					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+
+
+					if (useMatParam)
+					{
+						fp_parameters->setConstant(reg, vect_tmp);
+						defaultValue = vect_tmp;
+					}
+					else {
+						fp_parameters->setAutoConstantReal(reg, Ogre::GpuProgramParameters::ACT_TIME, 1.0f);
+					}
 					isUsed = "float4";
 				}
 
@@ -1353,7 +1453,26 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 				if (paramName == "g_vGlare_PS")								//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					string indexMatCol = "Glare";
+					Ogre::Vector4 vect_tmp(0, 0, 0, 0);
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp = params->float_value; }
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; }
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; }
+
+					fp_parameters->setConstant(reg, vect_tmp);
+					defaultValue = vect_tmp;
 					isUsed = "float4";
 				}
 
@@ -1364,9 +1483,38 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 
 
-				if (paramName == "g_vAmbUni_VS")								//DBXv2. for the second framebuffer, like a general base ambiente for postEffect.
+				if((paramName == "g_vAmbUni_VS")||(paramName  == "g_vAmbUni_PS"))								//DBXv2. for the second framebuffer, like a general base ambiente for postEffect.
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_AMBIENT_LIGHT_COLOUR);
+					string indexMatCol = "MatAmb";
+					Ogre::Vector4 vect_tmp(1, 1, 1, 1);
+					bool useParam = false;
+
+					params = emm_material->getParameter(indexMatCol);
+					if (params) { vect_tmp *= params->float_value; useParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "R");
+					if (params) { vect_tmp.x = params->float_value; useParam = true;}
+
+					params = emm_material->getParameter(indexMatCol + "G");
+					if (params) { vect_tmp.y = params->float_value; useParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "B");
+					if (params) { vect_tmp.z = params->float_value; useParam = true; }
+
+					params = emm_material->getParameter(indexMatCol + "A");
+					if (params) { vect_tmp.w = params->float_value; useParam = true; }
+
+					params = emm_material->getParameter("MatAmbScale");
+					if (params) { vect_tmp *= params->float_value; useParam = true; }
+
+
+					if(useParam)
+						fp_parameters->setConstant(reg, vect_tmp);
+					else
+						fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_AMBIENT_LIGHT_COLOUR);
+
+					pass->setAmbient(vect_tmp.x, vect_tmp.y, vect_tmp.z);
+					defaultValue = vect_tmp;
 					isUsed = "float4";
 				}
 				
@@ -1803,6 +1951,7 @@ EMMOgre::~EMMOgre()
 {
 	delete texture_pack;
 	delete texture_dyt_pack;
+	delete texture_player_dyt_pack;
 
 	list<Ogre::String> created_materials;
 	for (list<Ogre::String>::iterator it = created_materials.begin(); it != created_materials.end(); it++)
@@ -1820,7 +1969,7 @@ void EMMOgre::changeAnimation()
 	if (animation_to_change)
 		ema_Material_Anim = animation_to_change->getEmaMaterialAnimation();
 	
-	animation_to_change = NULL;
+	animation_to_change = 0;
 }
 void EMMOgre::changeAnimation2()
 {
@@ -1829,7 +1978,7 @@ void EMMOgre::changeAnimation2()
 	if (animation_to_change2)
 		ema_Material_Anim2 = animation_to_change2->getEmaMaterialAnimation();
 
-	animation_to_change2 = NULL;
+	animation_to_change2 = 0;
 }
 
 

@@ -79,6 +79,8 @@ public:
 	uint8_t *GetOffsetPtr(const void *base, uint32_t offset, bool native = false) const;
 	uint8_t *GetOffsetPtr(const void *base, uint32_t *offsets_table, uint32_t idx, bool native = false) const;
 
+	static uint8_t *GetOffsetPtr_native(const void *base, uint32_t offset);
+
 	void ModTable(uint32_t *offsets, unsigned int count, int mod_by);
 	unsigned int GetHighestValueIdx(uint32_t *values, unsigned int count, bool native = false);
 	const char *FindString(const char *list, const char *str, unsigned int num_str);

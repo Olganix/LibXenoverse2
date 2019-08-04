@@ -27,15 +27,18 @@ public:
 	struct EmmMaterialCreated
 	{
 		string name;
+		EMMMaterial* emmMaterialOrigine;
 		std::vector<EmmMaterialParameter> parameter;
 
-		EmmMaterialCreated(string name, std::vector<EmmMaterialParameter> parameter) { this->name = name; this->parameter = parameter; }
+		EmmMaterialCreated(string name, EMMMaterial* emmMaterialOrigine, std::vector<EmmMaterialParameter> parameter) { this->name = name; this->emmMaterialOrigine = emmMaterialOrigine; this->parameter = parameter; }
 	};
 
 protected:
 	bool material_resources_created;
-	EMBOgre *texture_pack;
-	EMBOgre *texture_dyt_pack;
+	EMBOgre* texture_pack;
+	EMBOgre* texture_dyt_pack;
+	EMBOgre* texture_player_dyt_pack;
+	
 
 	std::vector<EmmMaterialCreated> created_materials;
 	bool emdPartVisible;
@@ -73,8 +76,10 @@ public:
 
 	void setTexturePack(EMBOgre *v) { texture_pack = v; }
 	void setDYTTexturePack(EMBOgre *v) { texture_dyt_pack = v; }
+	void setPlayerDytTexturePack(EMBOgre *v) { texture_player_dyt_pack = v; }
 	EMBOgre *getTexturePack() { return texture_pack; }
 	EMBOgre *getDYTTexturePack() { return texture_dyt_pack; }
+	EMBOgre *getPlayerDytTexturePack() { return texture_player_dyt_pack; }
 
 	void destroyResources();
 

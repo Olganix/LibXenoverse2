@@ -13,7 +13,14 @@
 #define EMD_VTX_FLAG_TANGENT			0x80
 #define EMD_VTX_FLAG_BLEND_WEIGHT		0x200
 #define EMD_VTX_FLAG_COMPRESSED_FORMAT	0x8000
-//Notice tangent is after Norm.
+
+#define EMD_TUS_ADRESSMODE_WRAP		0
+#define EMD_TUS_ADRESSMODE_MIRROR	1
+#define EMD_TUS_ADRESSMODE_CLAMP	2
+
+#define EMD_TUS_FILTERING_NONE		0
+#define EMD_TUS_FILTERING_POINT		1
+#define EMD_TUS_FILTERING_LINEAR	2
 
 // Notice:
 //	if there isn't EMG_VTX_FLAG_COMPRESSED_FORMAT (like Saint Seya's Emo Files),
@@ -31,8 +38,115 @@
 
 #include "EMM.h"
 
+#include "EMO_BaseFile.h"
+#include "BinColorTag.h"
+
 namespace LibXenoverse
 {
+
+struct EMD_Header
+{
+	char signature[4];			// 0
+	uint32_t endian;			// 4
+	uint32_t version;			// 8
+	uint32_t unknown_0;			// C
+} PACKED;
+static_assert(sizeof(EMD_Header) == 0x10, "Incorrect structure size.");
+
+
+struct EMD_Section
+{
+	uint16_t unknown_0;			// 0
+	uint16_t number_models;		// 2
+	uint32_t offset_models;		// 4
+	uint32_t offset_models_name;// 8
+} PACKED;
+static_assert(sizeof(EMD_Section) == 0xC, "Incorrect structure size.");
+
+struct EMDModel_Section
+{
+	uint16_t unknown_0;			// 0
+	uint16_t number_meshs;		// 2
+	uint32_t offset_meshs;		// 4
+} PACKED;
+static_assert(sizeof(EMDModel_Section) == 0x8, "Incorrect structure size.");
+
+struct EMDMesh_Section
+{
+	float	aabb_center_x;		// 0
+	float	aabb_center_y;		// 4
+	float	aabb_center_z;		// 8
+	float	aabb_center_w;		// c
+	float	aabb_min_x;			// 10
+	float	aabb_min_y;			// 14
+	float	aabb_min_z;			// 18
+	float	aabb_min_w;			// 1c
+	float	aabb_max_x;			// 20
+	float	aabb_max_y;			// 24
+	float	aabb_max_z;			// 28
+	float	aabb_max_w;			// 2c
+	uint32_t offset_mesh_name;	// 30
+	uint16_t unknown_0;			// 34
+	uint16_t number_submeshs;	// 36
+	uint32_t offset_submeshs;	// 38
+} PACKED;
+static_assert(sizeof(EMDMesh_Section) == 0x3c, "Incorrect structure size.");
+
+struct EMDSubmesh_Section
+{
+	float	aabb_center_x;		// 0
+	float	aabb_center_y;		// 4
+	float	aabb_center_z;		// 8
+	float	aabb_center_w;		// c
+	float	aabb_min_x;			// 10
+	float	aabb_min_y;			// 14
+	float	aabb_min_z;			// 18
+	float	aabb_min_w;			// 1c
+	float	aabb_max_x;			// 20
+	float	aabb_max_y;			// 24
+	float	aabb_max_z;			// 28
+	float	aabb_max_w;			// 2c
+	uint32_t vertex_type_flag;	// 30
+	uint32_t vertex_size;		// 34
+	uint32_t number_vertex;		// 38
+	uint32_t offset_vertex;		// 3c
+	uint32_t offset_submesh_name;// 40
+	uint8_t unknown_0;			// 44
+	uint8_t number_textureDef;	// 45
+	uint16_t number_triangles;	// 46
+	uint32_t offset_textureDef;	// 48
+	uint32_t offset_triangles;	// 4c
+} PACKED;
+static_assert(sizeof(EMDSubmesh_Section) == 0x50, "Incorrect structure size.");
+
+struct EMDTextureDef_Section
+{
+	uint8_t unknown_0;			// 0
+	uint8_t textureIndex;		// 1
+	uint8_t unknown_1;			// 2
+	uint8_t unknown_2;			// 3
+	float	texture_scale_u;	// 4
+	float	texture_scale_v;	// 8
+} PACKED;
+static_assert(sizeof(EMDTextureDef_Section) == 0xc, "Incorrect structure size.");
+
+
+struct EMDTriangles_Section
+{
+	uint32_t number_faces;		// 0
+	uint32_t number_bones;		// 4
+	uint32_t offset_faces;		// 8
+	uint32_t offset_bone_names;	// c
+} PACKED;
+static_assert(sizeof(EMDTriangles_Section) == 0x10, "Incorrect structure size.");
+
+
+
+
+//vertex struct depend of flags.
+
+
+
 
 /*-------------------------------------------------------------------------------\
 |                             EMDVertex				                             |
@@ -94,14 +208,14 @@ class EMDTriangles
 	friend class EMD;
 
 public:
-	vector<unsigned short> faces;
+	vector<unsigned int> faces;
 	vector<string> bone_names;
 
 
 	EMDTriangles(EMDTriangles* emdTriangles = 0);
 
 	void	read(File *file);
-	void	write(File *file);
+	void	write(File *file, size_t numberVertex);
 
 	void	getBonesNames(vector<string> &bones_names);
 	void	replaceBonesNames(const string &oldName, const string &newName);
@@ -121,8 +235,10 @@ class EMDSubmeshDefinition
 public:
 	unsigned char flag0;
 	unsigned char texIndex;
-	unsigned char flag1;
-	unsigned char flag2;
+	unsigned char adressMode_u;
+	unsigned char adressMode_v;					//wrap, mirror or clamp
+	unsigned char filtering_minification;
+	unsigned char filtering_magnification;		//none, point, linear.
 	float textScale_u;					//if 5 => 5 repetitions.
 	float textScale_v;
 
@@ -289,7 +405,6 @@ protected:
 	string name;
 	unsigned short unknown_total;
 	vector<EMDMesh*> meshes;
-	
 
 public:
 	EMDModel(EMDModel* emdModel = 0);
@@ -331,6 +446,9 @@ protected:
 	unsigned short unknown_total;
 	vector<EMDModel*> models;
 
+
+	
+
 public:
 	EMD(EMD* emd = 0);
 	~EMD(void);
@@ -354,6 +472,12 @@ public:
 	void	saveXml(string filename);
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+
+
+	//Debug/work: create a file for wxHexEditor, for add tag and color on section of the file. also detect if a file still have empty part (but you better have to ouput in a log file)
+	void save_Coloration(string filename, bool show_error = false);
+	void write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8_t *buf, size_t size);
+	
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode *fbxNode, bool compressedFlag = true);

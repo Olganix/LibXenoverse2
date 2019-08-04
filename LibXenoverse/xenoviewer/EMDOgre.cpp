@@ -550,7 +550,29 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 			entity->setRenderQueueGroup(Ogre::RenderQueueGroupID::RENDER_QUEUE_WORLD_GEOMETRY_2);
 	}
 	*/
-	
+
+	EMMOgre::EmmMaterialCreated* matCrea = 0;
+	EMMMaterial* emm_material = 0;
+	if (material_pack)
+	{
+		matCrea = material_pack->getEmmMaterialCreated(mat->getName());
+		if (matCrea)
+		{
+			emm_material = matCrea->emmMaterialOrigine;
+			
+			EMMParameter* params = emm_material->getParameter("Billboard");
+			if ((params) && (params->uint_value == 1))
+			{
+				node->setAutoTracking(true, scene_manager->getSceneNode("PlayerCam"), Ogre::Vector3::UNIT_Z);
+
+				params = emm_material->getParameter("BillboardType");
+				if ((params) && (params->uint_value == 0))
+					node->setFixedYawAxis(true, Ogre::Vector3::UNIT_Y);
+				else if ((params) && (params->uint_value == 1))							//if 1 use axis for rotation
+					node->setFixedYawAxis_b(true, Ogre::Vector3::UNIT_Y);
+			}
+		}
+	}
 	
 
 
@@ -570,17 +592,20 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 		}
 
 		// Create Render Object Listeners depending on submesh definitions
-		EMBOgre* texture_pack = (material_pack) ?  material_pack->getTexturePack() : 0;
-		EMBOgre* texture_dyt_pack = (material_pack) ? material_pack->getDYTTexturePack() : 0;
-
-		if (texture_pack && texture_dyt_pack)
 		{
-			vector<Ogre::TexturePtr> textures = texture_pack->getOgreTextures();
-			vector<Ogre::TexturePtr> textures_dyt = texture_dyt_pack->getOgreTextures();
-			vector<Ogre::TexturePtr> *textures_ptr = &textures;
+			vector<Ogre::TexturePtr> textures;
+			EMBOgre* texture_pack = (material_pack) ? material_pack->getTexturePack() : 0;
+			if(texture_pack)
+				textures = texture_pack->getOgreTextures();
+
+			/*
+			vector<Ogre::TexturePtr> player_dyt;
+			EMBOgre* texture_player_dyt_pack = (material_pack) ? material_pack->getPlayerDytTexturePack() : 0;
+			if(texture_player_dyt_pack)
+				player_dyt = texture_player_dyt_pack->getOgreTextures();
+			*/
 
 			//each defintion is about a sampler ImageSampler0, ImageSampler1, .... 
-			
 			vector<EMDSubmeshDefinition> &definitions = submesh->getDefinitions();
 			size_t nbSubMeshDefinition = definitions.size();
 			if (nbSubMeshDefinition > pass->getNumTextureUnitStates())
@@ -588,23 +613,80 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 
 			vector<Ogre::Real> listTileFloats;
 
+			vector<Ogre::TexturePtr>* textures_list = 0;
+
 			for (size_t k = 0; k < nbSubMeshDefinition; k++)
 			{
-				unsigned short texIndex = definitions.at(k).texIndex;
-				textures_ptr = &textures;
-				if (texIndex >= textures_ptr->size())
-					texIndex = textures_ptr->size() - 1;
+				EMDSubmeshDefinition &tus = definitions.at(k);
 
-				pass->getTextureUnitState(k)->setTextureName(name + "_" + Ogre::StringConverter::toString(texIndex));
+				unsigned short texIndex = tus.texIndex;
+
+				listTileFloats.push_back(tus.textScale_u);			//texture scale will be merged into few shader parameters, so we have to compile them.
+				listTileFloats.push_back(tus.textScale_v);
+
+				textures_list = &textures;
+
+
+				// Adress Mode.
+				Ogre::TextureUnitState::TextureAddressingMode tam_u = Ogre::TextureUnitState::TAM_WRAP;
+				if(tus.adressMode_u==EMD_TUS_ADRESSMODE_MIRROR)
+					tam_u = Ogre::TextureUnitState::TAM_MIRROR;
+				else if (tus.adressMode_u == EMD_TUS_ADRESSMODE_CLAMP)
+					tam_u = Ogre::TextureUnitState::TAM_CLAMP;
+
+				Ogre::TextureUnitState::TextureAddressingMode tam_v = Ogre::TextureUnitState::TAM_WRAP;
+				if (tus.adressMode_v == EMD_TUS_ADRESSMODE_MIRROR)
+					tam_v = Ogre::TextureUnitState::TAM_MIRROR;
+				else if (tus.adressMode_v == EMD_TUS_ADRESSMODE_CLAMP)
+					tam_v = Ogre::TextureUnitState::TAM_CLAMP;
+
+				pass->getTextureUnitState(k)->setTextureAddressingMode(tam_u, tam_v, Ogre::TextureUnitState::TAM_WRAP);
+
+				
+				//filtering.
+				Ogre::FilterOptions filter_min = Ogre::FilterOptions::FO_NONE;
+				if (tus.filtering_minification == EMD_TUS_FILTERING_POINT)
+					filter_min = Ogre::FilterOptions::FO_POINT;
+				else if (tus.filtering_minification == EMD_TUS_FILTERING_LINEAR)
+					filter_min = Ogre::FilterOptions::FO_LINEAR;
+
+				Ogre::FilterOptions filter_magn = Ogre::FilterOptions::FO_NONE;
+				if (tus.filtering_magnification == EMD_TUS_FILTERING_POINT)
+					filter_magn = Ogre::FilterOptions::FO_POINT;
+				else if (tus.filtering_magnification == EMD_TUS_FILTERING_LINEAR)
+					filter_magn = Ogre::FilterOptions::FO_LINEAR;
+
+				pass->getTextureUnitState(k)->setTextureFiltering(filter_min, filter_magn, Ogre::FilterOptions::FO_NONE);
+
+
+
+
+				if (emm_material)
+				{
+					EMMParameter* params = emm_material->getParameter("MipMapLod"+ Ogre::StringConverter::toString(k));
+					if (params)
+						pass->getTextureUnitState(k)->setTextureMipmapBias(params->float_value);
+				}
+
+				if ((!textures_list)||(textures_list->size() == 0))
+					continue;
+
+				if (texIndex >= textures_list->size())
+					texIndex = textures_list->size() - 1;
+
+				Ogre::TexturePtr tex_tmp = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().getByName(textures_list->at(texIndex)->getName());
+				if (tex_tmp.isNull())
+					continue;
+
+				pass->getTextureUnitState(k)->setTextureName(textures_list->at(texIndex)->getName());
+				
+				
+
 
 				//todoo look after unknow next to textureIndex for 
 				//pass->getTextureUnitState(k)->setNumMipmaps(0);
 				//pass->getTextureUnitState(k)->setTextureAnisotropy(1.0);
 				//pass->getTextureUnitState(k)->setTextureFiltering(Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE, Ogre::FilterOptions::FO_NONE);
-
-				listTileFloats.push_back(definitions.at(k).textScale_u);
-				listTileFloats.push_back(definitions.at(k).textScale_v);
-
 
 				
 				/*
@@ -703,11 +785,10 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 
 			//here, we try a new solution , fill first find g_vTexTileXX_VS (or PS) to put floats of texture_scale_u and v at follow. and the next after.
 			size_t nbFloats = listTileFloats.size();
-			if (nbFloats != 0)
+			if ((nbFloats != 0)&&(material_pack)&&(matCrea))
 			{
-				EMMOgre::EmmMaterialCreated* matCrea = material_pack->getEmmMaterialCreated(mat->getName());
-				std::vector<EMMOgre::EmmMaterialParameter> &parameter = matCrea->parameter;
 				size_t inc = 0;
+				std::vector<EMMOgre::EmmMaterialParameter> &parameter = matCrea->parameter;
 				size_t nbParam = parameter.size();
 				for (size_t i = 0; i < nbParam; i++)
 				{
