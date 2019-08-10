@@ -1,0 +1,368 @@
+
+
+/********************* main *****************************/
+
+html
+{
+    width: 100%;
+    height: 100%;
+    min-width: 480px;
+    min-height: 480px;
+    overflow: hidden;
+}
+
+body
+{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/********************* page *****************************/
+
+.page_header
+{
+    width: 100%;
+    height: 20px;
+    overflow: hidden;
+    margin-left: 5px;
+}
+
+.page_body
+{
+    width: 100%;
+    height: calc(100% - 20px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    white-space: nowrap;
+}
+
+.page_left
+{
+    display: inline-block;
+    width: calc(50% - 22px);
+    height: calc(100% - 26px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin: 10px;
+    border-radius: 10px;
+    border: 1px solid #cccccc;
+}
+
+.page_right
+{
+    display: inline-block;
+    width: calc(50% - 4px);
+    height: 100%;
+    overflow: visible;
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.list_matrix
+{
+    width: calc(50% - 14px);
+    height: calc(100% - 26px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: inline-block;
+    margin: 10px 5px;
+    border-radius: 10px;
+    border: 1px solid #cccccc;
+    overflow: visible;
+    vertical-align: top;
+}
+
+
+/********************* header *****************************/
+
+
+.page_header .bt
+{
+    height: 19px;
+    cursor: pointer;
+    background: #f1f1f1;
+    width: 138px;
+    border-left: 1px solid #000000;
+    border-right: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding-left: 3px;
+}
+.page_header .bt:hover
+{
+    color: #ffffff;
+    background-color: #bdbbbb;
+}
+
+
+
+/********************* Matrix *****************************/
+
+.Matrix_Panel
+{
+    width: calc(100% - 11px);
+
+    border: 1px solid #000000;
+    border-radius: 10px;
+    margin: 5px 5px;
+    position: relative;
+    overflow: visible;
+}
+
+.Matrix_header
+{
+    width: 100%;
+    border-bottom: 1px solid #000000;
+}
+
+.Matrix_header_top
+{
+    height: 20px;
+    width: 100%;
+    background: #e4e3e3;
+}
+
+.Matrix_header_middle
+{
+    height: 20px;
+    width: 100%;
+}
+
+
+
+.Matrix_header_top_name
+{
+    height: 20px;
+    width: calc(100% - 65px);
+    display: inline-block;
+    margin-left: 10px;
+    overflow: hidden;
+}
+
+.Matrix_header_top_hide
+{
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #000000;
+    border-radius: 3px;
+    background-color: #aaaaaa;
+    cursor: pointer;
+    vertical-align: top;
+    text-align: center;
+    line-height: 19px;
+    font-size: 18px;
+}
+.Matrix_header_top_hide::hover
+{
+    background-color: #888888;
+}
+.Matrix_header_top_hide::after
+{
+    content: "^";
+}
+.Matrix_header_top_hide.active::after
+{
+    content: "v";
+}
+
+
+.Matrix_header_top_delete
+{
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #000000;
+    border-radius: 3px;
+    color: #ffffff;
+    background-color: #ff8888;
+    cursor: pointer;
+    vertical-align: top;
+    text-align: center;
+    line-height: 19px;
+}
+.Matrix_header_top_hide::hover
+{
+    background-color: #ff0000;
+}
+
+
+
+.Matrix_header_middle_left
+{
+    width: calc(50% - 1px);
+    height: 100%;
+    border-right: 1px solid #000000;
+    display: inline-block;
+    overflow: visible;
+}
+.Matrix_header_middle_right
+{
+    width: calc(50% - 1px);
+    height: 100%;
+    display: inline-block;
+    overflow: visible;
+}
+
+.Matrix_header_middle .bt
+{
+    width: 20px;
+    height: 20px;
+    border-radius: 60%;
+    color: #ffffff;
+    background-color: #ff0000;
+    display: inline-block;
+    text-align: center;
+    font-weight: bold;
+    line-height: 21px;
+    cursor: pointer;
+}
+.Matrix_header_middle .bt.active
+{
+    background-color: #00cc00;
+}
+.Matrix_header_middle .bt:hover
+{
+    background-color: #0000ff;
+}
+
+
+.bt_fillXml
+{
+    width: 40px;
+    height: 20px;
+    border-radius: 3px;
+    color: #ffffff;
+    background-color: #c7b5b5;
+    display: inline-block;
+    text-align: center;
+    font-weight: bold;
+    line-height: 21px;
+    cursor: pointer;
+}
+.bt_fillXml:hover
+{
+    background-color: #0000ff;
+}
+.bt_fillXml.active
+{
+    background-color: #00cc00;
+}
+
+/*******************/
+
+.Matrix_body
+{
+    width: 100%;
+}
+
+.Matrix_body_abs,
+.Matrix_body_rel
+{
+    display: none;
+}
+.Matrix_body_abs.abs,
+.Matrix_body_rel.rel
+{
+    display: inline-block;
+    width: 100%;
+}
+.Matrix_body_abs.abs.rel
+{
+    width: calc(50% - 1px);
+    border-right: 1px solid #000000; 
+}
+.Matrix_body_rel.abs.rel
+{
+    width: calc(50% - 1px);
+}
+
+/*******************/
+
+.Matrix_view,
+.Transform_view
+{
+    width: calc(100% - 6px);
+    padding: 6px 0px;
+    border: 1px solid #000000;
+    border-radius: 3px;
+}
+
+.Matrix_line,
+.Transform_line
+{
+    width: 100%;
+    height: 20px;
+    border-bottom: 1px solid #cccccc;
+}
+
+.Matrix_cell,
+.Transform_cell
+{
+    width: 19%;
+    height: 12px;
+}
+
+/*******************/
+
+.fill_panel {
+    position: absolute;
+    left: -325px;
+    top: 0px;
+    width: 300px;
+    min-height: 137px;
+    background: #eceaea;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+.ta_fill {
+    width: calc(100% - 10px);
+    min-height: 100px;
+    resize: vertical;
+    margin-top: 20px;
+}
+
+.bt_close {
+    position: absolute;
+    right: 5px;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #000000;
+    border-radius: 3px;
+    color: #ffffff;
+    background-color: #ff8888;
+    cursor: pointer;
+    vertical-align: top;
+    text-align: center;
+    line-height: 19px;
+}
+
+.fill_panel .bt 
+{
+    float: right;
+    height: 20px;
+    border-radius: 3px;
+    color: #ffffff;
+    background-color: #c7b5b5;
+    display: inline-block;
+    text-align: center;
+    font-weight: bold;
+    line-height: 21px;
+    cursor: pointer;
+    padding: 0px 8px;
+    margin-right: 5px;
+    margin-bottom: 3px;
+}
+
+.bt_close:hover {
+    background-color: #ff0000;
+}
+
+.bt_fill_matrix:hover {
+    background-color: #0000ff;
+}

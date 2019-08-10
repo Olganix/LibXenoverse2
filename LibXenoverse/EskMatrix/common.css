@@ -1,0 +1,149 @@
+/**
+ * Copyright (c) Olganix; Licensed
+ */
+
+
+
+
+
+
+
+.show { display: block; }
+.show_inline { display: inline-block; }
+.hide { display: none; }
+
+
+
+.selectDisable 
+{
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+.selectEnable 
+{
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -o-user-select: text;
+    user-select: text;
+}
+
+
+.combobox 
+{
+    position: relative;
+}
+    
+.combobox>.combobox_value
+{
+    padding:5px;
+    width: calc(100% - 10px);
+    border-radius:5px;
+    border:1px solid #00B0F2;
+    min-height: 18px;
+}
+    
+.combobox>ul
+{
+    position:absolute;
+    background:#fff;
+    width: calc(100% + 2px);
+    border-radius:5px;
+    margin:0;
+    padding:0;
+    display:none;
+    border:1px solid #ccc;
+    z-index:2;
+}
+
+.combobox>ul>li
+{
+    padding:3px 5px;
+    display:block;
+    cursor:pointer; 
+    border-bottom:1px solid #ccc;
+}
+
+.combobox>ul>li:hover
+{
+    background: #85b7d4;
+}
+
+
+.notALookLikeButton                         /* because oblige to use button instead click on div */
+{
+    -webkit-appearance: none;
+    padding: 0px;
+    box-sizing: content-box;
+    border: none;
+    background-color: initial;
+    color: initial;
+    cursor: initial;
+}
+.notALookLikeButton:focus
+{
+    outline: none;
+}
+
+.lookLikeButton
+{
+    -webkit-writing-mode: horizontal-tb !important;
+    writing-mode: horizontal-tb !important;
+    text-rendering: auto;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    align-items: flex-start;
+    text-align: center;
+    cursor: default;
+    color: buttontext;
+    background-color: buttonface;
+    box-sizing: border-box;
+    border-width: 2px;
+    border-style: outset;
+    border-color: buttonface;
+    border-image: initial;
+    padding: 1px 6px;
+    font-family: inherit;
+    font-size: 100%;
+    line-height: 1.15;
+    margin: 0;
+    text-transform: none;
+    overflow: visible;
+    -webkit-appearance: none;
+    font-stretch: 100%;
+    font-style: normal;
+    font-variant-caps: normal;
+    font-variant-east-asian: normal;
+    font-variant-ligatures: normal;
+    font-variant-numeric: normal;
+    font-weight: 400;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+.lookLikeButton::-moz-focus-inner
+{
+    border-style: none;
+    padding: 0;
+}
+
+
+
+/************** prettyfy json **************/
+
+pre.json {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.json_string { color: green; }
+.json_number { color: darkorange; }
+.json_boolean { color: blue; }
+.json_null { color: magenta; }
+.json_key { color: red; }
+
