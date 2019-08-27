@@ -4,9 +4,10 @@ int main(int argc, char** argv)
 {
 	printf("*******************************************************************\n\
  This tool is for Color/tag some binaries with the help of WxHexEditor (creation of .tags files).\n\
- It's for help to discover/debugging structurs and take care of file format: ema, map, emp, etr, spm, scd.\n\
+ It's for help to discover/debugging structurs and take care of file format: ema, map, emp, etr, spm, scd, emd, emm.\n\
  Please consider the result as Debug to share information and test if All files are All colored.\n\
- There is also warning when one bytes is taggued 2 time or on overflow, so that could help\n\
+ There is also warning when one bytes is taggued 2 time or on overflow, so that could help (search 'error' in .tags)\n\
+ There is also detection of holes (search 'empty' in .tags).\n\
  Usage: 'XenoWxHexEditorColorMaker.exe [options] file.ext file2.ext ...'\n\
  Options : '-NoWait', '-AlwaysWait', '-WaitOnError' (default), or '-WaitOnWarning'.\n\
  Notice: by doing a shortcut, you could use another option and keep drag and drop of files.\n\
@@ -89,10 +90,16 @@ int main(int argc, char** argv)
 		}
 
 		/////////////////////////////////////////////////////////////
-		if (extension == "emd")							// particules/mappedPlanes for effects.
+		if (extension == "emd")							// model/mesh
 		{
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
 			emd->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "emm")							// Material
+		{
+			LibXenoverse::EMM* emm = new LibXenoverse::EMM();
+			emm->save_Coloration(filename);
 		}
 	}
 

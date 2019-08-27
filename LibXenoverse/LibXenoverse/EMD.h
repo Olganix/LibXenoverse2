@@ -47,8 +47,9 @@ namespace LibXenoverse
 struct EMD_Header
 {
 	char signature[4];			// 0
-	uint32_t endian;			// 4
-	uint32_t version;			// 8
+	uint16_t endian;			// 4
+	uint16_t header_size;		// 6
+	uint8_t version[4];			// 8			//could be something else but difficult to see.
 	uint32_t unknown_0;			// C
 } PACKED;
 static_assert(sizeof(EMD_Header) == 0x10, "Incorrect structure size.");
@@ -443,7 +444,10 @@ class EMD
 
 protected:
 	string name;
-	unsigned short unknown_total;
+	string version;
+	uint16_t header_size;				//test Todo remove and uncomment into read() and write()
+	uint32_t unknow_0;
+	uint16_t unknow_1;
 	vector<EMDModel*> models;
 
 

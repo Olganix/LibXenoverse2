@@ -17,62 +17,6 @@ EMM::~EMM(void)
 	materials.clear();
 }
 /*-------------------------------------------------------------------------------\
-|                             getMaterial				                         |
-\-------------------------------------------------------------------------------*/
-EMMMaterial* EMM::getMaterial(string name)
-{
-	
-	string name_tmp = name;
-	std::transform(name_tmp.begin(), name_tmp.end(), name_tmp.begin(), tolower);
-
-	string name_tmp_b = "";
-	for (size_t i = 0, nbMaterial = materials.size(); i < nbMaterial; i++)
-	{
-		name_tmp_b = materials.at(i)->getName();
-		std::transform(name_tmp_b.begin(), name_tmp_b.end(), name_tmp_b.begin(), tolower);
-
-		if (name_tmp_b == name_tmp_b)
-			return materials.at(i);
-	}
-	return nullptr;
-}
-/*-------------------------------------------------------------------------------\
-|                             getListUniqueParameters				             |
-\-------------------------------------------------------------------------------*/
-std::vector<string>	EMM::getListUniqueParameters(void)
-{
-	std::vector<string> listUniqueParams;
-
-	size_t nbMaterial = materials.size();
-	for (size_t i = 0; i < nbMaterial; i++)
-	{
-		
-		size_t nbParams = materials.at(i)->parameters.size();
-		for (size_t j = 0; j < nbParams; j++)
-		{
-			string paramName = materials.at(i)->parameters.at(j)->name;
-
-			bool isfound = false;
-			size_t nbUniq = listUniqueParams.size();
-			for (size_t k = 0; k < nbUniq; k++)
-			{
-				if (listUniqueParams.at(k) == paramName)
-				{
-					isfound = true;
-					break;
-				}
-			}
-			if (isfound)
-				continue;
-
-			listUniqueParams.push_back(paramName);
-		}
-	}
-
-	return listUniqueParams;
-}
-
-/*-------------------------------------------------------------------------------\
 |                             EMMMaterial			                             |
 \-------------------------------------------------------------------------------*/
 EMMMaterial::~EMMMaterial(void)
@@ -84,18 +28,6 @@ EMMMaterial::~EMMMaterial(void)
 
 	listSampler2D.clear();
 }
-
-/*-------------------------------------------------------------------------------\
-|                             getParameter			                             |
-\-------------------------------------------------------------------------------*/
-EMMParameter* EMMMaterial::getParameter(const string &name)
-{
-	size_t nbParameters = parameters.size();
-	for (size_t i = 0; i < nbParameters; i++)
-		if (parameters.at(i)->name == name)
-			return parameters.at(i);
-	return NULL;
-}
 /*-------------------------------------------------------------------------------\
 |                             EMMParameter			                             |
 \-------------------------------------------------------------------------------*/
@@ -103,10 +35,19 @@ EMMParameter::EMMParameter(void)
 {
 	name = "";
 	type = 1;
-	unknow_0 = 0;
+	level = 0;
 	uint_value = 0;
 	float_value = 0.0f;
 }
+
+
+
+
+
+
+
+
+
 
 
 /*-------------------------------------------------------------------------------\
@@ -115,138 +56,47 @@ EMMParameter::EMMParameter(void)
 bool EMM::load(string filename)
 {
 	name = nameFromFilenameNoExtension(filename, true);
-
 	if (filename.find(".xml") != string::npos)
-	{
-		TiXmlDocument doc(filename);
-		if (!doc.LoadFile())
-			return false;
+		return loadXml(filename);
 
-		TiXmlHandle hDoc(&doc);
-		TiXmlHandle hRoot(0);
+	File file(filename, LIBXENOVERSE_FILE_READ_BINARY);
 
-		TiXmlElement* rootNode = hDoc.FirstChildElement("EMM").Element();
-		if (!rootNode)
-		{
-			printf("%s don't have 'EMM' tags. skip.'\n", filename);
-			getchar();
-			return false;
-		}
-
-		for (TiXmlElement* xmlNode = rootNode->FirstChildElement("EMMMaterial"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EMMMaterial"))
-		{
-			EMMMaterial* material = new EMMMaterial();
-			material->readXML(xmlNode);
-			materials.push_back(material);
-		}
-
-
-		
-		TiXmlElement* defaultValuesNode = rootNode->FirstChildElement("UnknowValues");
-		listUnknowValues.clear();
-
-		if (defaultValuesNode)
-		{
-			string name = "";
-			size_t flags = 0;
-			for (TiXmlElement* xmlNode = defaultValuesNode->FirstChildElement("Value"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Value"))
-			{
-				xmlNode->QueryUnsignedAttribute("value", &flags);
-				listUnknowValues.push_back(flags);
-			}
-		}
-
-	}else {
-		File file(filename, LIBXENOVERSE_FILE_READ_BINARY);
-
-		if (file.valid() && file.readHeader(LIBXENOVERSE_EMM_SIGNATURE))
-		{
-			read(&file);
-			file.close();
-		}else {
-			return false;
-		}
-	}
+	if( (!file.valid()) || (!file.readHeader(LIBXENOVERSE_EMM_SIGNATURE)) )
+		return false;
+	
+	read(&file);
+	file.close();
 
 	return true;
 }
-/*-------------------------------------------------------------------------------\
-|                             save					                             |
-\-------------------------------------------------------------------------------*/
-void EMM::save(string filename, bool big_endian)
-{
-	File file(filename, LIBXENOVERSE_FILE_WRITE_BINARY);
-	if (file.valid())
-	{
-		file.writeHeader(LIBXENOVERSE_EMM_SIGNATURE, big_endian);
-		write(&file);
-		file.close();
-	}
-}
-/*-------------------------------------------------------------------------------\
-|                             saveXML				                             |
-\-------------------------------------------------------------------------------*/
-void EMM::saveXML(string filename)
-{
-	TiXmlDocument doc;
-	TiXmlDeclaration *decl = new TiXmlDeclaration("1.0", "", "");
-	doc.LinkEndChild(decl);
-
-	TiXmlElement* rootNode = new TiXmlElement("EMM");
-
-	size_t nbMaterial = materials.size();
-	for (size_t i = 0; i < nbMaterial; i++)
-	{
-		rootNode->LinkEndChild(new TiXmlComment(("index:"+ std::to_string(i)).c_str() ));
-
-		materials.at(i)->writeXML(rootNode);
-	}
-
-
-
-	if (listUnknowValues.size())
-	{
-		size_t nbParams = listUnknowValues.size();
-		
-		TiXmlElement* defaultValuesNode = new TiXmlElement("UnknowValues");
-		defaultValuesNode->SetAttribute("nbValues", nbParams);
-
-		TiXmlElement* xmlNode;
-		
-		for (size_t i = 0; i < nbParams; i++)
-		{
-			xmlNode = new TiXmlElement("Value");
-			xmlNode->SetAttribute("value", listUnknowValues.at(i));
-
-			defaultValuesNode->LinkEndChild(xmlNode);
-		}
-		rootNode->LinkEndChild(defaultValuesNode);
-	}
-
-
-	doc.LinkEndChild(rootNode);
-
-	doc.SaveFile(filename);
-}
-
-
-
-
-
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
 void EMM::read(File *file)
 {
-	file->goToAddress(0xC);
+	file->goToAddress(0x6);
+
+	uint16_t header_size;
+	file->readInt16E(&header_size);
+
+	version = "";
+	uint8_t tmp = 0;
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp);
+
 
 	unsigned int material_base_address = 0;
 	file->readInt32E(&material_base_address);
 
-	unsigned short material_count = 0;
+	unsigned int material_count = 0;
 	file->goToAddress(material_base_address);
-	file->readInt16E(&material_count);
-	file->moveAddress(2);
+	file->readInt32E(&material_count);
 
 	printf("Found %d materials.\n", material_count);
 
@@ -265,24 +115,36 @@ void EMM::read(File *file)
 
 
 	//reading about (may be) default values of each parameter ( (may be) for other material in emm). all I remark there is the same number of octets at 0  than unique parameters.
-	file->goToAddress(0x10);
-	unsigned int defaultValues_address = 0;
-	file->readInt32E(&defaultValues_address);
-	listUnknowValues.clear();
-
-	if (defaultValues_address != 0)							//not all emm have this. I don't know why.
+	if (header_size>0x10)
 	{
-		file->goToEnd();
-		size_t endAdress = file->getCurrentAddress();
+		listUnknowValues.clear();
+		
+		file->goToAddress(0x10);
+		unsigned int defaultValues_address = 0;
+		file->readInt32E(&defaultValues_address);
 
-		file->goToAddress(defaultValues_address);
-
-		unsigned char tmp = '\0';
-		size_t nbParams = endAdress - defaultValues_address;
-		for (size_t i = 0; i < nbParams; i++)
+		if (header_size > 0x14)
 		{
-			file->readUChar(&tmp);
-			listUnknowValues.push_back((size_t)tmp);
+			file->readInt32E(&unknow_0);
+			if (header_size > 0x18)
+			{
+				file->readInt32E(&unknow_1);
+				if (header_size > 0x1C)
+				{
+					file->readInt32E(&unknow_2);
+				}
+			}
+		}
+
+		if ((defaultValues_address != 0)&&(defaultValues_address < file->getFileSize()))			//not all emm have this. I don't know why yet.
+		{
+			file->goToAddress(defaultValues_address);
+
+			for (size_t i = 0; i < 68; i++)				//always 68 octets
+			{
+				file->readUChar(&tmp);
+				listUnknowValues.push_back((size_t)tmp);
+			}
 		}
 	}
 }
@@ -299,7 +161,7 @@ void EMMMaterial::read(File *file)
 
 	unsigned short parameter_count = 0;
 	file->readInt16E(&parameter_count);
-	file->moveAddress(2);
+	file->readInt16E(&unknow_0);
 
 	printf("Reading Material %s with shader %s and %d parameters.\n", name.c_str(), shaderProgramName.c_str(), parameter_count);
 
@@ -320,7 +182,7 @@ void EMMParameter::read(File *file)
 	name = string(buffer);
 
 	file->readInt16E(&type);
-	file->readInt16E(&unknow_0);
+	file->readInt16E(&level);
 	
 	if (type == 0x0)						//Float
 	{
@@ -340,24 +202,49 @@ void EMMParameter::read(File *file)
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             save					                             |
+\-------------------------------------------------------------------------------*/
+void EMM::save(string filename, bool big_endian)
+{
+	File file(filename, LIBXENOVERSE_FILE_WRITE_BINARY);
+	if (file.valid())
+	{
+		file.writeHeader(LIBXENOVERSE_EMM_SIGNATURE, big_endian);
 
+		file.goToAddress(file.getCurrentAddress() - 2);						//header goes to far, endian finish on "FEFF"
+
+		write(&file);
+		file.close();
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
 void EMM::write(File *file)
 {
 	// Header
-	unsigned short unknown_1 = 0x0010;
-	file->writeInt16E(&unknown_1);
-	file->writeNull(2);
+	uint16_t header_size = 0x20;
+	file->writeInt16E(&header_size);
 
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+		{
+			uint8_t tmp = std::stoi(sv.at(i));
+			file->writeUChar(&tmp);
+		}else {
+			file->writeNull(1);
+		}
+	}
+	
 	unsigned int material_base_address = 0x20;
 	file->writeInt32E(&material_base_address);
-	file->writeNull(16);
+	file->writeNull(0x10);
 
-	unsigned short material_count = materials.size();
-	file->writeInt16E(&material_count);
-	file->writeNull(2);
+	unsigned int material_count = materials.size();
+	file->writeInt32E(&material_count);
 
 	file->writeNull(material_count * 4);
 	for (size_t i = 0; i < material_count; i++)
@@ -408,8 +295,7 @@ void EMMMaterial::write(File *file)
 
 	unsigned short parameter_count = parameters.size();
 	file->writeInt16E(&parameter_count);
-	unsigned short unknownMarker = 0xFFFF;
-	file->writeInt16E(&unknownMarker);
+	file->writeInt16E(&unknow_0);
 
 	for (size_t i = 0; i < parameter_count; i++)
 		parameters.at(i)->write(file);
@@ -427,7 +313,7 @@ void EMMParameter::write(File *file)
 	
 
 	file->writeInt16E(&type);
-	file->writeInt16E(&unknow_0);
+	file->writeInt16E(&level);
 
 	if (type == 0x0)						//Float
 	{
@@ -445,10 +331,66 @@ void EMMParameter::write(File *file)
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             loadXml				                             |
+\-------------------------------------------------------------------------------*/
+bool EMM::loadXml(string filename)
+{
+	if (filename.find(".xml") == string::npos)
+		return false;
+
+	TiXmlDocument doc(filename);
+	if (!doc.LoadFile())
+		return false;
+
+	TiXmlHandle hDoc(&doc);
+	TiXmlHandle hRoot(0);
+
+	TiXmlElement* rootNode = hDoc.FirstChildElement("EMM").Element();
+	if (!rootNode)
+	{
+		printf("%s don't have 'EMM' tags. skip.'\n", filename);
+		getchar();
+		return false;
+	}
+
+	readXML(rootNode);
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             readXML				                             |
+\-------------------------------------------------------------------------------*/
+void EMM::readXML(TiXmlElement* xmlCurrentNode)
+{
+	xmlCurrentNode->QueryStringAttribute("version", &version);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_1", &unknow_1);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_2", &unknow_2);
+
+
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("EMMMaterial"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EMMMaterial"))
+	{
+		EMMMaterial* material = new EMMMaterial();
+		material->readXML(xmlNode);
+		materials.push_back(material);
+	}
 
 
 
+	TiXmlElement* defaultValuesNode = xmlCurrentNode->FirstChildElement("UnknowValues");
+	listUnknowValues.clear();
 
+	if (defaultValuesNode)
+	{
+		string name = "";
+		size_t flags = 0;
+		for (TiXmlElement* xmlNode = defaultValuesNode->FirstChildElement("Value"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Value"))
+		{
+			xmlNode->QueryUnsignedAttribute("value", &flags);
+			listUnknowValues.push_back(flags);
+		}
+	}
+}
 /*-------------------------------------------------------------------------------\
 |                             readXML				                             |
 \-------------------------------------------------------------------------------*/
@@ -456,6 +398,9 @@ void EMMMaterial::readXML(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 	xmlCurrentNode->QueryStringAttribute("shaderProgram", &shaderProgramName);
+	uint32_t tmp = 0;
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
+	unknow_0 = (uint16_t)tmp;
 
 
 	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("EMMParameter"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EMMParameter"))
@@ -472,10 +417,9 @@ void EMMParameter::readXML(TiXmlElement *root)
 {
 	root->QueryStringAttribute("name", &name);
 
-	unsigned int tmp = 0;
-	root->QueryUnsignedAttribute("unknow_0", &tmp);
-	unknow_0 = (uint16_t)tmp;
-
+	string str = "";
+	root->QueryStringAttribute("level", &str);
+	level = ((str == "shader") ? 0 : ((str == "pass") ? 1 : (uint16_t)std::stoi(str) ));
 
 
 	string str_tmp = "";
@@ -506,7 +450,63 @@ void EMMParameter::readXML(TiXmlElement *root)
 
 
 
+/*-------------------------------------------------------------------------------\
+|                             saveXML				                             |
+\-------------------------------------------------------------------------------*/
+void EMM::saveXML(string filename)
+{
+	TiXmlDocument doc;
+	TiXmlDeclaration *decl = new TiXmlDeclaration("1.0", "", "");
+	doc.LinkEndChild(decl);
 
+	TiXmlElement* rootNode = writeXML();
+
+	doc.LinkEndChild(rootNode);
+
+	doc.SaveFile(filename);
+}
+/*-------------------------------------------------------------------------------\
+|                             writeXML				                             |
+\-------------------------------------------------------------------------------*/
+TiXmlElement*  EMM::writeXML()
+{
+	TiXmlElement* rootNode = new TiXmlElement("EMM");
+	rootNode->SetAttribute("version", version);
+	rootNode->SetAttribute("unknow_0", unknow_0);
+	rootNode->SetAttribute("unknow_1", unknow_1);
+	rootNode->SetAttribute("unknow_2", unknow_2);
+
+	rootNode->LinkEndChild(new TiXmlComment("For all files of Dbxv2:\n\tEMM unk_0 to 2 are always 0.\n\tEMMMaterial unk_0 is 0 or 65535 ('FF FF').\n\tversion 0.0.0.0 always have 0 and no unknowValues (but not inverses).\n\tWe didn't find what is the 68 unknowValues are for.\n\t"));
+
+	size_t nbMaterial = materials.size();
+	for (size_t i = 0; i < nbMaterial; i++)
+	{
+		rootNode->LinkEndChild(new TiXmlComment(("index:" + std::to_string(i)).c_str()));
+		materials.at(i)->writeXML(rootNode);
+	}
+
+
+
+	if (listUnknowValues.size())
+	{
+		size_t nbParams = listUnknowValues.size();
+
+		TiXmlElement* defaultValuesNode = new TiXmlElement("UnknowValues");
+
+		TiXmlElement* xmlNode;
+
+		for (size_t i = 0; i < nbParams; i++)
+		{
+			xmlNode = new TiXmlElement("Value");
+			xmlNode->SetAttribute("value", listUnknowValues.at(i));
+
+			defaultValuesNode->LinkEndChild(xmlNode);
+		}
+		rootNode->LinkEndChild(defaultValuesNode);
+	}
+
+	return rootNode;
+}
 /*-------------------------------------------------------------------------------\
 |                             writeXML				                             |
 \-------------------------------------------------------------------------------*/
@@ -515,6 +515,7 @@ void EMMMaterial::writeXML(TiXmlElement* xmlCurrentNode)
 	TiXmlElement* materialRoot = new TiXmlElement("EMMMaterial");
 	materialRoot->SetAttribute("name", name);
 	materialRoot->SetAttribute("shaderProgram", shaderProgramName);
+	materialRoot->SetAttribute("unknow_0", unknow_0);
 
 	size_t nbParam = parameters.size();
 	for (size_t i = 0; i < nbParam; i++)
@@ -531,9 +532,7 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 
 
 	parameterRoot->SetAttribute("name", name);
-	parameterRoot->SetAttribute("unknow_0", unknow_0);
-
-	parameterRoot->SetAttribute("type_test", type);
+	parameterRoot->SetAttribute("level", ((level==0) ? "shader" : ((level == 1) ? "pass" : ToString(level) )) );
 
 	if (type == 0x0)
 	{
@@ -561,6 +560,75 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 
 
 
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             getMaterial				                         |
+\-------------------------------------------------------------------------------*/
+EMMMaterial* EMM::getMaterial(string name)
+{
+
+	string name_tmp = name;
+	std::transform(name_tmp.begin(), name_tmp.end(), name_tmp.begin(), tolower);
+
+	string name_tmp_b = "";
+	for (size_t i = 0, nbMaterial = materials.size(); i < nbMaterial; i++)
+	{
+		name_tmp_b = materials.at(i)->getName();
+		std::transform(name_tmp_b.begin(), name_tmp_b.end(), name_tmp_b.begin(), tolower);
+
+		if (name_tmp_b == name_tmp_b)
+			return materials.at(i);
+	}
+	return nullptr;
+}
+/*-------------------------------------------------------------------------------\
+|                             getListUniqueParameters				             |
+\-------------------------------------------------------------------------------*/
+std::vector<string>	EMM::getListUniqueParameters(void)
+{
+	std::vector<string> listUniqueParams;
+
+	size_t nbMaterial = materials.size();
+	for (size_t i = 0; i < nbMaterial; i++)
+	{
+
+		size_t nbParams = materials.at(i)->parameters.size();
+		for (size_t j = 0; j < nbParams; j++)
+		{
+			string paramName = materials.at(i)->parameters.at(j)->name;
+
+			bool isfound = false;
+			size_t nbUniq = listUniqueParams.size();
+			for (size_t k = 0; k < nbUniq; k++)
+			{
+				if (listUniqueParams.at(k) == paramName)
+				{
+					isfound = true;
+					break;
+				}
+			}
+			if (isfound)
+				continue;
+
+			listUniqueParams.push_back(paramName);
+		}
+	}
+
+	return listUniqueParams;
+}
+/*-------------------------------------------------------------------------------\
+|                             getParameter			                             |
+\-------------------------------------------------------------------------------*/
+EMMParameter* EMMMaterial::getParameter(const string &name)
+{
+	size_t nbParameters = parameters.size();
+	for (size_t i = 0; i < nbParameters; i++)
+		if (parameters.at(i)->name == name)
+			return parameters.at(i);
+	return NULL;
+}
 
 
 
