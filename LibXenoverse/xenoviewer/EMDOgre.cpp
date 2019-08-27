@@ -97,7 +97,7 @@ Ogre::SceneNode* EMDOgre::createOgreEmdModel(EMDModel *model, Ogre::SceneNode *p
 			vector<EMDSubmesh *> &submeshes = meshes.at(i)->getSubmeshes();
 			size_t nbSubMesh = submeshes.size();
 			for (size_t j = 0; j < nbSubMesh; j++)
-				createOgreMesh_EmdSubMesh(submeshes.at(j), meshes.at(i)->getName(), model_node, model->getName());	//future reference by using the name witch is a conbinaison of mesh name and submesh name
+				createOgreMesh_EmdSubMesh(submeshes.at(j), meshes.at(i)->getName(), model_node);	//future reference by using the name witch is a conbinaison of mesh name and submesh name
 		}
 	}
 
@@ -107,14 +107,14 @@ Ogre::SceneNode* EMDOgre::createOgreEmdModel(EMDModel *model, Ogre::SceneNode *p
 		vector<EMDSubmesh *> &submeshes = meshes.at(i)->getSubmeshes();
 		size_t nbSubMesh = submeshes.size();
 		for (size_t j = 0; j < nbSubMesh; j++)
-			createOgreEntity_EmdSubMesh(submeshes.at(j), meshes.at(i)->getName(), model_node, scene_manager);	//future reference by using the name witch is a conbinaison of mesh name and submesh name
+			createOgreEntity_EmdSubMesh(submeshes.at(j), meshes.at(i)->getName(), model_node, scene_manager, model->getName());	//future reference by using the name witch is a conbinaison of mesh name and submesh name
 	}
 	return model_node;
 }
 /*-------------------------------------------------------------------------------\
 |                             createOgreMesh_EmdSubMesh                          |
 \-------------------------------------------------------------------------------*/
-void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, Ogre::SceneNode* model_node, string modelName)
+void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, Ogre::SceneNode* model_node)
 {
 	vector<EMDVertex> &submesh_vertices = submesh->getVertices();
 	size_t nVertices = submesh_vertices.size();
@@ -200,44 +200,8 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 
 
 
-	//case of Ean from Ema witch have NodeAnimations, but to simplify with the current system, Will only done as if all the mesh have vertex 100% influences from the bone in question.
-	//but first, we have to detect the case.
 	Ogre::Matrix4 mat = Ogre::Matrix4::IDENTITY;
 	
-	LibXenoverse::ESKBone* boneToForceLink = 0;
-	if (((flags & EMD_VTX_FLAG_BLEND_WEIGHT) == 0) && (skeleton) && (skeleton->getOgreSkeleton())&&(submesh->getTriangles().size()!=0))			//if there isn't skining, and after emd link to esk.
-	{
-		string boneToSearchName = modelName;				//a bone with the same name of mesh, is for NodeAnim
-
-
-		std::vector<LibXenoverse::ESKBone*> &bones = skeleton->getBones();
-
-		LibXenoverse::ESKBone* bone = 0;
-		size_t nbBones = bones.size();
-		for (size_t i = 0; i < nbBones; i++)
-		{
-			if ((bones.at(i)->getName() == boneToSearchName))
-			{
-				boneToForceLink = bones.at(i);
-				break;
-			}
-		}
-
-		if (boneToForceLink)
-		{
-			flags = flags | EMD_VTX_FLAG_BLEND_WEIGHT;
-
-			//we must init Node as the bone transform , else, the binding of the skinning willl be wrong
-			Ogre::Bone* ogreBone = skeleton->getOgreSkeleton()->getBone(boneToForceLink->getName());
-			ogreBone->_update(false, true);
-
-			mat = ogreBone->_getFullTransform();
-		}
-	}
-
-
-
-
 
 	// fill datas of vertices
 	size_t vertexSize = offset/4;				// one float = 4 octets = 32 bits
@@ -379,12 +343,6 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 
 
 			// Build Bone Mapping Table
-			if (boneToForceLink)										//Hack to do NodeAnimation (but it's skinning animation)
-			{
-				triangles->bone_names.clear();
-				triangles->bone_names.push_back(boneToForceLink->getName());
-			}
-
 			bone_table.clear();
 			nbBones = triangles->bone_names.size();
 			bone_table.resize(nbBones, (unsigned short)-1);
@@ -420,19 +378,6 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 
 					//hack to have the sum to 1.0
 					float bone_weight = ((k != 3) ? vertex.blend_weight[k] : (1.0 - (vertex.blend_weight[0] + vertex.blend_weight[1] + vertex.blend_weight[2])));					
-
-					if (boneToForceLink)										//Hack to do NodeAnimation (but it's skinning animation)
-					{
-						if (k == 0)
-						{
-							bone_index = 0;
-							bone_weight = 1.0;									//force the only bone.
-						} else {
-							bone_index = 0;
-							bone_weight = 0.0;
-						}
-					}
-
 
 					if (bone_index >= bone_table.size())
 					{
@@ -489,7 +434,7 @@ Ogre::SubMesh* EMDOgre::createOgreIndexBuffer_EmdSubMesh(EMDTriangles* triangles
 /*-------------------------------------------------------------------------------\
 |                             createOgreEntity_EmdSubMesh	                     |
 \-------------------------------------------------------------------------------*/
-void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, Ogre::SceneNode* model_node, Ogre::SceneManager *scene_manager)
+void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, Ogre::SceneNode* model_node, Ogre::SceneManager *scene_manager, string modelName)
 {
 	Ogre::MaterialManager* matMgr = Ogre::MaterialManager::getSingletonPtr();
 		
@@ -522,8 +467,45 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 	entity->setCastShadows(false);
 
 
+	
+	if (((submesh->getVertexTypeFlags() & EMD_VTX_FLAG_BLEND_WEIGHT) == 0) && (skeleton) && (skeleton->getOgreSkeleton()) && (submesh->getTriangles().size() != 0))			//if there isn't skining, and after emd link to esk.
+	{
+		LibXenoverse::ESKBone* boneToForceLink = 0;
+
+		std::vector<LibXenoverse::ESKBone*> &bones = skeleton->getBones();
+		LibXenoverse::ESKBone* bone = 0;
+		size_t nbBones = bones.size();
+		for (size_t i = 0; i < nbBones; i++)
+		{
+			if ((bones.at(i)->getName() == modelName))		//a bone with the same name of mesh, is for NodeAnim		//todo recheck.
+			{
+				boneToForceLink = bones.at(i);
+				break;
+			}
+		}
+
+		if (boneToForceLink)
+		{
+			Ogre::SkeletonInstance* skInst =  skeleton->getEntity()->getSkeleton();
+
+			//we must init Node as the bone transform , else, the binding of the skinning willl be wrong
+			//Ogre::Bone* ogreBone = skeleton->getOgreSkeleton()->getBone(boneToForceLink->getName());
+			Ogre::Bone* ogreBone = skInst->getBone(boneToForceLink->getName());
+			
+			ogreBone->_update(false, true);
+
+			node->setPosition(ogreBone->convertLocalToWorldPosition(Ogre::Vector3::ZERO));
+			node->setOrientation(ogreBone->_getFullTransform().extractQuaternion());
+
+			mListLinkBones.push_back(LinkBetweenBoneAndNode(node, ogreBone));
+		}
+	}
+
+
+
+
 	// Share Skeleton Instances with ESK's fake entity
-	if ((skeleton) && (entity->hasSkeleton()))
+	if ((submesh->getVertexTypeFlags() & EMD_VTX_FLAG_BLEND_WEIGHT) && (skeleton) && (entity->hasSkeleton()))
 	{
 		entity->shareSkeletonInstanceWith(skeleton->getEntity());
 
@@ -606,7 +588,7 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 			*/
 
 			//each defintion is about a sampler ImageSampler0, ImageSampler1, .... 
-			vector<EMDSubmeshDefinition> &definitions = submesh->getDefinitions();
+			vector<EMDTextureUnitState> &definitions = submesh->getDefinitions();
 			size_t nbSubMeshDefinition = definitions.size();
 			if (nbSubMeshDefinition > pass->getNumTextureUnitStates())
 				nbSubMeshDefinition = pass->getNumTextureUnitStates();
@@ -617,7 +599,7 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 
 			for (size_t k = 0; k < nbSubMeshDefinition; k++)
 			{
-				EMDSubmeshDefinition &tus = definitions.at(k);
+				EMDTextureUnitState &tus = definitions.at(k);
 
 				unsigned short texIndex = tus.texIndex;
 
@@ -828,9 +810,11 @@ void EMDOgre::createOgreEntity_EmdSubMesh(EMDSubmesh* submesh, string mesh_name,
 \-------------------------------------------------------------------------------*/
 void EMDOgre::cleanNodes(bool parent)
 {
+	
 	for (list<EMDRenderObject *>::iterator it = created_render_objects.begin(); it != created_render_objects.end(); it++)
 		delete *it;
 
+	mListLinkBones.clear();
 	created_render_objects.clear();
 
 	for (list<Ogre::SceneNode *>::iterator it = scene_nodes.begin(); it != scene_nodes.end(); it++)
@@ -855,6 +839,25 @@ void EMDOgre::destroyResources()
 	mesh_resources_created = false;
 }
 
+
+/*-------------------------------------------------------------------------------\
+|                             updateBonesLinks		                             |
+\-------------------------------------------------------------------------------*/
+void EMDOgre::updateBonesLinks()
+{
+	Ogre::SceneNode* node;
+	Ogre::Bone* bone;
+	for (size_t i = 0, nb = mListLinkBones.size(); i < nb; i++)
+	{
+		bone = mListLinkBones.at(i).bone;
+		node = mListLinkBones.at(i).node;
+
+		bone->_update(false, true);
+
+		node->setPosition(bone->convertLocalToWorldPosition(Ogre::Vector3::ZERO));
+		node->setOrientation(bone->_getFullTransform().extractQuaternion());
+	}
+}
 
 
 

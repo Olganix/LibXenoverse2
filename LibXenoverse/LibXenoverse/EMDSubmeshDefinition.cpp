@@ -4,26 +4,26 @@ namespace LibXenoverse
 /*-------------------------------------------------------------------------------\
 |                             EMDSubmesh			                             |
 \-------------------------------------------------------------------------------*/
-EMDSubmeshDefinition::EMDSubmeshDefinition(EMDSubmeshDefinition* emdSubmeshDefinition)
+EMDTextureUnitState::EMDTextureUnitState(EMDTextureUnitState* emdTextureUnitState)
 {
 	zero();
 
-	if (emdSubmeshDefinition)
+	if (emdTextureUnitState)
 	{
-		flag0 = emdSubmeshDefinition->flag0;
-		texIndex = emdSubmeshDefinition->texIndex;
-		adressMode_v = emdSubmeshDefinition->adressMode_v;
-		adressMode_u = emdSubmeshDefinition->adressMode_u;
-		filtering_magnification = emdSubmeshDefinition->filtering_magnification;
-		filtering_minification = emdSubmeshDefinition->filtering_minification;
-		textScale_u = emdSubmeshDefinition->textScale_u;
-		textScale_v = emdSubmeshDefinition->textScale_v;
+		flag0 = emdTextureUnitState->flag0;
+		texIndex = emdTextureUnitState->texIndex;
+		adressMode_v = emdTextureUnitState->adressMode_v;
+		adressMode_u = emdTextureUnitState->adressMode_u;
+		filtering_magnification = emdTextureUnitState->filtering_magnification;
+		filtering_minification = emdTextureUnitState->filtering_minification;
+		textScale_u = emdTextureUnitState->textScale_u;
+		textScale_v = emdTextureUnitState->textScale_v;
 	}
 }
 /*-------------------------------------------------------------------------------\
 |                             zero					                             |
 \-------------------------------------------------------------------------------*/
-void EMDSubmeshDefinition::zero(void)
+void EMDTextureUnitState::zero(void)
 {
 	flag0 = 0;
 	texIndex = 0;
@@ -35,7 +35,7 @@ void EMDSubmeshDefinition::zero(void)
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
-void EMDSubmeshDefinition::read(File *file)
+void EMDTextureUnitState::read(File *file)
 {
 	file->readUChar(&flag0);
 	file->readUChar(&texIndex);
@@ -51,7 +51,7 @@ void EMDSubmeshDefinition::read(File *file)
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDSubmeshDefinition::write(File *file)
+void EMDTextureUnitState::write(File *file)
 {
 	file->writeUChar(&flag0);
 	file->writeUChar(&texIndex);

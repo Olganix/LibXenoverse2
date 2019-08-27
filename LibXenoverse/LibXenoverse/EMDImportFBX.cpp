@@ -568,7 +568,7 @@ bool EMDSubmesh::importFBX_OldMethode(FbxNode* fbxNode, FbxMesh *fbxMesh, int ma
 
 
 	// Create Definitions (TextureUnit)
-	EMDSubmeshDefinition definition;
+	EMDTextureUnitState definition;
 	
 	// Add 2 of these
 	definitions.push_back(definition);								//notice, the old case is hard coded.
@@ -1138,7 +1138,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()) );
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()) );
 			}
 		}
 
@@ -1161,7 +1161,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
 
@@ -1184,7 +1184,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
 
@@ -1207,7 +1207,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
 
@@ -1231,7 +1231,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
 
@@ -1254,7 +1254,7 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 					printf("error: on trying to convert textureIndex into number. that use TextureName, format is 'yyyyy_XXX.ext' with XXX the textureIndex.\n");
 					LibXenoverse::notifyError();
 				}
-				definitions.push_back(EMDSubmeshDefinition(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
+				definitions.push_back(EMDTextureUnitState(textIndex, (float)texture->GetScaleU(), (float)texture->GetScaleV()));
 			}
 		}
 	}
@@ -1265,8 +1265,8 @@ void EMDSubmesh::importFBX(FbxNode* fbxNode, bool compressedFlag)
 
 	if (definitions.size() == 0)
 	{
-		definitions.push_back(EMDSubmeshDefinition(0, 1.0f));
-		definitions.push_back(EMDSubmeshDefinition(0, 1.0f));
+		definitions.push_back(EMDTextureUnitState(0, 1.0f));
+		definitions.push_back(EMDTextureUnitState(0, 1.0f));
 	}
 
 

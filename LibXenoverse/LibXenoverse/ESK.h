@@ -121,6 +121,7 @@ public:
 	void	test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
 	void	calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
 	void	calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
+	std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
 
 	string	getSkinningMatrixDebug(void);
 	string	getTransformMatrixDebug(void);
@@ -135,6 +136,8 @@ public:
 	static	void	decomposition4x4(double* transformMatrix, double* resultPosOrientScaleMatrix); //posOrientScaleMatrix is 3x4, orient is a quaternion informations, TransformMatrix is 4x4
 	static	void	inverse4x4(double* transformMatrix, double* inversedTransformMatrix);
 	static	void	concatenate4x4(double* transformMatrix_left, double* transformMatrix_right, double* resultTransformMatrix);
+
+	TiXmlElement*	exporFpftXml(size_t index, std::vector<ESKBone *> &listBones);
 };
 
 
@@ -221,7 +224,10 @@ public:
 	void	importFBXSkeleton(FbxScene *scene, bool allowCamera = false);
 	void	exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &global_fbx_bones, FbxNode* parentFbxNode = 0, unsigned short parentIndex = 0xFFFF);			//recursive
 #endif
+	
 
+	void saveFpfXml_Extract(string filename, ESK* esk_sourceBonesName);
+	TiXmlElement*	exporFpftXml(ESK* esk_sourceBonesName);
 };
 
 }

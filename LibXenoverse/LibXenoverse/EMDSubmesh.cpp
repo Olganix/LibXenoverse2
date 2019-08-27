@@ -36,7 +36,7 @@ EMDSubmesh::EMDSubmesh(EMDSubmesh* emdSubmesh)
 		for (size_t i = 0, nb = emdSubmesh->triangles.size(); i < nb; i++)
 			triangles.push_back(EMDTriangles(&emdSubmesh->triangles.at(i)));
 		for (size_t i = 0, nb = emdSubmesh->definitions.size(); i < nb; i++)
-			definitions.push_back(EMDSubmeshDefinition(&emdSubmesh->definitions.at(i)));
+			definitions.push_back(EMDTextureUnitState(&emdSubmesh->definitions.at(i)));
 	}
 }
 /*-------------------------------------------------------------------------------\

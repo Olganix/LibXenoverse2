@@ -295,11 +295,11 @@ bool EMDSubmesh::importXml(TiXmlElement* xmlCurrentNode)
 		if (emdTriangles.importXml(xmlNode, vertices))
 			triangles.push_back(emdTriangles);
 	}
-	for (TiXmlElement* xmlNode = definitionNode->FirstChildElement("EMDSubmeshDefinition"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EMDSubmeshDefinition"))
+	for (TiXmlElement* xmlNode = definitionNode->FirstChildElement("TextureUnitState"); xmlNode; xmlNode = xmlNode->NextSiblingElement("TextureUnitState"))
 	{
-		EMDSubmeshDefinition emdSubmeshDefinition;
-		if (emdSubmeshDefinition.importXml(xmlNode))
-			definitions.push_back(emdSubmeshDefinition);
+		EMDTextureUnitState emdTextureUnitState;
+		if (emdTextureUnitState.importXml(xmlNode))
+			definitions.push_back(emdTextureUnitState);
 	}
 
 	return ( (triangles.size()!=0) && (vertices.size()!=0) );
@@ -443,31 +443,76 @@ bool EMDTriangles::importXml(TiXmlElement* xmlCurrentNode, vector<EMDVertex> &ve
 /*-------------------------------------------------------------------------------\
 |                             importXml											 |
 \-------------------------------------------------------------------------------*/
-bool EMDSubmeshDefinition::importXml(TiXmlElement* xmlCurrentNode)
+bool EMDTextureUnitState::importXml(TiXmlElement* xmlCurrentNode)
 {
 
 	size_t tmp;
 	if (xmlCurrentNode->QueryUnsignedAttribute("textureindex", &tmp) == TIXML_SUCCESS)
 		texIndex = (unsigned char)tmp;
 
-	xmlCurrentNode->QueryFloatAttribute("textScale_u", &textScale_u);
-	xmlCurrentNode->QueryFloatAttribute("textScale_v", &textScale_v);
-
-
-
 
 	string str = "";
-	if (xmlCurrentNode->QueryStringAttribute("adressMode_u", &str) == TIXML_SUCCESS)
-		adressMode_u = ((str=="Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str) )));
-	if (xmlCurrentNode->QueryStringAttribute("adressMode_v", &str) == TIXML_SUCCESS)
-		adressMode_v = ((str == "Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str))));
+	textScale_u = textScale_v = 1;
+	xmlCurrentNode->QueryStringAttribute("textScale_uv", &str);
+	std::vector<string> sv = split(str, ' ');
+	size_t inc = 0;
+	for (size_t i = 0, nb = sv.size(); i < nb; i++)
+	{
+		if (sv.at(i).length() == 0)
+			continue;
+
+		if (inc == 0)
+			textScale_u = StringToFloat(sv.at(i));
+		else
+			textScale_v = StringToFloat(sv.at(i));
+
+		inc++;
+		if (inc == 2)
+			break;
+	}
 
 
-	if (xmlCurrentNode->QueryStringAttribute("filtering_minification", &str) == TIXML_SUCCESS)
-		filtering_minification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
-	if (xmlCurrentNode->QueryStringAttribute("filtering_magnification", &str) == TIXML_SUCCESS)
-		filtering_magnification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
+	adressMode_u = adressMode_v = EMD_TUS_ADRESSMODE_WRAP;
+	xmlCurrentNode->QueryStringAttribute("adressMode_uv", &str);
+	sv = split(str, ' ');
+	inc = 0;
+	for (size_t i = 0, nb = sv.size(); i < nb; i++)
+	{
+		str = sv.at(i);
+		if (str.length() == 0)
+			continue;
 
+		if (inc == 0)
+			adressMode_u = ((str == "Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str))));
+		else
+			adressMode_v = ((str == "Wrap") ? EMD_TUS_ADRESSMODE_WRAP : ((str == "Mirror") ? EMD_TUS_ADRESSMODE_MIRROR : ((str == "Clamp") ? EMD_TUS_ADRESSMODE_CLAMP : (uint8_t)stoi(str))));
+
+		inc++;
+		if (inc == 2)
+			break;
+	}
+
+
+	filtering_minification = filtering_magnification = EMD_TUS_FILTERING_NONE;
+	xmlCurrentNode->QueryStringAttribute("filtering_min_mag", &str);
+	sv = split(str, ' ');
+	inc = 0;
+	for (size_t i = 0, nb = sv.size(); i < nb; i++)
+	{
+		str = sv.at(i);
+		if (str.length() == 0)
+			continue;
+
+		if (inc == 0)
+			filtering_minification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
+		else
+			filtering_magnification = ((str == "None") ? EMD_TUS_FILTERING_NONE : ((str == "Point") ? EMD_TUS_FILTERING_POINT : ((str == "Linear") ? EMD_TUS_FILTERING_LINEAR : (uint8_t)stoi(str))));
+
+		inc++;
+		if (inc == 2)
+			break;
+	}
+	
 	if (xmlCurrentNode->QueryUnsignedAttribute("unknow0", &tmp) == TIXML_SUCCESS)
 		flag0 = (unsigned char)tmp;
 
@@ -784,11 +829,11 @@ TiXmlElement* EMDTriangles::exportXml(void)
 /*-------------------------------------------------------------------------------\
 |                             exportXml											 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* EMDSubmeshDefinition::exportXml(void)
+TiXmlElement* EMDTextureUnitState::exportXml(void)
 {
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("TextureUnitState");
 
-	
+	/*
 	xmlCurrentNode->SetAttribute("textureindex", texIndex);
 	xmlCurrentNode->SetDoubleAttribute("textScale_u", textScale_u);
 	xmlCurrentNode->SetDoubleAttribute("textScale_v", textScale_v);
@@ -799,6 +844,13 @@ TiXmlElement* EMDSubmeshDefinition::exportXml(void)
 	xmlCurrentNode->SetAttribute("filtering_minification", ((filtering_minification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_minification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_minification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_minification)))));
 	xmlCurrentNode->SetAttribute("filtering_magnification", ((filtering_magnification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_magnification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_magnification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_magnification)))));
 
+	xmlCurrentNode->SetAttribute("unknow0", flag0);
+	*/
+
+	xmlCurrentNode->SetAttribute("textureindex", texIndex);
+	xmlCurrentNode->SetAttribute("textScale_uv", ToString(textScale_u) +" "+ ToString(textScale_v));
+	xmlCurrentNode->SetAttribute("adressMode_uv", string((adressMode_u & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_u & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) +" "+ ((adressMode_v & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_v & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) );
+	xmlCurrentNode->SetAttribute("filtering_min_mag", string((filtering_minification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_minification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_minification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_minification)))) +" "+ ((filtering_magnification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_magnification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_magnification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_magnification)))));
 	xmlCurrentNode->SetAttribute("unknow0", flag0);
 
 	return xmlCurrentNode;

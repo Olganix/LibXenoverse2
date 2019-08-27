@@ -669,7 +669,7 @@ void EMG_SubPart::writeEmdSubMesh(EMDSubmesh* emd, size_t textListIndex)
 		size_t nbtext = textList.textures.size();
 		for (size_t k = 0; k < nbtext; k++)
 		{
-			emd->definitions.push_back(EMDSubmeshDefinition());
+			emd->definitions.push_back(EMDTextureUnitState());
 			textList.textures.at(k).writeEmdDef(&(emd->definitions.back()));
 		}
 	}
@@ -2176,7 +2176,7 @@ bool EMG_Texture::operator==(const EMG_Texture &rhs) const
 /*-------------------------------------------------------------------------------\
 |                             readEmdDef			                             |
 \-------------------------------------------------------------------------------*/
-void EMG_Texture::readEmdDef(EMDSubmeshDefinition* emd)
+void EMG_Texture::readEmdDef(EMDTextureUnitState* emd)
 {
 	unk_00 = emd->flag0;
 	emb_TextureIndex = emd->texIndex;
@@ -2188,7 +2188,7 @@ void EMG_Texture::readEmdDef(EMDSubmeshDefinition* emd)
 /*-------------------------------------------------------------------------------\
 |                             writeEmdDef			                             |
 \-------------------------------------------------------------------------------*/
-void EMG_Texture::writeEmdDef(EMDSubmeshDefinition* emd)
+void EMG_Texture::writeEmdDef(EMDTextureUnitState* emd)
 {
 	emd->flag0 = unk_00;
 	emd->texIndex = emb_TextureIndex;

@@ -111,6 +111,8 @@ void ESKOgre::buildBone(unsigned short b, Ogre::Skeleton *ogre_skeleton, Ogre::B
 
 void ESKOgre::createFakeEntity(Ogre::SceneManager *mSceneMgr)
 {
+	skeleton_entity = 0;
+	
 	Ogre::MeshPtr msh = Ogre::MeshManager::getSingleton().createManual(name + "_skeleton", XENOVIEWER_RESOURCE_GROUP);
 	msh->setSkeletonName(name);
 
@@ -125,6 +127,12 @@ void ESKOgre::createFakeEntity(Ogre::SceneManager *mSceneMgr)
 		vertices[i*nVertCount] = 0.0;
 		vertices[i*nVertCount + 1] = 0.0;
 		vertices[i*nVertCount + 2] = 0.0;
+
+		Ogre::VertexBoneAssignment vba;
+		vba.vertexIndex = i;
+		vba.boneIndex = 0;
+		vba.weight = 1;
+		msh->addBoneAssignment(vba);
 	}
 
 	const size_t ibufCount = 3;
@@ -154,6 +162,11 @@ void ESKOgre::createFakeEntity(Ogre::SceneManager *mSceneMgr)
 	sub->indexData->indexCount = ibufCount;
 	sub->indexData->indexStart = 0;
 
+
+	msh->_compileBoneAssignments();
+	msh->sharedVertexData->reorganiseBuffers(decl->getAutoOrganisedDeclaration(true, false));
+
+
 	msh->_setBounds(Ogre::AxisAlignedBox(-100, -100, -100, 100, 100, 100));
 	msh->_setBoundingSphereRadius(100);
 	msh->load();
@@ -161,10 +174,11 @@ void ESKOgre::createFakeEntity(Ogre::SceneManager *mSceneMgr)
 	free(faces);
 	free(vertices);
 
+
 	skeleton_entity = mSceneMgr->createEntity(name + "_FE", name + "_skeleton");
 	skeleton_node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	skeleton_node->attachObject(skeleton_entity);
-	skeleton_node->setVisible(false);
+	skeleton_node->setVisible(true);
 }
 
 void ESKOgre::refreshAnimations()

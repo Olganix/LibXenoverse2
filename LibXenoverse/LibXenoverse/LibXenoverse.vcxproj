@@ -161,6 +161,7 @@
     <ClCompile Include="ESKBone.cpp" />
     <ClCompile Include="ESKFBX.cpp" />
     <ClCompile Include="ESKXml.cpp" />
+    <ClCompile Include="ESK_FpfXml.cpp" />
     <ClCompile Include="Etr.cpp" />
     <ClCompile Include="Fmp.cpp" />
     <ClCompile Include="Havok.cpp" />

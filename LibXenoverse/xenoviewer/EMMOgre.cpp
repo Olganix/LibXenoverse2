@@ -235,7 +235,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material)
 
 
 
-Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vector<SDS*> &sds_list)
+Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vector<SDS*> &sds_list, Ogre::Viewport* viewport)
 {
 	
 	//on a lire les SDS et shaders pour savoir ou se trouve les textureUnit a utilser.
@@ -297,7 +297,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 		pass->setVertexProgram(vertex_shader_name);
 		Ogre::GpuProgramParametersSharedPtr vp_parameters = pass->getVertexProgramParameters();
 		
-		setUpMaterialParameters(vertex_shader_name, vp_parameters, pass, emm_material, materialParameters, "vertex");
+		setUpMaterialParameters(vertex_shader_name, vp_parameters, pass, emm_material, materialParameters, "vertex", viewport);
 	}
 
 
@@ -307,7 +307,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 		pass->setFragmentProgram(pixel_shader_name);
 		Ogre::GpuProgramParametersSharedPtr fp_parameters = pass->getFragmentProgramParameters();
 		
-		setUpMaterialParameters(pixel_shader_name, fp_parameters, pass, emm_material, materialParameters, "fragment");
+		setUpMaterialParameters(pixel_shader_name, fp_parameters, pass, emm_material, materialParameters, "fragment", viewport);
 	}
 
 
@@ -321,7 +321,7 @@ Ogre::Material *EMMOgre::createOgreMaterial(EMMMaterial *emm_material, std::vect
 
 
 
-std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material, std::vector<EmmMaterialParameter> &materialParameters, string shaderType)
+std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material, std::vector<EmmMaterialParameter> &materialParameters, string shaderType, Ogre::Viewport* viewport)
 {
 	std::vector<size_t> listRegForTextTile;
 
@@ -397,7 +397,9 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE);		//
 			break;	//additive
 		case 2:
-			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_COLOUR, Ogre::SBF_ONE_MINUS_DEST_COLOUR, Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE_MINUS_DEST_ALPHA);
+			pass->setSceneBlendingOperation(Ogre::SceneBlendOperation::SBO_REVERSE_SUBTRACT);
+			pass->setSeparateSceneBlending(Ogre::SBF_SOURCE_ALPHA, Ogre::SBF_ONE, Ogre::SBF_ZERO, Ogre::SBF_ONE);		//
+
 			break;	//sub
 
 		default:
@@ -525,49 +527,117 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				if (sampler2DListName.at(j) != paramName)
 					continue;
 
+
+				if ((paramName == "alive_particles"))			//s0
+					pass->getTextureUnitState(reg)->setCubicTextureName("cubescene.jpg");
+
+				if ((paramName == "Texture_YTexture") || (paramName == "ImageYTexture")) //s0
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+				if ((paramName == "Texture_UTexture") || (paramName == "ImageUTexture")) //s1
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+				if ((paramName == "Texture_VTexture") || (paramName == "ImageVTexture")) //s2
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+				if ((paramName == "Texture_ATexture") || (paramName == "ImageATexture")) //s3
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+
+
 				//SamplerToon is the color swap from dyt texture. it isn't in definition of sampler - embPack, so we have to add it here.
-				if ((paramName == "SamplerToon")||(paramName == "Texture_SamplerToon"))
+				if ((paramName == "Texture_SamplerToon") || (paramName == "SamplerToon"))				//s4
 				{
 					pass->getTextureUnitState(reg)->setTextureName(name + ".dyt_0");											//todo add something in UI to change the index of dyt (dyt is about color degrade pallette, witch change with charater's slot).
 					pass->getTextureUnitState(reg)->setTextureFiltering(Ogre::TextureFilterOptions::TFO_NONE);
 					pass->getTextureUnitState(reg)->setTextureAddressingMode(Ogre::TextureUnitState::TextureAddressingMode::TAM_CLAMP);
 				}
 
-				if ((paramName == "ImageSamplerTemp14") || (paramName == "Texture_ImageSamplerTemp14"))
+
+				if ((paramName == "Texture_SamplerCubeMap") ||(paramName == "SamplerCubeMap"))			//s5
+					pass->getTextureUnitState(reg)->setCubicTextureName("cubescene.jpg");				//todo tester
+				if ((paramName == "Texture_SamplerSphereMap") || (paramName == "ImageSamplerSphereMap")) //s5
+					pass->getTextureUnitState(reg)->setTextureName("spheremap.png");					//todo tester
+				
+
+				if ((paramName == "Texture_SamplerProjectionMap") || (paramName == "ImageSamplerProjectionMap")) //s6
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");					//todo tester
+				if ((paramName == "Texture_SamplerShadowMap") || (paramName == "ImageSamplerShadowMap")) //s7
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+
+
+				if ((paramName == "Texture_SamplerReflect") || (paramName == "ImageSamplerReflect")) //s8
+					pass->getTextureUnitState(reg)->setTextureName("spheremap.png");					//todo change to RTT
+				if ((paramName == "Texture_SamplerRefract") || (paramName == "ImageSamplerRefract")) //s9
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");					//todo change to RTT
+				if ((paramName == "Glare") || (paramName == "Texture_SamplerReflectGlare") || (paramName == "ImageSamplerReflectGlare")) //s9
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");
+
+
+				if ((paramName == "Texture_SamplerAlphaDepth") || (paramName == "ImageSamplerAlphaDepth")) //s10
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");					//todo change to RTT
+
+				if ((paramName == "Texture_SamplerCurrentScene") || (paramName == "ImageSamplerCurrentScene")) //s11
 				{
-					pass->getTextureUnitState(reg)->setTextureName(name + ".dyt_0");
+					//create RTT
+					Ogre::TextureManager* textMgr = Ogre::TextureManager::getSingletonPtr();
+					if (textMgr->getByName("RttTex_CurrentScene").isNull())
+					{
+						Ogre::TexturePtr rttTexture = textMgr->createManual("RttTex_CurrentScene", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::TEX_TYPE_2D, viewport->getWidth(), viewport->getHeight(), 0, Ogre::PF_R8G8B8, Ogre::TU_RENDERTARGET);
+						Ogre::RenderTexture* renderTexture = rttTexture->getBuffer()->getRenderTarget();
+						renderTexture->addViewport(viewport->getCamera());
+						renderTexture->getViewport(0)->setClearEveryFrame(true);
+						renderTexture->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Black);
+						renderTexture->getViewport(0)->setOverlaysEnabled(false);
+					}
+
+					pass->getTextureUnitState(reg)->setTextureName("RttTex_CurrentScene");
+				}
+
+				if ((paramName == "Texture_SamplerSmallScene") || (paramName == "ImageSamplerSmallScene")) //s12
+				{
+					//create RTT
+					Ogre::TextureManager* textMgr = Ogre::TextureManager::getSingletonPtr();
+					if (textMgr->getByName("RttTex_CurrentScene").isNull())
+					{
+
+						Ogre::SceneManager* sceneMgr = viewport->getCamera()->getSceneManager();
+						Ogre::Camera* camera = sceneMgr->createCamera("toto");
+						
+						Ogre::TexturePtr rttTexture = textMgr->createManual("RttTex_CurrentScene", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::TEX_TYPE_2D, 200, 200, 0, Ogre::PF_R8G8B8, Ogre::TU_RENDERTARGET, 0, false, 0);
+						Ogre::RenderTexture* renderTexture = rttTexture->getBuffer()->getRenderTarget();
+						renderTexture->setActive(true);
+						renderTexture->addViewport(camera);
+						renderTexture->getViewport(0)->setClearEveryFrame(true);
+						renderTexture->getViewport(0)->setBackgroundColour(Ogre::ColourValue::ZERO);
+						renderTexture->getViewport(0)->setOverlaysEnabled(false);
+						renderTexture->getViewport(0)->setAutoUpdated(true);
+						//renderTexture->update(false);
+						//renderTexture->writeContentsToFile("texture_image.png");
+					}
+
+					pass->getTextureUnitState(reg)->setTextureName("RttTex_CurrentScene");
+					//pass->getTextureUnitState(reg)->setTextureName("spheremap.png");				//todo remove.
+				}
+
+
+
+
+				if ((paramName == "Texture_ImageSamplerTemp13") || (paramName == "ImageImageSamplerTemp13"))	//s13
+					pass->getTextureUnitState(reg)->setTextureName("empty.png");					//Todo look what is for (only one shader use it)
+
+
+				if ((paramName == "Texture_ImageSamplerTemp14") || (paramName == "ImageSamplerTemp14"))		//s14
+				{
+					pass->getTextureUnitState(reg)->setTextureName(name + ".dyt_0");					//for character, it's a dyt texture (in xenoviwer I give the first texture, DATA000.dds of dyt.emb). it less influence the shader , so it's difficult to know what is for.
 					pass->getTextureUnitState(reg)->setTextureFiltering(Ogre::TextureFilterOptions::TFO_NONE);
 					pass->getTextureUnitState(reg)->setTextureAddressingMode(Ogre::TextureUnitState::TextureAddressingMode::TAM_CLAMP);
 				}
 
-				if ((paramName == "ImageSamplerTemp15") || (paramName == "Texture_ImageSamplerTemp15"))
-				{
-					/*
-					//TODO: try to understand the real enviroronement map done in game.
-					Ogre::TexturePtr text = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().getByName("ImgEnvi_15");
-					if (text.isNull())
-						text = Ogre::TextureManager::getSingleton().createManual("ImgEnvi_15","General", Ogre::TextureType::TEX_TYPE_2D, 128, 8, 0, Ogre::PixelFormat::PF_BYTE_RGB);
-					*/
-					
-					pass->getTextureUnitState(reg)->setTextureName("ImgEnvi_15.jpg");			//Test todo remettre
-				}
+				if ((paramName == "Texture_ImageSamplerTemp15") || (paramName == "ImageSamplerTemp15"))		//s15
+					pass->getTextureUnitState(reg)->setTextureName("ImgEnvi_15.jpg");
 
-				if ((paramName == "ImageSamplerShadowMap") || (paramName == "Texture_SamplerShadowMap") ||
-					(paramName == "ImageSamplerProjectionMap") || (paramName == "Texture_SamplerProjectionMap") ||
 
-					(paramName == "ImageSamplerReflect") || (paramName == "Texture_SamplerReflect") ||
-					(paramName == "ImageSamplerRefract") || (paramName == "Texture_SamplerRefract") ||
-					(paramName == "ImageSamplerReflectGlare") || (paramName == "Texture_SamplerReflectGlare") ||
-					(paramName == "ImageSamplerSphereMap") || (paramName == "Texture_SamplerSphereMap") ||
 
-					(paramName == "ImageYTexture") || (paramName == "Texture_YTexture") ||
-					(paramName == "ImageUTexture") || (paramName == "Texture_UTexture") ||
-					(paramName == "ImageVTexture") || (paramName == "Texture_VTexture")
-					)
-				{
-					pass->getTextureUnitState(reg)->setTextureName("empty.png");
-				}
 
+
+				
 				
 
 				//ok, we found it's a sampler2D, but the information , the link with texturepacks, is definied in submesh, so we have information after.
@@ -597,10 +667,13 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 						}
 					}
 					
-					skinningEnable = false;		//hardwareSkinning
+					skinningEnable = false;		//softwareSkinning
 					//skinningEnable = true;	//hardwareSkinning
 
 					fp_parameters->setConstant(reg, skinningEnable ? 1.0f : 0.0f);
+					
+					//if (skinningEnable)
+					//	program->setSkeletalAnimationIncluded(skinningEnable);				//it's sound good to do , but it's crash xenoviewer. todo find why (may be because of shared skeleton instance)
 
 					defaultValue = Ogre::Vector4(skinningEnable ? 1.0f : 0.0f, 0, 0, 0);
 					isUsed = "bool";
@@ -1155,8 +1228,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					params = emm_material->getParameter(indexMatCol + "A");
 					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
 
-					params = emm_material->getParameter("MatDifScale");
-					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
+					params = emm_material->getParameter(indexMatCol + "Scale");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
 
 					if (useMatParam)
 					{
@@ -1190,9 +1263,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					params = emm_material->getParameter(indexMatCol + "A");
 					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
 
-					params = emm_material->getParameter("MatSpcScale");
-					if (params) { vect_tmp *= params->float_value; useMatParam = true; }
-
+					params = emm_material->getParameter(indexMatCol + "Scale");
+					if (params) { vect_tmp.w = params->float_value; useMatParam = true; }
 
 					if (useMatParam)
 					{
@@ -1238,18 +1310,38 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					isUsed = "float4";
 				}
 				
-				//todo test it before use it
+
+
+
+
+				if (paramName == "g_vHeightFog_VS")
+				{
+					
+					//xy: height_face and add to have max fog on 200 and start at 100 :
+					//	([100, 200] - 100) / 100 <=> ([100, 200] / 100) - 1 <=> ([100, 200] * y) + x => [0, 1]
+					//zw: same for distance (pos.w) : from 2000 to 3000: ([2000, 3000] / 1000) - 2 => [0, 1]
+					fp_parameters->setConstant(reg, Ogre::Vector4(-1.0, 1.0/100.0, -2.0, 1.0/1000.0));
+					isUsed = "float4";
+				}
 				if (paramName == "g_vFog_VS")
+				{
+					//same as g_vHeightFog_VS.zw, but for multiply 
+					fp_parameters->setConstant(reg, Ogre::Vector4(-2.0, 1.0 / 1000.0, -2.0, 1.0 / 1000.0));
+					isUsed = "float4";
+				}
+				if (paramName == "g_vFogMultiColor_PS")
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_FOG_COLOUR);
 					isUsed = "float4";
 				}
-
-				if (paramName == "g_vHeightFog_VS")
+				if (paramName == "g_vFogAddColor_PS")
 				{
-					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_FOG_PARAMS);		/// Fog params: density, linear start, linear end, 1/(end-start)
+					fp_parameters->setConstant(reg, Ogre::Vector4(0,0,0,0));
 					isUsed = "float4";
 				}
+
+				
+				
 				
 				if ((paramName == "g_SystemTime_VS") || (paramName == "g_ElapsedTime_VS") ||(paramName == "g_SystemTime_PS") || (paramName == "g_ElapsedTime_PS"))
 				{
@@ -1424,10 +1516,17 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					defaultValue = Ogre::Vector4(1.0);
 					isUsed = "float4";
 				}
+				if (paramName == "g_vParam0_PS")							//DBXv2
+				{
+					defaultValue = Ogre::Vector4(1.0, 0.0, 1.0, 1.0);			//AFnmcWTR.nsk water , BIRD_Water_HL_BM_E_S_PS.xpu.hlsl
+					fp_parameters->setConstant(reg, defaultValue);
+					isUsed = "float4";
+				}
+
 				if (paramName == "g_vParam3_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
-
+					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));		//x: for dyt color, y : for color from samlpe14 (second dyt) , so test normal RAD for unbreak shaders.
+																				// and est with dyt.emb.data001.dds on samlper14.
 					defaultValue = Ogre::Vector4(1.0);
 					isUsed = "float4";
 				}
@@ -1451,6 +1550,27 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					defaultValue = Ogre::Vector4(0.0, 23.2558f, 0.04587f, 0.0);
 					isUsed = "float4";
 				}
+
+				if (paramName == "g_vParam11_PS")
+				{
+					defaultValue = Ogre::Vector4(1,1,0.22,0.25);
+					fp_parameters->setConstant(reg, defaultValue);
+					isUsed = "float4";
+				}
+				if (paramName == "g_vParam12_PS")
+				{
+					defaultValue = Ogre::Vector4(0.0, 0, 0, 1);
+					fp_parameters->setConstant(reg, defaultValue);
+					isUsed = "float4";
+				}
+				if (paramName == "g_vParam13_PS")
+				{
+					defaultValue = Ogre::Vector4(1.0);
+					fp_parameters->setConstant(reg, defaultValue);
+					isUsed = "float4";
+				}
+				
+
 				if (paramName == "g_vGlare_PS")								//DBXv2
 				{
 					string indexMatCol = "Glare";
@@ -1504,8 +1624,10 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					params = emm_material->getParameter(indexMatCol + "A");
 					if (params) { vect_tmp.w = params->float_value; useParam = true; }
 
-					params = emm_material->getParameter("MatAmbScale");
-					if (params) { vect_tmp *= params->float_value; useParam = true; }
+					params = emm_material->getParameter(indexMatCol + "Scale");
+					if (params) { vect_tmp.w = params->float_value; useParam = true; }
+
+					vect_tmp *= Ogre::Vector4(0.5, 0.5, 0.5, 1.0);
 
 
 					if(useParam)
@@ -1612,6 +1734,10 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				if (paramName == "g_mMatrixPalette_VS")								// Matrix Worl View Proj
 				{
 					fp_parameters->setAutoConstant(reg, Ogre::GpuProgramParameters::ACT_WORLD_MATRIX_ARRAY_3x4);
+
+					//if (source.find("g_bSkinning_VS") == string::npos)						//there is for sheron SIN_BG_00.nsk, a shader with bone, but not the skinning activation parameter,so we are oblig to do skinning. Todo check crash.
+					//	program->setSkeletalAnimationIncluded(true);
+
 					isUsed = "float4x3";
 				}
 				if (paramName == "g_mMatrixPalettePrev_VS")								// Matrix Worl View Proj, todo loo after the "Prev", may be for motionBlur.
@@ -1653,13 +1779,13 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 }
 
 
-void EMMOgre::createOgreMaterials(std::vector<SDS*> &sds_list)
+void EMMOgre::createOgreMaterials(std::vector<SDS*> &sds_list, Ogre::Viewport* viewport)
 {
 	if (material_resources_created)
 		return;
 
 	for (size_t i = 0; i < materials.size(); i++)
-		createOgreMaterial(materials[i], sds_list);
+		createOgreMaterial(materials[i], sds_list, viewport);
 	material_resources_created = true;
 }
 

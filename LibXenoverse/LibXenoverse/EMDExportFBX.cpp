@@ -639,7 +639,7 @@ FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string materi
 		size_t nbDefs = definitions.size();
 		for(size_t i=0;i<nbDefs;i++)
 		{
-			EMDSubmeshDefinition &def = definitions.at(i);
+			EMDTextureUnitState &def = definitions.at(i);
 			string indexStr = std::to_string(def.texIndex);
 
 			while(indexStr.length() < 3)

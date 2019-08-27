@@ -248,7 +248,7 @@ void	test_cell_ps(
 	//dp4 r0.x, r1.xyzw, l(0.125000, 0.125000, 0.125000, 0.125000)
 	//dp4 r0.y, r2.xyzw, l(0.125000, 0.125000, 0.125000, 0.125000)
 	//add r0.x, r0.y, r0.x
-	float sm_factor = dot(float4(sm_factor_0, sm_factor_1, sm_factor_2, sm_factor_3), float4(0.125000, 0.125000, 0.125000, 0.125000)) + dot(float4(sm_factor_5, sm_factor_6, sm_factor_7, sm_factor_8), float4(0.125000, 0.125000, 0.125000, 0.125000).xyzw);
+	float sm_factor = dot(float4(sm_factor_0, sm_factor_1, sm_factor_2, sm_factor_3), float4(0.125000, 0.125000, 0.125000, 0.125000)) + dot(float4(sm_factor_5, sm_factor_6, sm_factor_7, sm_factor_8), float4(0.125000, 0.125000, 0.125000, 0.125000));
 
 	//add r0.yzw, -cb0[6].xxyz, l(0.000000, 1.000000, 1.000000, 1.000000)
 	//mad r0.xyz, r0.xxxx, r0.yzwy, cb0[6].xyzx

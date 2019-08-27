@@ -23,7 +23,7 @@ class Matrix
         this.id = MATRIX_UNIQUE_ID;
         MATRIX_UNIQUE_ID++;
 
-        this.name = (((boneInstance)&&(boneInstance.name)) ? ( ((boneInstance.index) ? (boneInstance.index + ": ") : "") +boneInstance.name) : ('Matrix'+ this.id) );
+        this.name = (((boneInstance)&&(boneInstance.name)) ? ( ((boneInstance.index) ? (boneInstance.index + ": ") : "") +boneInstance.name) : ('Matrix '+ this.id) );
         this.divParent = divParent;
         this.handlerParent = handlerParent;
         this.boneInstance = boneInstance;

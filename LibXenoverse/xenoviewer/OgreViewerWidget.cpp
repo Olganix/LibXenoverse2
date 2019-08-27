@@ -64,6 +64,7 @@ namespace QtOgre
 		}
 		pixelBuffer->unlock();
 
+
 		
 		// Create Lighting
 		mSceneMgr->setAmbientLight(Ogre::ColourValue(0.3f, 0.3f, 0.3f));				//NEVER USE THE SAME VALUE FOR AMBIENT AND BACGROUNDCOLOR !!!!!
@@ -326,7 +327,7 @@ namespace QtOgre
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
 				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
-				material->createOgreMaterials(sds_list);
+				material->createOgreMaterials(sds_list, mViewport);
 			}else {
 				delete material;
 				material = NULL;
@@ -561,6 +562,9 @@ namespace QtOgre
 					if ((mAnimationPlaying) || (mAnimationForceOneUpdate))
 						emmOgre->updateAnimations(mCurrentTime);
 				}
+
+				(*it)->updateBonesLinks();
+
 				it++;
 			}
 
@@ -587,6 +591,7 @@ namespace QtOgre
 		} catch (...){
 			
 		}
+
 		return true;
 	}
 
@@ -1561,7 +1566,7 @@ namespace QtOgre
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
 				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
-				material->createOgreMaterials(sds_list);
+				material->createOgreMaterials(sds_list, mViewport);
 			}else {
 				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
 				//goto abort_clean;
@@ -1718,7 +1723,7 @@ namespace QtOgre
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
 				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
-				material->createOgreMaterials(sds_list);
+				material->createOgreMaterials(sds_list, mViewport);
 			}
 			else {
 				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");
@@ -1898,7 +1903,7 @@ namespace QtOgre
 				material->setTexturePack(texture_pack);
 				material->setDYTTexturePack(texture_dyt_pack);
 				material->setPlayerDytTexturePack(mTexture_player_dyt_pack);
-				material->createOgreMaterials(sds_list);
+				material->createOgreMaterials(sds_list, mViewport);
 			}
 			else {
 				SHOW_ERROR("Invalid EMM Material Pack. Is " + QString(emm_filename.c_str()) + " valid?");

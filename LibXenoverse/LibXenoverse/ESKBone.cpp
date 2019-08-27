@@ -410,6 +410,48 @@ void ESKBone::calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &li
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
+std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive)
+{
+	double resultTransformMatrix[16];
+	double tmpTransformMatrix[16];
+
+	for (size_t i = 0; i < 16; i++)
+	{
+		resultTransformMatrix[i] = this->transform_matrix[i];
+		tmpTransformMatrix[i] = this->transform_matrix[i];
+	}
+
+
+
+	if ((this->parent_index) && (this->parent_index < listBones.size()))
+	{
+		ESKBone *parent = listBones.at(this->parent_index);
+		if (recursive)
+			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+
+
+		double tmpTransformMatrix2[16];
+		double tmpTransformMatrix_b[16];
+		for (size_t i = 0; i < 16; i++)
+			tmpTransformMatrix_b[i] = parent->transform_matrix[i];
+
+		inverse4x4(&tmpTransformMatrix_b[0], &tmpTransformMatrix2[0]);				//inverse of parent transformation
+		concatenate4x4(&tmpTransformMatrix2[0], &resultTransformMatrix[0], &tmpTransformMatrix[0]);
+	}
+
+	inverse4x4(&tmpTransformMatrix[0], &resultTransformMatrix[0]);
+
+	transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
+	
+	std::vector<double> relativeMatrix;
+	for (size_t i = 0; i < 16; i++)
+		relativeMatrix.push_back(resultTransformMatrix[i]);
+
+	return relativeMatrix;
+}
+/*-------------------------------------------------------------------------------\
+|                             EMD					                             |
+\-------------------------------------------------------------------------------*/
 string ESKBone::getSkinningMatrixDebug(void)
 {
 	return ("\"Pos\" : [" + to_string_with_precision(skinning_matrix[0], 12) + ",\t" + to_string_with_precision(skinning_matrix[1], 12) + ",\t" + to_string_with_precision(skinning_matrix[2], 12) + ",\t" + to_string_with_precision(skinning_matrix[3], 12) + "],\n\"Quaternion\": [" + to_string_with_precision(skinning_matrix[4], 12) + ",\t" + to_string_with_precision(skinning_matrix[5], 12) + ",\t" + to_string_with_precision(skinning_matrix[6], 12) + ",\t" + to_string_with_precision(skinning_matrix[7], 12) + "],\n\"Scale\": [" + to_string_with_precision(skinning_matrix[8], 12) + ",\t" + to_string_with_precision(skinning_matrix[9], 12) + ",\t" + to_string_with_precision(skinning_matrix[10], 12) + ",\t" + to_string_with_precision(skinning_matrix[11], 12) + "]\n");

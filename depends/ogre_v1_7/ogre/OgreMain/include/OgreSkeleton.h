@@ -52,7 +52,7 @@ namespace Ogre {
 	    ANIMBLEND_CUMULATIVE
     };
 
-#define OGRE_MAX_NUM_BONES 256
+#define OGRE_MAX_NUM_BONES 512
 
 	
 	struct LinkedSkeletonAnimationSource;

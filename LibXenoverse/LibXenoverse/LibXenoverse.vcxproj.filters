@@ -338,5 +338,8 @@
     <ClCompile Include="BinColorTag.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="ESK_FpfXml.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>"E:\Dev\Modding\DragonBall_Xenoverse\Datas\CriPakTools_DBX2\data\data\vfx\demo\DM_CMN\Nouveau dossier\EXP_Dbs.emo"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"E:\Dev\Modding\DragonBall_Xenoverse\Datas\CriPakTools_DBX2\data\data\chara\FRI\Nouveau dossier\work_insideEmb\Nouveau dossier\Nouveau dossier\MAM_918.emd.xml"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

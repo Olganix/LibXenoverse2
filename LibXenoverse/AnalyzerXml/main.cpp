@@ -715,16 +715,20 @@ int main(int argc, char** argv)
 			printf("Error loading file \"%s\". skipped.\n", filename.c_str());
 			continue;
 		}
-		
-		buf[size-1] = '\0';
+
+		char* buf_b = (char*)malloc(size + 1);
+		memcpy(buf_b, buf, size);
+		buf_b[size] = '\0';
 
 		string mess_debug = "";
 		try
 		{
-			mess_debug = string(buf);
+			mess_debug = string(buf_b);
 		}catch (...) {
 			printf("Error parsing string of file \"%s\". skipped\n", filename.c_str());
 			LibXenoverse::notifyError();
+			delete buf;
+			delete buf_b;
 			continue;
 		}
 		
@@ -736,6 +740,8 @@ int main(int argc, char** argv)
 		}catch (exception& e) {
 			printf("Error parsing file \"%s\". This is what rapidXml has to say: %s. skipped\n", filename.c_str(), e.what());
 			LibXenoverse::notifyError();
+			delete buf;
+			delete buf_b;
 			continue;
 		}
 
@@ -744,6 +750,7 @@ int main(int argc, char** argv)
 		listValidFilenames.push_back(filename);
 
 		delete buf;
+		delete buf_b;
 	}
 
 

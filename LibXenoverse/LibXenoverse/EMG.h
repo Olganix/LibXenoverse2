@@ -464,8 +464,8 @@ public:
 	void Decompile(TiXmlNode *root) const;
 	bool Compile(const TiXmlElement *root);
 
-	void readEmdDef(EMDSubmeshDefinition* emd);
-	void writeEmdDef(EMDSubmeshDefinition* emd);
+	void readEmdDef(EMDTextureUnitState* emd);
+	void writeEmdDef(EMDTextureUnitState* emd);
 };
 
 

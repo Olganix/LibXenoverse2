@@ -8,6 +8,14 @@ class EMDRenderObject;
 
 class EMDOgre : public EMD
 {
+	public:
+		struct LinkBetweenBoneAndNode			//to update node from bone position (for animation)
+		{
+			Ogre::SceneNode* node;
+			Ogre::Bone* bone;
+			LinkBetweenBoneAndNode(Ogre::SceneNode* node, Ogre::Bone* bone) { this->node = node;  this->bone = bone; }
+		};
+
 	protected:
 		bool mesh_resources_created;
 		EMMOgre* material_pack;
@@ -21,6 +29,7 @@ class EMDOgre : public EMD
 		list<EMDRenderObject *> created_render_objects;
 
 		list<Ogre::String> created_meshes;
+		std::vector<LinkBetweenBoneAndNode> mListLinkBones;
 		Ogre::String tag;
 
 	public:
@@ -32,13 +41,14 @@ class EMDOgre : public EMD
 		void	rebuild();
 		void	createOgreEMD(Ogre::SceneNode *parent, Ogre::SceneManager *scene_manager);
 		Ogre::SceneNode*	createOgreEmdModel(EMDModel *model, Ogre::SceneNode *parent, Ogre::SceneManager *scene_manager);
-		void	createOgreMesh_EmdSubMesh(EMDSubmesh *submesh, string mesh_name, Ogre::SceneNode* model_node, string modelName);
+		void	createOgreMesh_EmdSubMesh(EMDSubmesh *submesh, string mesh_name, Ogre::SceneNode* model_node);
 		Ogre::SubMesh*	createOgreIndexBuffer_EmdSubMesh(EMDTriangles *triangles, Ogre::MeshPtr mesh, size_t nVertices);
-		void	createOgreEntity_EmdSubMesh(EMDSubmesh *submesh, string mesh_name, Ogre::SceneNode *model_node, Ogre::SceneManager *scene_manager);
+		void	createOgreEntity_EmdSubMesh(EMDSubmesh *submesh, string mesh_name, Ogre::SceneNode *model_node, Ogre::SceneManager *scene_manager, string modelName);
 		
 		list<Ogre::SceneNode *>	&getListSceneNodes() { return scene_nodes; }
 		void	cleanNodes(bool parent = false);
 		void	destroyResources();
+		void	updateBonesLinks();
 
 		void	setSkeleton(ESKOgre *v) { skeleton = v; }
 		ESKOgre*	getSkeleton() { return skeleton; }

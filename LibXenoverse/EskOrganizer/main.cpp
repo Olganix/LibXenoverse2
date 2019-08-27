@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 		'EMD_GetEmdFileList'\n\
 		'EMD_GetBoneList <indexEmd>'\n\
 		'EMD_Rename' <indexEmd> <oldBoneName> <newBoneName>' rename bone into Emds, use -1 on indexEmd for apply on all Emd\n\
+		'Save_Fpf_xml <indexEsk> <indexEsk_b> <path\\filename>' create and save a extract of fpf.xml (for pose on HeroCorp) from your modified esk (or ean) file. the second esk is the original of a character for get bones to export (because blender add bones). you can put the same if you want.\n\
 		'Quit'\n";
 
 	//'GetBoneRotation <indexEsk> <indexBone> <absolute>' get the bone taitBryan angles (know also as EulerAngle, with the diference to have this order : RotY (Yaw) -> RotZ (pitch) -> RotX (Roll) like a plane) information of the orientation, absolute if true (else relative).\n\
@@ -1015,6 +1016,48 @@ int main(int argc, char** argv)
 			//TODO 'Rename <indexEsk> <indexBone> <newName> <renameAlsoIntoEmdFile>' notice you could use the name of the bone for indexBone. if you use renameAlsoIntoEmdFile at true, it will also rename bone in all Emd File loaded.\n\
 			*/			
 
+
+
+
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////
+		}else if (command == "Save_Fpf_xml") {
+
+			if (nbArg < 3)
+			{
+				printf("You miss arguments. try 'Help' command\n");
+				continue;
+			}
+			size_t index = std::stoi(arguments.at(0));
+			size_t index_b = std::stoi(arguments.at(1));
+			string filename = arguments.at(2);
+			string extension = LibXenoverse::extensionFromFilename(filename, true);
+
+			if ((index < listEskFile.size())&& (index_b < listEskFile.size()))
+			{
+				if (extension == "xml") 
+				{
+					LibXenoverse::ESK* esk = 0;
+					LibXenoverse::ESK* esk_b = 0;
+
+					if (listEskFile.at(index)->mEan)
+						esk = listEskFile.at(index)->mEan->getSkeleton();
+					else
+						esk = listEskFile.at(index)->mEsk;
+
+					if (listEskFile.at(index_b)->mEan)
+						esk_b = listEskFile.at(index_b)->mEan->getSkeleton();
+					else
+						esk_b = listEskFile.at(index_b)->mEsk;
+
+					esk->saveFpfXml_Extract(filename, esk_b);
+					printf("Esk file saved as Fpf.xml extract %s.\n", filename.c_str());
+				}else {
+					printf("extension is not correct (.fpf.xml): %s.\n", filename.c_str());
+				}
+			}else {
+				printf("index %i is not in file list.\n", index);
+			}
 
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -58,9 +58,9 @@ public:
 	bool	getEmdPartVisible() { return emdPartVisible; }
 	void	setEmdPartVisible(bool visible) { emdPartVisible = visible; }
 
-	std::vector<size_t> setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material, std::vector<EmmMaterialParameter> &materialParameters, string shaderType);
-	Ogre::Material *createOgreMaterial(EMMMaterial *emm_material, std::vector<SDS*> &sds_list);
-	void createOgreMaterials(std::vector<SDS*> &sds_list);
+	std::vector<size_t> setUpMaterialParameters(string shader_name, Ogre::GpuProgramParametersSharedPtr fp_parameters, Ogre::Pass* pass, EMMMaterial *emm_material, std::vector<EmmMaterialParameter> &materialParameters, string shaderType, Ogre::Viewport* viewport = 0);
+	Ogre::Material *createOgreMaterial(EMMMaterial *emm_material, std::vector<SDS*> &sds_list, Ogre::Viewport* viewport = 0);
+	void createOgreMaterials(std::vector<SDS*> &sds_list, Ogre::Viewport* viewport = 0);
 
 	std::vector<EmmMaterialParameter>*	getShaderParameters(string ogreMaterialName);
 	EmmMaterialParameter	getShaderParameter(string ogreMaterialName, string parameterName);

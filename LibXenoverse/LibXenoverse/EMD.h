@@ -225,9 +225,9 @@ public:
 };
 
 /*-------------------------------------------------------------------------------\
-|                             EMDSubmeshDefinition	                             |
+|                             EMDTextureUnitState	                             |
 \-------------------------------------------------------------------------------*/
-class EMDSubmeshDefinition
+class EMDTextureUnitState
 {
 	friend class EMD;
 	friend class EMG_Texture;
@@ -243,8 +243,8 @@ public:
 	float textScale_v;
 
 
-	EMDSubmeshDefinition(EMDSubmeshDefinition* emdSubmeshDefinition = 0);
-	EMDSubmeshDefinition(unsigned char texIndex, float textScale_u = 1.0f, float textScale_v = 1.0f) { zero(); this->texIndex = texIndex; this->textScale_u = textScale_u; this->textScale_v = textScale_v; }
+	EMDTextureUnitState(EMDTextureUnitState* emdTextureUnitState = 0);
+	EMDTextureUnitState(unsigned char texIndex, float textScale_u = 1.0f, float textScale_v = 1.0f) { zero(); this->texIndex = texIndex; this->textScale_u = textScale_u; this->textScale_v = textScale_v; }
 
 	void	zero(void);
 
@@ -277,7 +277,7 @@ protected:
 
 	vector<EMDVertex> vertices;
 	vector<EMDTriangles> triangles;
-	vector<EMDSubmeshDefinition> definitions;
+	vector<EMDTextureUnitState> definitions;
 	
 	float aabb_center_x;
 	float aabb_center_y;
@@ -311,7 +311,7 @@ public:
 	string	getMaterialName(void) { return name; }
 	vector<EMDVertex>	&getVertices(void) { return vertices; }
 	vector<EMDTriangles>	&getTriangles(void) { return triangles; }
-	vector<EMDSubmeshDefinition>	&getDefinitions(void) { return definitions; }
+	vector<EMDTextureUnitState>	&getDefinitions(void) { return definitions; }
 	size_t	mergeVertex(EMDVertex &v);
 	void	mergeTriangles();
 

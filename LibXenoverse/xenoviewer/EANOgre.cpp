@@ -149,9 +149,8 @@ Ogre::Animation *EANOgre::createOgreAnimation(EANAnimation *animation)
 	vector<Ogre::NodeAnimationTrack *> node_tracks;
 
 	Ogre::Skeleton *ogre_skeleton = esk_skeleton->getOgreSkeleton();
-	if (!ogre_skeleton) {
+	if (!ogre_skeleton)
 		return NULL;
-	}
 
 	if (ogre_skeleton->hasAnimation(animation->getName())) {
 		return NULL;

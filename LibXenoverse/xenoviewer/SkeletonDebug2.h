@@ -31,6 +31,8 @@ public:
 			mSceneMgr = sceneMgr;
 			mSceneNode = sceneMgr->getRootSceneNode()->createChildSceneNode();
 
+			mSceneNode->setScale(-1, 1, 1);				//dbvx symetry.
+
 
 			//Axes
 			mSceneNode_Axes = mSceneNode->createChildSceneNode();
@@ -154,31 +156,27 @@ public:
 
 
 			Ogre::Vector3 pos;
+			Ogre::Quaternion orient;
 			for (size_t i = 0; i < numChildren; ++i)
 			{
 				Ogre::Node* bone = mBone->getChild(i);
 
 				Ogre::Matrix4 transform_b = bone->_getFullTransform();
-				transform_b.decomposition(pos, scale, orientation);
+				transform_b.decomposition(pos, scale, orient);
 
 				Ogre::Node* node = mListChild_SceneNode.at(i);
-
-				pos = pos - position;
-				
 				node->setPosition(position);
-				node->setScale(Ogre::Vector3(0.01f, pos.length(), 0.01f));
 
-				Ogre::Vector3 pos_norm = pos.normalisedCopy();
+				Ogre::Vector3 diff_pos = pos - position;
+				node->setScale(Ogre::Vector3(0.01f, diff_pos.length(), 0.01f));
+
+				Ogre::Vector3 pos_norm = diff_pos.normalisedCopy();
 				Ogre::Quaternion quad = Ogre::Quaternion::IDENTITY;
-				if (Ogre::Vector3::UNIT_Y != pos_norm)
+				if (Ogre::Math::Abs(1 - Ogre::Math::Abs((pos_norm.dotProduct(Ogre::Vector3::UNIT_Y))) > 0.001)&&(pos_norm.length() > 0.001))
 				{
 					Ogre::Vector3 normal = pos_norm.crossProduct(Ogre::Vector3::UNIT_Y);
-					Ogre::Real angle = Ogre::Math::ACos(pos_norm.dotProduct(Ogre::Vector3::UNIT_Y)).valueDegrees();
 
-					if (Ogre::Vector3::UNIT_Y.crossProduct(normal).dotProduct(pos_norm)>=0)
-						angle *= -1.0;
-
-					quad = Ogre::Quaternion(Ogre::Degree(angle), normal);
+					quad = Ogre::Quaternion(normal, pos_norm, normal.crossProduct(pos_norm));
 				}
 				node->setOrientation(quad);		//r.mesh have center on the middle of the bottom face but it's Xaxe the source of bones.	notice: rotation 180 because of symetry
 			}
