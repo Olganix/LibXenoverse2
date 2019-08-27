@@ -152,6 +152,7 @@
     <ClCompile Include="EMDXml.cpp" />
     <ClCompile Include="EMG.cpp" />
     <ClCompile Include="EMM.cpp" />
+    <ClCompile Include="EMMBinColor.cpp" />
     <ClCompile Include="EMO.cpp" />
     <ClCompile Include="EMO_BaseFile.cpp" />
     <ClCompile Include="EMO_Skeleton.cpp" />

@@ -125,7 +125,7 @@ int main(int argc, char** argv)
 
 
 		/////////////////////////////////////////////////////////////
-		}else if (extension == "emm") {		// .emm  .ptcl.emm  .trc.emm  .tbind.emm  .pbind.emm
+		}else if (extension == "emm") {		// .emm  .ptcl.emm  .trc.emm  .tbind.emm  .pbind.emm		// Notice: the files on next are in reality emb : 1520_KFL_GBU.pbind.emm, 1520_KFL_GBU.tbind.emm, 1521_KFL_GBR.pbind.emm, 1521_KFL_GBR.tbind.emm, 1522_KFL_RAB.pbind.emm
 			LibXenoverse::EMM* emm = new LibXenoverse::EMM();
 			if (emm->load(filename))
 				emm->saveXML(filename + ".xml");

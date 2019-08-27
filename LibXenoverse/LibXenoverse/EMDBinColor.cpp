@@ -75,8 +75,9 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 	string name_tmp = "";
 
 	binCt.write_Coloration_Tag("signature", "string", "", offset, 4 * sizeof(char), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 4 * sizeof(char);
-	binCt.write_Coloration_Tag("endian", "uint32_t", "", offset, sizeof(uint32_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	binCt.write_Coloration_Tag("version", "uint32_t", "", offset, sizeof(uint32_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	binCt.write_Coloration_Tag("endian", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	binCt.write_Coloration_Tag("header_size", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	binCt.write_Coloration_Tag("version", "4 * uint8_t", "", offset, 4 * sizeof(uint8_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 4 * sizeof(uint8_t);
 	binCt.write_Coloration_Tag("unknown_0", "uint32_t", "", offset, sizeof(uint32_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 
 	
@@ -85,7 +86,7 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 	incSection++;
 	incParam = 0;
 
-	binCt.write_Coloration_Tag("unknown_0", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+	binCt.write_Coloration_Tag("unknow_1", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 	binCt.write_Coloration_Tag("number_models", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 	binCt.write_Coloration_Tag("offset_models", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(startAdress + emd_Section->offset_models, true) + " Ref to list adress to EMDModel_Section", offset, sizeof(uint32_t), "EMD_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 	binCt.write_Coloration_Tag("offset_models_name", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(startAdress + emd_Section->offset_models_name, true) + " Ref to string", offset, sizeof(uint32_t), "EMD_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
@@ -402,7 +403,6 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 	}
 
 
-	//(todo color better full name, not just 4 char)
 	incSection = 2;
 	incParam = 0;
 

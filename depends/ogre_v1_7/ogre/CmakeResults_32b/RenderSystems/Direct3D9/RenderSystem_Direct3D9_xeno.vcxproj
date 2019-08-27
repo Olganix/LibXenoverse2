@@ -202,7 +202,7 @@
     </ProjectReference>
     <Link>
       <AdditionalOptions> /STACK:10000000 /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain_xeno.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)RenderSystem_Direct3D9.dll</OutputFile>
       <Version>0.0</Version>
       <AdditionalLibraryDirectories>$(SolutionDir)\lib\$(Configuration);$(SolutionDir)\depends\ogre_v1_7\lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -298,7 +298,7 @@
     </ProjectReference>
     <Link>
       <AdditionalOptions> /STACK:10000000 /machine:X86 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain_xeno.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)RenderSystem_Direct3D9.dll</OutputFile>
       <Version>0.0</Version>
       <AdditionalLibraryDirectories>$(SolutionDir)\lib\$(Configuration);$(SolutionDir)\depends\ogre_v1_7\lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -392,7 +392,7 @@
     </ProjectReference>
     <Link>
       <AdditionalOptions> /STACK:10000000 /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain_xeno.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)RenderSystem_Direct3D9.dll</OutputFile>
       <Version>0.0</Version>
       <AdditionalLibraryDirectories>$(SolutionDir)\lib\$(Configuration);$(SolutionDir)\depends\ogre_v1_7\lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -488,7 +488,7 @@
     </ProjectReference>
     <Link>
       <AdditionalOptions> /STACK:10000000 /machine:X86 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;d3d9.lib;d3dx9.lib;DxErr.lib;dxguid.lib;OgreMain_xeno.lib;freetype2311.lib;FreeImage.lib;zziplib.lib;zlib.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)RenderSystem_Direct3D9.dll</OutputFile>
       <Version>0.0</Version>
       <AdditionalLibraryDirectories>$(SolutionDir)\lib\$(Configuration);$(SolutionDir)\depends\ogre_v1_7\lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

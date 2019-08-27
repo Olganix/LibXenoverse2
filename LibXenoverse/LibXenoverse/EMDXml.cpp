@@ -60,9 +60,12 @@ bool EMD::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	//size_t unknown_total_tmp = 0;
-	//xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
-	//unknown_total = (unsigned short)unknown_total_tmp;
+	xmlCurrentNode->QueryStringAttribute("version", &version);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);
+
+	//size_t tmp = 0;
+	//xmlCurrentNode->QueryUnsignedAttribute("unknow_1", &tmp);					//always 0
+	//unknow_1 = (uint16_t)tmp;
 
 	TiXmlElement* modelsNode = xmlCurrentNode->FirstChildElement("EmdModels");
 	if (!modelsNode)
@@ -532,7 +535,10 @@ TiXmlElement* EMD::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EMD");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	//xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
+	xmlCurrentNode->SetAttribute("version", version);
+	xmlCurrentNode->SetAttribute("unknow_0", unknow_0);
+	//xmlCurrentNode->SetAttribute("unknow_1", (size_t)unknow_1);					//always 0
+	xmlCurrentNode->SetAttribute("header_size", (size_t)header_size);				//test todo remove
 	
 	TiXmlElement* modelsNode = new TiXmlElement("EmdModels");
 	size_t nbmodel = models.size();

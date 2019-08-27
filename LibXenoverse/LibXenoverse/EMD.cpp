@@ -9,12 +9,16 @@ namespace LibXenoverse
 EMD::EMD(EMD* emd)
 {
 	name = "";
-	unknown_total = 0;
+	version = "";
+	unknow_0 = 0;
+	unknow_1 = 0;
 
 	if (emd)
 	{
 		name = emd->name;
-		unknown_total = emd->unknown_total;
+		version = emd->version;
+		unknow_0 = emd->unknow_0;
+		unknow_1 = emd->unknow_1;
 
 		for (size_t i = 0, nb = emd->models.size(); i < nb; i++)
 			models.push_back( new EMDModel(emd->models.at(i)));
@@ -96,14 +100,32 @@ void EMD::save(File *file, bool big_endian)
 void EMD::read(File *file)
 {
 	size_t startAdress = file->getCurrentAddress();
-	file->goToAddress(startAdress + 0x10);
+	file->goToAddress(startAdress + 0x06);
 	
+	//uint16_t header_size;
+	file->readInt16E(&header_size);
+
+	version = "";
+	uint8_t tmp = 0;
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp);
+
+
+	file->readInt32E(&unknow_0);
+
+
 	unsigned short model_total = 0;
 	
-	file->readInt16E(&unknown_total);
+	file->readInt16E(&unknow_1);
 	file->readInt16E(&model_total);
 
-	LOG_DEBUG("Total Unknown: %d\n", unknown_total);
+	LOG_DEBUG("Total Unknown: %d\n", unknow_1);
 	LOG_DEBUG("Total Models: %d\n", model_total);
 
 	unsigned int root_model_address = 0;
@@ -145,15 +167,27 @@ void EMD::read(File *file)
 void EMD::write(File *file)
 {
 	size_t startAdress = file->getCurrentAddress();
-	
-	unsigned short unknown_1 = 0x001C;
-	unsigned int unknown_2 = 0x00010001;
-	unsigned short model_total = models.size();
 	file->goToAddress(startAdress + 6);
-	file->writeInt16E(&unknown_1);
-	file->writeInt32E(&unknown_2);
-	file->writeNull(4);
-	file->writeInt16E(&unknown_total);
+
+	//uint16_t header_size = 0x001C;
+	file->writeInt16E(&header_size);
+	
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+		{
+			uint8_t tmp = std::stoi(sv.at(i));
+			file->writeUChar(&tmp);
+		}else {
+			file->writeNull(1);
+		}
+	}
+
+	file->writeInt32E(&unknow_0);
+	file->writeInt16E(&unknow_1);
+
+	unsigned short model_total = models.size();
 	file->writeInt16E(&model_total);
 	file->writeNull(8);
 
