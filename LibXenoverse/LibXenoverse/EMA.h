@@ -12,6 +12,16 @@
 // "#EMA"
 #define EMA_SIGNATURE	0x414D4523
 
+#define EMA_TYPE_ANIM_Object_or_Camera	0x3
+#define EMA_TYPE_ANIM_Light				0x4
+#define EMA_TYPE_ANIM_Material			0x8
+
+#define EMA_ANIM_TARGET_Object			0x0
+#define EMA_ANIM_TARGET_Camera			0x1
+#define EMA_ANIM_TARGET_Light			0x2
+#define EMA_ANIM_TARGET_Material		0x3
+
+
 #ifdef _MSC_VER
 #pragma pack(push,1)
 #endif
@@ -19,72 +29,89 @@
 namespace LibXenoverse
 {
 
-typedef struct
+struct EMAHeader
 {
-	uint32_t signature; // 0
-	uint16_t endianess_check; // 4
-	uint16_t header_size; // 6
-	uint16_t unk_08; // 8  non-zero
-	uint16_t unk_0A; // A, zero
-	uint32_t skeleton_offset; // 0xC
-	uint16_t anim_count; // 0x10
-	uint16_t unk_12; // 0x12
-	uint32_t unk_14[3]; // 0x14 probably just padding
-	// size 0x20
-} PACKED EMAHeader;
-
+	uint32_t signature;			// 0
+	uint16_t endianess_check;	// 4
+	uint16_t header_size;		// 6
+	uint8_t version[4];			// 8			//could be something else but difficult to see.
+	uint32_t skeleton_offset;	// 0xC
+	uint16_t anim_count;		// 0x10
+	uint16_t type;				// 0x12			//apparently 8: materialAnim, 3: object, 4: light, , ... Todo check and complet 
+	uint32_t unknow_0;			// 0x14
+	uint32_t unknow_1;			// 0x18
+	uint32_t unknow_2;			// 0x1C
+} PACKED;
 static_assert(sizeof(EMAHeader) == 0x20, "Incorrect structure size.");
 
-typedef struct
+struct EMAAnimationHeader
 {
-	uint16_t duration; // 0
-	uint16_t cmd_count; // 2
-	uint32_t value_count; // 4
-	uint16_t type; // 8
-	uint16_t frame_float_size; // 0xA
-	uint32_t name_offset; // 0xC
-	uint32_t values_offset; // 0x10
-	uint32_t cmd_offsets[1]; // 0x14
-	// remaining cmd_offsets
-} PACKED EMAAnimationHeader;
-
+	uint16_t duration;			// 0
+	uint16_t cmd_count;			// 2
+	uint32_t value_count;		// 4
+	uint8_t type;				// 8
+	uint8_t light_unknow;		// 9
+	uint16_t frame_float_size;	// A
+	uint32_t name_offset;		// C
+	uint32_t values_offset;		// 10
+	uint32_t animNode_offsets[1];	// 14
+} PACKED;
 static_assert(sizeof(EMAAnimationHeader) == 0x18, "Incorrect structure size.");
 
-typedef struct
+struct EMAAnimationAnimNodeHeader
 {
-	uint16_t bone_idx; // 0
-	uint8_t transform; // 2 // 0 -> translation, 1 -> rotation, 2 -> scale
+	uint16_t bone_idx;			// 0
+	uint8_t transform;			// 2 // 0 -> translation, 1 -> rotation, 2 -> scale
 	uint8_t transformComponent; // 3 //4bits : ? / 2bits: transform component ( a record has 0, the next 1, then 2 ) // 0 -> x, 1 -> y, 2 -> z. // so rotations is Euler angles (no 4 quaternions componentes)
-	uint16_t step_count; // 4
-	uint16_t indices_offset; // 6
-} PACKED EMAAnimationCommandHeader;
+	uint16_t keyframe_count;		// 4
+	uint16_t indices_offset;	// 6
+} PACKED;
+static_assert(sizeof(EMAAnimationAnimNodeHeader) == 8, "Incorrect structure size.");
 
-static_assert(sizeof(EMAAnimationCommandHeader) == 8, "Incorrect structure size.");
+
+struct EMAAnimationName
+{
+	uint32_t unknow_0;			// 0
+	uint32_t unknow_1;			// 4
+	uint16_t unknow_2;			// 8
+	uint8_t nbChar;				// A
+} PACKED;
+static_assert(sizeof(EMAAnimationName) == 0xB, "Incorrect structure size.");
+
 
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 class EMA;
 class EmaAnimation;
 
-struct EmaStep
+struct EMAKeyframe
 {
 	uint16_t time;
 	uint32_t index;
+	uint8_t interpolation;			//0x4: isQuadraticBezier (a middle diff point for spline), 0x8: isCubicBezier (tangent start and end spline's segment), 0x: linear
+	
+	EMAKeyframe() { interpolation = 0; time = 0; index = 0; }
 
-	void Decompile(TiXmlNode *root, const std::vector<float> &values) const;
+	inline bool operator==(const EMAKeyframe &rhs) const { return (this->time == rhs.time && this->index == rhs.index && (this->interpolation == rhs.interpolation)); }
+	inline bool operator!=(const EMAKeyframe &rhs) const { return !(*this == rhs); }
+
+	void Decompile(TiXmlNode *root, const std::vector<float> &values, const EMAKeyframe* next_keyframe = 0) const;
 	bool Compile(const TiXmlElement *root);
-
-	inline bool operator==(const EmaStep &rhs) const
-	{
-		return (this->time == rhs.time && this->index == rhs.index);
-	}
-
-	inline bool operator!=(const EmaStep &rhs) const
-	{
-		return !(*this == rhs);
-	}
 };
 
 
@@ -92,73 +119,95 @@ struct EmaStep
 
 
 
-class EmaCommand
+class EMAAnimationNode
 {
 	friend class EMA;
 	friend class EmaAnimation;
-	friend class EMA_Material_Animation;
 
 private:
+	uint16_t bone_idx;
 	EMO_Bone *bone;
 	uint8_t transform;
 	uint8_t transformComponent;
-	uint8_t timesByteSize;
-	uint8_t indexesByteSize;
+	bool noInterpolation;
+	size_t timesByteSize;					//oblige to keep, because some of StIv files don't respect the rule with duration.. notice the indexesByteSize respect the rule on values list.
+	uint8_t unknow_0;						// at 0x8 of transformComponent
+	uint8_t unknow_1;						// at 0x10 of transformComponent From StreetFighters // todo find what is for
 
-	std::vector<EmaStep> steps;
 
+	std::vector<EMAKeyframe> keyframes;
+
+	//debug Todo remove TODO
 	
+
 public:
-	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation = false);
-	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed);
-
-
+	EMAAnimationNode() { bone_idx = 0;  bone = 0; transform = 0; transformComponent = 0; noInterpolation = false; unknow_0 = unknow_1 = 0; timesByteSize = 0; }
 	inline EMO_Bone *GetBone() { return bone; }
-	inline uint16_t GetNumSteps() const { return steps.size(); }
+	uint16_t getBoneIndex() { return bone_idx; }
+	uint8_t getTransformComponent() { return transformComponent; }
+	inline uint16_t GetNumKeyframes() const { return keyframes.size(); }
+	inline bool RemoveKeyframe(uint16_t id) { if (id >= keyframes.size()) { return false; } keyframes.erase(keyframes.begin() + id); return true; }
+	inline bool operator==(const EMAAnimationNode &rhs) const { if (!this->bone) { if (rhs.bone) { return false; } } else if (!rhs.bone) { return false; } if ((this->bone) && (this->bone->GetName() != rhs.bone->GetName())) { return false; } return (this->transform == rhs.transform && this->transformComponent == rhs.transformComponent && this->keyframes == rhs.keyframes); }
+	inline bool operator!=(const EMAAnimationNode &rhs) const { return !(*this == rhs); }
+	inline EMAKeyframe &operator[](size_t n) { return keyframes[n]; }
+	inline const EMAKeyframe &operator[](size_t n) const { return keyframes[n]; }
+	inline std::vector<EMAKeyframe>::iterator begin() { return keyframes.begin(); }
+	inline std::vector<EMAKeyframe>::iterator end() { return keyframes.end(); }
+	inline std::vector<EMAKeyframe>::const_iterator begin() const { return keyframes.begin(); }
+	inline std::vector<EMAKeyframe>::const_iterator end() const { return keyframes.end(); }
 
-	inline bool RemoveStep(uint16_t id)
-	{
-		if (id >= steps.size())
-			return false;
+	string transformNameForObjectAnim();
+	string transformNameForCameraAnim();
+	string transformNameForLightAnim();
+	string transformNameForMaterialAnim();
 
-		steps.erase(steps.begin() + id);
-		return true;
-	}
+	float getInterpolatedKeyframeComponent(float time, std::vector<float> &values, float default_value);
 
-	void Decompile(TiXmlNode *root, uint32_t id, const std::vector<float> &values) const;
+	void Decompile(TiXmlNode *root, const std::vector<float> &values, size_t anim_type, size_t duration) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton &skl);
 
-	inline bool operator==(const EmaCommand &rhs) const
-	{
-		if (!this->bone)
-		{
-			if (rhs.bone)
-				return false;
-		} else if (!rhs.bone) {
-			return false;
-		}
-
-		if((this->bone)&& (this->bone->GetName() != rhs.bone->GetName()))
-			return false;
-
-		return (this->transform == rhs.transform &&
-			this->transformComponent == rhs.transformComponent &&
-			this->steps == rhs.steps);
-	}
-
-	inline bool operator!=(const EmaCommand &rhs) const { return !(*this == rhs); }
-
-
-	inline EmaStep &operator[](size_t n) { return steps[n]; }
-	inline const EmaStep &operator[](size_t n) const { return steps[n]; }
-
-	inline std::vector<EmaStep>::iterator begin() { return steps.begin(); }
-	inline std::vector<EmaStep>::iterator end() { return steps.end(); }
-
-	inline std::vector<EmaStep>::const_iterator begin() const { return steps.begin(); }
-	inline std::vector<EmaStep>::const_iterator end() const { return steps.end(); }
+	void readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation = false);
+	void writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed);
 };
 
+
+
+//------------- Class reorganization by Node and Tranform for better work (don't have the datas)
+class EMAAnimation_ByNode_ByTransform
+{
+	friend class EMA;
+	friend class EmaAnimation;
+private:
+	uint8_t transform;
+	
+	std::vector<EMAAnimationNode*> components;
+
+public:
+	EMAAnimation_ByNode_ByTransform(uint8_t transform) { this->transform = transform; }
+	uint8_t getTransform() { return transform; }
+	std::vector<EMAAnimationNode*> &GetComponents() { return components; }
+
+	EANKeyframe getInterpolatedKeyframe(float time, std::vector<float> &values, float default_x = 0, float default_y = 0, float default_z = 0, float default_w = 1);
+};
+
+class EMAAnimation_ByNode
+{
+	friend class EMA;
+	friend class EmaAnimation;
+
+private:
+	uint16_t bone_idx;
+	EMO_Bone *bone;
+	
+	std::vector<EMAAnimation_ByNode_ByTransform> transforms;
+
+public:
+	EMAAnimation_ByNode(uint16_t bone_idx, EMO_Bone *bone) { this->bone_idx = bone_idx;  this->bone = bone; }
+	inline EMO_Bone *GetBone() { return bone; }
+	uint16_t getBoneIndex() { return bone_idx; }
+	std::vector<EMAAnimation_ByNode_ByTransform>  &GetTransforms() { return transforms; }
+};
+//------------- 
 
 
 
@@ -167,90 +216,53 @@ class EmaAnimation
 {
 	friend class EMA;
 	friend class EMA_Material_Animation;
-
 private:
 	std::string name;
 	uint16_t duration;
-
-	std::vector<float> values;
-	std::vector<EmaCommand> commands;
-
-	uint16_t type;						// 0: object animations (.ema, .obj.ema, .fce.ema, .menu.ema, .bba.ema (saint seya attack, may be for enemy))
+	uint8_t type;						// 0: object animations (.ema, .obj.ema, .fce.ema, .menu.ema, .bba.ema (saint seya attack, may be for enemy))
 										// 1: camera animation (.cam.ema)
+										// 2: for light (.light.ema)
 										// 3: material animation (.mat.ema, .matbas.ema)
-										// 0x102: for light (.light.ema)
 
+	uint8_t light_unknow;				//always 1 when light
 	uint16_t frame_float_size;			//choose if it's 16 or 32 bytes for floats.
 
-	size_t debugValuesOffset;
+	uint32_t name_unknow_0;
+	uint32_t name_unknow_1;
+	uint16_t name_unknow_2;
+
+	std::vector<float> values;
+	std::vector<EMAAnimationNode> nodes;
+
+	std::vector<EMAAnimation_ByNode> organizedNodes;
 
 public:
+	inline std::string GetName() const{ return name; }
+	inline void SetName(const std::string &name){ this->name = name; }
+	inline uint16_t GetDuration() const { return duration; }
+	std::vector<EMAAnimationNode> &getNodes() { return nodes; }
+	std::vector<float> &getValues() { return values; }
+	std::vector<EMAAnimation_ByNode> &getOrganizedNodes() { return organizedNodes; }
+	inline void SetDuration(uint16_t duration) { this->duration = duration; }
+	inline uint16_t GetNumNodes() const{ return nodes.size(); }
+	inline bool RemoveNode(uint16_t id) { if (id >= nodes.size()) {return false;} nodes.erase(nodes.begin() + id); return true;}
+	inline bool operator==(const EmaAnimation &rhs) const { return (this->name == rhs.name && this->duration == rhs.duration && this->values == rhs.values && this->nodes == rhs.nodes); }
+	inline bool operator!=(const EmaAnimation &rhs) const { return !(*this == rhs); }
+	inline EMAAnimationNode &operator[](size_t n) { return nodes[n]; }
+	inline const EMAAnimationNode &operator[](size_t n) const { return nodes[n]; }
+	inline std::vector<EMAAnimationNode>::iterator begin() { return nodes.begin(); }
+	inline std::vector<EMAAnimationNode>::iterator end() { return nodes.end(); }
+	inline std::vector<EMAAnimationNode>::const_iterator begin() const { return nodes.begin(); }
+	inline std::vector<EMAAnimationNode>::const_iterator end() const { return nodes.end(); }
+
+	void buildOrganizedNodes();
+	void clearOrganizedNodes() { organizedNodes.clear(); }
+
+	void Decompile(TiXmlNode *root) const;
+	bool Compile(const TiXmlElement *root, EMO_Skeleton &skl);
 
 	void	readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton, bool forceOrientationInterpolation = false);
 	void	writeEANAnimation(EANAnimation* ean, ESK* esk);
-
-
-
-
-	inline std::string GetName() const
-	{
-		return name;
-	}
-
-	inline void SetName(const std::string &name)
-	{
-		this->name = name;
-	}
-
-	inline uint16_t GetDuration() const
-	{
-		return duration;
-	}
-
-	inline void SetDuration(uint16_t duration)
-	{
-		this->duration = duration;
-	}
-
-	inline uint16_t GetNumCommands() const
-	{
-		return commands.size();
-	}
-
-
-	inline bool RemoveCommand(uint16_t id)
-	{
-		if (id >= commands.size())
-			return false;
-
-		commands.erase(commands.begin() + id);
-		return true;
-	}
-
-	void Decompile(TiXmlNode *root, uint32_t id) const;
-	bool Compile(const TiXmlElement *root, EMO_Skeleton &skl);
-
-	inline bool operator==(const EmaAnimation &rhs) const
-	{
-		return (this->name == rhs.name &&
-			this->duration == rhs.duration &&
-			this->values == rhs.values &&
-			this->commands == rhs.commands);
-	}
-
-	inline bool operator!=(const EmaAnimation &rhs) const
-	{
-		return !(*this == rhs);
-	}
-
-	inline EmaCommand &operator[](size_t n) { return commands[n]; }
-	inline const EmaCommand &operator[](size_t n) const { return commands[n]; }
-
-	inline std::vector<EmaCommand>::iterator begin() { return commands.begin(); }
-	inline std::vector<EmaCommand>::iterator end() { return commands.end(); }
-
-	inline std::vector<EmaCommand>::const_iterator begin() const { return commands.begin(); }
-	inline std::vector<EmaCommand>::const_iterator end() const { return commands.end(); }
 };
 
 
@@ -258,178 +270,78 @@ public:
 
 class EMA : public EMO_Skeleton
 {
-	friend class EMA_Material;
-
 private:
+	string version;
+	uint16_t type;						// 3: Object (also for camera anim), 4: Light, 8 materials
+	uint32_t unknow_0;
+	uint32_t unknow_1;
+	uint32_t unknow_2;
+
 
 	std::vector<EmaAnimation> animations;
-	uint16_t unk_08;
-	uint16_t unk_12;
-
-	//Debug/work:
-	std::vector<std::vector<std::vector<string>>> listTagColors;	// by Section, param, and font/background.
-	size_t lastSection;
-
-
-
-	void Copy(const EMA &other);
-
-	void Reset();
-	unsigned int CalculateFileSize() const;
-
-protected:
-
-	virtual void RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr) override;
 
 public:
-
 	EMA();
-	EMA(const EMO &other) : EMO_Skeleton()
-	{
-		Copy(other);
-	}
-
+	EMA(const EMO &other) : EMO_Skeleton() { Copy(other); }
 	virtual ~EMA();
 
-	
+	void Copy(const EMA &other);
+	void Reset();
+
+	uint16_t getType() { return type; }
+	std::vector<EmaAnimation> &getAnimations() { return animations;  }
+	inline uint16_t GetNumAnimations() const { return animations.size(); }
+	inline bool HasSkeleton() const { return ((bones.size() > 0) && (type != EMA_TYPE_ANIM_Light) && ( (type != EMA_TYPE_ANIM_Object_or_Camera) || (animations.size()==0) || (animations.at(0).type != EMA_ANIM_TARGET_Camera)) ); }
+	inline EmaAnimation *GetAnimation(uint16_t idx) { if (idx >= animations.size()) { return nullptr; } return &animations[idx]; }
+	inline const EmaAnimation *GetAnimation(uint16_t idx) const { if (idx >= animations.size()) { return nullptr; } return &animations[idx]; }
+	inline EmaAnimation *GetAnimation(const std::string &name) { for (EmaAnimation &a : animations) { if (a.name == name) { return &a; } } return nullptr; }
+	inline const EmaAnimation *GetAnimation(const std::string &name) const { for (const EmaAnimation &a : animations) { if (a.name == name) { return &a; } } return nullptr; }
+	inline bool AnimationExists(uint16_t idx) const { return (GetAnimation(idx) != nullptr); }
+	inline bool AnimationExists(const std::string &name) const { return (GetAnimation(name) != nullptr); }
+	inline uint16_t FindAnimation(const std::string &name) const { for (size_t i = 0; i < animations.size(); i++) { if (animations[i].name == name) { return i; } } return 0xFFFF; }
+	inline bool RemoveAnimation(uint16_t idx) { if (idx >= animations.size()) { return false; } animations.erase(animations.begin() + idx); }
+	inline bool RemoveAnimation(const std::string &name) { for (auto it = animations.begin(); it != animations.end(); ++it) { if ((*it).name == name) { animations.erase(it); return true; } } return false; }
+	bool LinkAnimation(EmaAnimation &anim, EMO_Bone **not_found = nullptr);
+	uint16_t AppendAnimation(const EmaAnimation &animation);
+	uint16_t AppendAnimation(const EMA &other, const std::string &name);
+	inline EMA &operator=(const EMA &other) { if (this == &other) { return *this; } Copy(other); return *this; }
+	bool operator==(const EMA &rhs) const;
+	inline bool operator!=(const EMA &rhs) const { return !(*this == rhs); }
+	inline EmaAnimation &operator[](size_t n) { return animations[n]; }
+	inline const EmaAnimation &operator[](size_t n) const { return animations[n]; }
+	inline EmaAnimation &operator[](const std::string &name) { EmaAnimation *a = GetAnimation(name); if (!a) { throw std::out_of_range("Animation " + name + " doesn't exist."); } return *a; }
+	inline const EmaAnimation &operator[](const std::string &name) const { const EmaAnimation *a = GetAnimation(name); if (!a) { throw std::out_of_range("Animation " + name + " doesn't exist."); } return *a; }
+	inline const EMA operator+(const EmaAnimation &animation) const { EMA new_ema = *this; new_ema.AppendAnimation(animation); return new_ema; }
+	inline EMA &operator+=(const EmaAnimation &animation) { this->AppendAnimation(animation); return *this; }
+	inline std::vector<EmaAnimation>::iterator begin() { return animations.begin(); }
+	inline std::vector<EmaAnimation>::iterator end() { return animations.end(); }
+	inline std::vector<EmaAnimation>::const_iterator begin() const { return animations.begin(); }
+	inline std::vector<EmaAnimation>::const_iterator end() const { return animations.end(); }
+
+
+	virtual bool load(string filename) { return this->SmartLoad(filename); }
+	virtual bool Load(const uint8_t *buf, unsigned int size) override;
+	virtual uint8_t *CreateFile(unsigned int *psize) override;
+	unsigned int CalculateFileSize() const;
+
+	void buildOrganizedNodes();
+	void clearOrganizedNodes();
+
+	virtual bool DecompileToFile(const std::string &path, bool show_error = true, bool build_path = false) override;
+	virtual bool CompileFromFile(const std::string &path, bool show_error = true, bool big_endian = false) override;
+	virtual TiXmlDocument *Decompile() const override;
+	virtual bool Compile(TiXmlDocument *doc, bool big_endian = false) override;
 
 	void	readEAN(EAN* ean, bool forceOrientationInterpolation = false);
 	void	readEsk(ESK* esk);
 	void	writeEAN(EAN* ean);
 	
-
-
-	inline uint16_t GetNumAnimations() const { return animations.size(); }
-	inline bool HasSkeleton() const { return (bones.size() > 0); }
-
-
-	inline EmaAnimation *GetAnimation(uint16_t idx)
-	{
-		if (idx >= animations.size())
-			return nullptr;
-		return &animations[idx];
-	}
-
-	inline const EmaAnimation *GetAnimation(uint16_t idx) const
-	{
-		if (idx >= animations.size())
-			return nullptr;
-		return &animations[idx];
-	}
-
-	inline EmaAnimation *GetAnimation(const std::string &name)
-	{
-		for (EmaAnimation &a : animations)
-			if (a.name == name)
-				return &a;
-		return nullptr;
-	}
-
-	inline const EmaAnimation *GetAnimation(const std::string &name) const
-	{
-		for (const EmaAnimation &a : animations)
-			if (a.name == name)
-				return &a;
-		return nullptr;
-	}
-
-	inline bool AnimationExists(uint16_t idx) const { return (GetAnimation(idx) != nullptr); }
-	inline bool AnimationExists(const std::string &name) const { return (GetAnimation(name) != nullptr); }
-
-	inline uint16_t FindAnimation(const std::string &name) const
-	{
-		for (size_t i = 0; i < animations.size(); i++)
-		{
-			if (animations[i].name == name)
-				return i;
-		}
-
-		return 0xFFFF;
-	}
-
-	inline bool RemoveAnimation(uint16_t idx)
-	{
-		if (idx >= animations.size())
-			return false;
-
-		animations.erase(animations.begin() + idx);
-	}
-
-	inline bool RemoveAnimation(const std::string &name)
-	{
-		for (auto it = animations.begin(); it != animations.end(); ++it)
-		{
-			if ((*it).name == name)
-			{
-				animations.erase(it);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	bool LinkAnimation(EmaAnimation &anim, EMO_Bone **not_found = nullptr);
-
-	uint16_t AppendAnimation(const EmaAnimation &animation);
-	uint16_t AppendAnimation(const EMA &other, const std::string &name);
-
-	virtual bool Load(const uint8_t *buf, unsigned int size) override;
-	virtual uint8_t *CreateFile(unsigned int *psize) override;
-
-	virtual TiXmlDocument *Decompile() const override;
-	virtual bool Compile(TiXmlDocument *doc, bool big_endian = false) override;
-
-	virtual bool DecompileToFile(const std::string &path, bool show_error = true, bool build_path = false) override;
-	virtual bool CompileFromFile(const std::string &path, bool show_error = true, bool big_endian = false) override;
-
-
-
-	inline EMA &operator=(const EMA &other)
-	{
-		if (this == &other)
-			return *this;
-
-		Copy(other);
-		return *this;
-	}
-
-	bool operator==(const EMA &rhs) const;
-	inline bool operator!=(const EMA &rhs) const { return !(*this == rhs); }
-
-	inline EmaAnimation &operator[](size_t n) { return animations[n]; }
-	inline const EmaAnimation &operator[](size_t n) const { return animations[n]; }
-
-	inline EmaAnimation &operator[](const std::string &name)
-	{
-		EmaAnimation *a = GetAnimation(name);
-		if (!a)
-			throw std::out_of_range("Animation " + name + " doesn't exist.");
-		return *a;
-	}
-
-	inline const EmaAnimation &operator[](const std::string &name) const
-	{
-		const EmaAnimation *a = GetAnimation(name);
-		if (!a)
-			throw std::out_of_range("Animation " + name + " doesn't exist.");
-		return *a;
-	}
-
-	inline const EMA operator+(const EmaAnimation &animation) const { EMA new_ema = *this; new_ema.AppendAnimation(animation); return new_ema; }
-	inline EMA &operator+=(const EmaAnimation &animation) { this->AppendAnimation(animation); return *this; }
-
-	inline std::vector<EmaAnimation>::iterator begin() { return animations.begin(); }
-	inline std::vector<EmaAnimation>::iterator end() { return animations.end(); }
-
-	inline std::vector<EmaAnimation>::const_iterator begin() const { return animations.begin(); }
-	inline std::vector<EmaAnimation>::const_iterator end() const { return animations.end(); }
-
-
 	void save_Coloration(string filename, bool show_error = false);		//create a file for wxHexEditor, for add tag and color on section of the file.
-	void write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size);
-	void write_Coloration_Skeleton(TiXmlElement *parent, const uint8_t *buf, size_t size, size_t startOffset_Skeleton, std::vector<bool> &listBytesAllreadyTagged);
-	void write_Coloration_Tag(string paramName, string paramType, string paramComment, size_t startOffset, size_t size, string sectionName, TiXmlElement* parent, size_t idTag, size_t sectionIndex, size_t paramIndex, std::vector<bool> &listBytesAllreadyTagged, size_t sectionIndexInList = (size_t)-1, bool checkAllreadyTaggued = true);
+	void write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8_t *buf, size_t size);
+
+
+protected:
+	virtual void RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr) override;
 };
 
 

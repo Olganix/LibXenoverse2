@@ -12,7 +12,7 @@ EMDMesh::EMDMesh(EMDMesh* emdMesh)
 	if (emdMesh)
 	{
 		name = emdMesh->name;
-		unknown_total = emdMesh->unknown_total;
+		unknow_total = emdMesh->unknow_total;
 		
 		aabb_center_x = emdMesh->aabb_center_x;
 		aabb_center_y = emdMesh->aabb_center_y;
@@ -47,13 +47,13 @@ EMDMesh::~EMDMesh(void)
 void EMDMesh::zero(void)
 {
 	aabb_center_x = aabb_center_y = aabb_center_z = aabb_center_w = aabb_min_x = aabb_min_y = aabb_min_z = aabb_min_w = aabb_max_x = aabb_max_y = aabb_max_z = aabb_max_w = 0.0f;
-	unknown_total = 0;
+	unknow_total = 0;
 	name = "";
 }
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
-void EMDMesh::read(File *file)
+void EMDMesh::read(File *file, uint16_t &paddingForCompressedVertex)
 {
 	unsigned int address = 0;
 	unsigned int base_mesh_address = file->getCurrentAddress();
@@ -76,7 +76,7 @@ void EMDMesh::read(File *file)
 	unsigned short submesh_total = 0;
 	unsigned int submesh_table_address = 0;
 	file->readInt32E(&mesh_name_offset);
-	file->readInt16E(&unknown_total);
+	file->readInt16E(&unknow_total);
 	file->readInt16E(&submesh_total);
 	file->readInt32E(&submesh_table_address);
 
@@ -101,14 +101,14 @@ void EMDMesh::read(File *file)
 		file->goToAddress(base_submesh_address);
 
 		EMDSubmesh *emd_submesh = new EMDSubmesh();
-		emd_submesh->read(file);
+		emd_submesh->read(file, paddingForCompressedVertex);
 		submeshes.push_back(emd_submesh);
 	}
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDMesh::write(File *file)
+void EMDMesh::write(File *file, uint16_t paddingForCompressedVertex)
 {
 	unsigned int base_mesh_address = file->getCurrentAddress();
 
@@ -146,13 +146,13 @@ void EMDMesh::write(File *file)
 		file->goToAddress(base_mesh_address + submesh_table_address + k * 4);
 		file->writeInt32E(&submesh_address);
 		file->goToAddress(base_mesh_address + submesh_address);
-		submeshes[k]->write(file);
+		submeshes[k]->write(file, paddingForCompressedVertex);
 	}
 
 	// Fix Offsets
 	file->goToAddress(base_mesh_address + 0x30);
 	file->writeInt32E(&mesh_name_offset);
-	file->writeInt16E(&unknown_total);
+	file->writeInt16E(&unknow_total);
 	file->writeInt16E(&submesh_total);
 	file->writeInt32E(&submesh_table_address);
 	file->goToEnd();
@@ -190,6 +190,26 @@ void EMDMesh::mergeTriangles()
 		submeshes[i]->mergeTriangles();
 }
 
+/*-------------------------------------------------------------------------------\
+|                             useTextureDefTemplate								 |
+\-------------------------------------------------------------------------------*/
+void EMDMesh::useTextureDefTemplate(EMDMesh* other)
+{
+	string name = "";
+	for (size_t i = 0; i < submeshes.size(); i++)
+	{
+		name = submeshes.at(i)->getMaterialName();
+
+		for (size_t j = 0; j < other->submeshes.size(); j++)
+		{
+			if (other->submeshes.at(j)->getMaterialName() == name)
+			{
+				submeshes.at(i)->useTextureDefTemplate(other->submeshes.at(j));
+				break;
+			}
+		}
+	}
+}
 
 
 }

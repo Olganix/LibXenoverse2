@@ -170,7 +170,7 @@ void ESK::importFBXSkeleton(FbxScene *scene, bool allowCamera)
 
 
 		//using Relative information directly.
-		float* relativeTransform = bone->skinning_matrix;
+		float* relativeTransform = bone->relativeTransform;
 
 		relativeTransform[0] = (float)pTranslation[0];
 		relativeTransform[1] = (float)pTranslation[1];
@@ -225,7 +225,6 @@ void ESK::exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &glo
 		if (bone->parent_index != parentIndex)						//search All direct Children.
 			continue;
 
-
 		fbxNode = FbxNode::Create(scene, bone->name.c_str());
 
 		fbxNode->SetRotationActive(true);
@@ -238,7 +237,7 @@ void ESK::exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &glo
 
 
 		//using Relative information directly.
-		float* relativeTransform = bone->skinning_matrix;
+		float* relativeTransform = bone->relativeTransform;
 
 		position = FbxVector4(relativeTransform[0], relativeTransform[1], relativeTransform[2], relativeTransform[3]);
 		quaternion = FbxQuaternion(relativeTransform[4], relativeTransform[5], relativeTransform[6], relativeTransform[7]);
@@ -249,13 +248,7 @@ void ESK::exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &glo
 		
 		FbxVector4 anglesRotation = quaternion.DecomposeSphericalXYZ();
 
-		if (anglesRotation[0] != anglesRotation[0])		//check Nan possibility
-			anglesRotation[0] = 0.0;
-		if (anglesRotation[1] != anglesRotation[1])		//check Nan possibility
-			anglesRotation[1] = 0.0;
-		if (anglesRotation[2] != anglesRotation[2])		//check Nan possibility
-			anglesRotation[2] = 0.0;
-
+		
 
 
 		//version with is good for FbxEuler::EOrder::eOrderXZY
@@ -265,6 +258,12 @@ void ESK::exportFBXBone(FbxScene *scene, vector<ESK::FbxBonesInstance_DBxv> &glo
 		anglesRotation[0] = test[2];			//roll sur X		=>YZX order
 
 
+		if (anglesRotation[0] != anglesRotation[0])		//check Nan possibility
+			anglesRotation[0] = 0.0;
+		if (anglesRotation[1] != anglesRotation[1])		//check Nan possibility
+			anglesRotation[1] = 0.0;
+		if (anglesRotation[2] != anglesRotation[2])		//check Nan possibility
+			anglesRotation[2] = 0.0;
 
 		fbxNode->LclTranslation.Set(position);
 		fbxNode->LclRotation.Set(anglesRotation);

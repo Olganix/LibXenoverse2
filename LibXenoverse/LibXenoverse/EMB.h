@@ -42,8 +42,12 @@ namespace LibXenoverse
 	class EMB
 	{
 		protected:
-			vector<EMBFile*> files;
 			string name;
+			string version;
+			vector<EMBFile*> files;
+
+			bool debugHaveNames;			//todo remove.
+
 		public:
 			EMB() { }
 
@@ -51,12 +55,11 @@ namespace LibXenoverse
 			vector<EMBFile *> &getFiles() { return files; }
 
 			bool load(string filename);
-			void extract(string folder);
 			void save(string filename, bool enable_filenames = true, bool big_endian = false);
 
+			void extract(string folder);
 			void addFile(string filename);
 			void addFolder(string folder);
-
 			bool detectFilenameMode();
 
 			EMB* clone(void);

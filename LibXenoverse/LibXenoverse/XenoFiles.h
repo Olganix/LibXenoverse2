@@ -33,6 +33,7 @@
 using namespace std;
 
 namespace LibXenoverse {
+	void endianSwap(uint64_t& x);
 	void endianSwap(unsigned int& x);
 	void endianSwap(int& x);
 
@@ -97,7 +98,9 @@ namespace LibXenoverse {
 			void readInt16(unsigned short *dest);
 			void readInt16BE(unsigned short *dest);
 			void readInt32(unsigned int *dest);
+			void readInt64(uint64_t*dest);
 			void readInt32BE(unsigned int *dest);
+			void readInt64BE(uint64_t*dest);
 			void readFloat8(float *dest);
 			void readFloat16(float *dest);
 			void readFloat16BE(float *dest);
@@ -110,6 +113,7 @@ namespace LibXenoverse {
 
 			void readInt16E(unsigned short *dest);
 			void readInt32E(unsigned int *dest);
+			void readInt64E(uint64_t*dest);
 			void readInt32EA(size_t *dest);
 			void readFloat16E(float *dest);
 			void readFloat32E(float *dest);
@@ -123,8 +127,10 @@ namespace LibXenoverse {
 			void writeInt16(unsigned short *dest); 
 			void writeInt16BE(unsigned short *dest);
 			void writeInt32(unsigned int *dest);
+			void writeInt64(uint64_t *dest);
 			void writeInt32A(size_t *dest, bool add_to_table=true);
 			void writeInt32BE(unsigned int *dest);
+			void writeInt64BE(uint64_t *dest);
 			void writeFloat32(float *dest);
 			void writeFloat32BE(float *dest);
 			void writeFloat16(float *dest);
@@ -134,6 +140,8 @@ namespace LibXenoverse {
 
 			void writeInt16E(unsigned short *dest);
 			void writeInt32E(unsigned int *dest);
+			void writeInt64E(uint64_t *dest);
+			//void writeFloat8(float *dest);			//Todo half_from_float => quart_from_float
 			void writeFloat16E(float *dest);
 			void writeFloat32E(float *dest);
 
@@ -141,9 +149,7 @@ namespace LibXenoverse {
 			size_t fixPaddingRead(size_t multiple=4);
 			size_t getFileSize();
 
-			FILE *getPointer() {
-				return file_ptr;
-			}
+			FILE *getPointer() { return file_ptr; }
 
 			// Reverse-Engineering functions, just to track down what some values could be by printing their minimum and maximum values
 			void createComparison(size_t sz);
@@ -172,6 +178,7 @@ namespace LibXenoverse {
 	bool writeTextTo(string filename, char *data, size_t data_size);
 	bool writeTextTo(string filename, const char *data, size_t data_size);
 	std::vector<std::string> split(const std::string &text, char sep);
+	std::vector<std::string> multiSplit(const std::string &text, std::vector<char> sep);
 	bool isNumber(const string& val);
 	bool isIntNumber(const string& val);
 	std::string toStringHexa(size_t val, unsigned short width = 0, char fill = ' ', std::ios::fmtflags flags = std::ios::fmtflags(0));

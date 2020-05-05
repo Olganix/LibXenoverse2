@@ -16,7 +16,7 @@ public:
 		string type;
 		size_t reg;
 		string shaderType;
-		Ogre::Vector4 defaultValue;			// limited to under float5 parameters
+		Ogre::Vector4 defaultValue;			// limited to under float4 parameters
 		Ogre::Vector4 currentValue;
 
 		EmmMaterialParameter(string name, string type, size_t reg, string shaderType, Ogre::Vector4 defaultValue = Ogre::Vector4::ZERO) { this->name = name; this->type = type; this->reg = reg; this->shaderType = shaderType; this->defaultValue = defaultValue; currentValue = defaultValue; }
@@ -46,8 +46,8 @@ protected:
 	EANOgreAnimation *animation_to_change;
 	EANOgreAnimation *animation_to_change2;
 	bool animationLoopEnable;
-	EMA_Material_Animation* ema_Material_Anim;
-	EMA_Material_Animation* ema_Material_Anim2;
+	EmaAnimation* ema_Material_Anim;
+	EmaAnimation* ema_Material_Anim2;
 
 	bool zMaskReadWrite_defaultValue_for_transparent;
 

@@ -1288,7 +1288,7 @@ int main(int argc, char** argv)
 				
 				if (indexBone == (size_t)-1)
 				{
-					printf("animation %s have %i frames (60 fps) so %f second\n", animation->getName().c_str(), animation->getFrameCount(), animation->getFrameCount() * (1.0 / 60.0));
+					printf("animation %s have %i frames (60 fps) so %f second\n", animation->getName().c_str(), animation->getDuration(), animation->getDuration() * (1.0 / 60.0));
 				}else{
 
 					vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
@@ -1385,7 +1385,7 @@ int main(int argc, char** argv)
 
 				if (indexBone == (size_t)-1)
 				{
-					original_Duration_inFrames = animation->getFrameCount();
+					original_Duration_inFrames = animation->getDuration();
 
 				}else{
 
@@ -1430,7 +1430,7 @@ int main(int argc, char** argv)
 				printf("Ok. it's about resample %i frames (%f seconds) into %i frames (%f seconds => factor of %f on keys)\nLet's go\n", original_Duration_inFrames, ((double)original_Duration_inFrames)*(1.0 / 60.0), target_Duration_inFrames, ((double)target_Duration_inFrames)*(1.0 / 60.0), factor);
 
 				if (indexBone == (size_t)-1)
-					animation->setFrameCount(target_Duration_inFrames);
+					animation->setDuration(target_Duration_inFrames);
 
 				vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
 				size_t nbBones = listNodes.size();
@@ -1524,7 +1524,7 @@ int main(int argc, char** argv)
 				
 				if (indexBone == (size_t)-1)
 				{
-					original_Duration_inFrames = animation->getFrameCount();
+					original_Duration_inFrames = animation->getDuration();
 
 				}else{
 
@@ -1572,8 +1572,8 @@ int main(int argc, char** argv)
 					target_Duration_inFrames = 1;
 
 				
-				if (target_Duration_inFrames>animation->getFrameCount())
-					animation->setFrameCount(target_Duration_inFrames);
+				if (target_Duration_inFrames>animation->getDuration())
+					animation->setDuration(target_Duration_inFrames);
 
 				vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
 				size_t nbBones = listNodes.size();
@@ -1702,7 +1702,7 @@ int main(int argc, char** argv)
 						continue;
 					}
 					else{
-						printf("animation %s is found in Ean_scr and have %i frames (60 fps) so %f second\n", animation_src->getName().c_str(), animation_src->getFrameCount(), animation_src->getFrameCount() * (1.0 / 60.0));
+						printf("animation %s is found in Ean_scr and have %i frames (60 fps) so %f second\n", animation_src->getName().c_str(), animation_src->getDuration(), animation_src->getDuration() * (1.0 / 60.0));
 					}
 					
 
@@ -1711,8 +1711,8 @@ int main(int argc, char** argv)
 
 
 
-					size_t original_Duration_inFrames = animation->getFrameCount();			//same : no filter on bones, so is faster.
-					size_t target_Duration_inFrames = animation_src->getFrameCount();
+					size_t original_Duration_inFrames = animation->getDuration();			//same : no filter on bones, so is faster.
+					size_t target_Duration_inFrames = animation_src->getDuration();
 					if (target_Duration_inFrames == 0)
 						target_Duration_inFrames = 1;
 					if (original_Duration_inFrames == 0)
@@ -1721,7 +1721,7 @@ int main(int argc, char** argv)
 					double factor = ((double)target_Duration_inFrames) / ((double)original_Duration_inFrames);
 					printf("Ok. it's about resample %i frames (%f seconds) into %i frames (%f seconds => factor of %f on keys)\nLet's go\n", original_Duration_inFrames, ((double)original_Duration_inFrames)*(1.0 / 60.0), target_Duration_inFrames, ((double)target_Duration_inFrames)*(1.0 / 60.0), factor);
 
-					animation->setFrameCount(target_Duration_inFrames);
+					animation->setDuration(target_Duration_inFrames);
 
 					vector<LibXenoverse::EANAnimationNode> &listNodes = animation->getNodes();
 					size_t nbBones = listNodes.size();

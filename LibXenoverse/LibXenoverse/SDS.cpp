@@ -24,18 +24,7 @@ bool SDS::load(string filename)
 		if (!pElem)
 			return false;
 
-		pElem = pElem->FirstChildElement();
-		for (pElem; pElem; pElem = pElem->NextSiblingElement())
-		{
-			string element_name = pElem->ValueStr();
-
-			if(element_name == "SDSShaderProgram")
-			{
-				SDSShaderProgram *shaderPrograms = new SDSShaderProgram();
-				shaderPrograms->readXML(pElem);
-				this->shaderPrograms.push_back(shaderPrograms);
-			}
-		}
+		readXML(pElem);
 
 	}else {
 		File file(filename, LIBXENOVERSE_FILE_READ_BINARY);
@@ -112,8 +101,8 @@ void SDS::write(File *file)
 	file->writeInt16E(&shaderPrograms_count);
 	file->writeNull(2);
 
-	unsigned int unknown_1 = 0x0014;
-	file->writeInt32E(&unknown_1);
+	unsigned int unknow_1 = 0x0014;
+	file->writeInt32E(&unknow_1);
 
 	file->writeNull(shaderPrograms_count * 4);
 	for (size_t i = 0; i < shaderPrograms_count; i++)
@@ -126,6 +115,16 @@ void SDS::write(File *file)
 	}
 }
 
+
+void SDS::readXML(TiXmlElement *root)
+{
+	for (TiXmlElement* pElem = root->FirstChildElement("SDSShaderProgram"); pElem; pElem = pElem->NextSiblingElement("SDSShaderProgram"))
+	{
+		SDSShaderProgram *shaderPrograms = new SDSShaderProgram();
+		shaderPrograms->readXML(pElem);
+		this->shaderPrograms.push_back(shaderPrograms);
+	}
+}
 
 
 void SDS::saveXML(string filename)
@@ -153,98 +152,90 @@ void SDS::saveXML(string filename)
 
 
 
-
 void SDSShaderProgram::read(File *file)
 {
 	size_t offset = file->getCurrentAddress();
-	
 
-	char str_tmp[255];
-	file->read(str_tmp, 32);
-	
-	std::string str = str_tmp;
-	size_t firstSplit = str.find(' ');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	firstSplit = str.find('\t');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	offset += str.size() + 1;						//one char by letter
+
+	//try to have the string for all the shaderProgram definition, while '\0' character
+	string shaderProgram_str = "";
+	file->readString(&shaderProgram_str);
+	offset += shaderProgram_str.size() + 1;						//one char by letter
 	file->goToAddress(offset);
 
-	name = str;
+	string str_mem = shaderProgram_str;							//for debug and error message.
 
 
-	
-	file->read(str_tmp, 32);
-	str = str_tmp;
-	firstSplit = str.find(' ');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	firstSplit = str.find('\t');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	offset += str.size() + 1;						//one char by letter
-	file->goToAddress(offset);
-
-	vertexShader_name = str;
-
-
-	
-	file->read(str_tmp, 32);
-	str = str_tmp;
-	firstSplit = str.find(' ');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	firstSplit = str.find('\t');
-	if (firstSplit != string::npos)
-		str = str.substr(0, firstSplit);
-	offset += str.size() + 1;						//one char by letter
-	file->goToAddress(offset);
-
-	pixelShader_name = str;
-
-
-	//try to have the string for all params , while '\0' character
-	string allParams = "";
-	file->read(str_tmp, 255);
-	str = str_tmp;
-	allParams += str;
-	while (str.size()==255)
+	//shaderProgram name
+	name = "";
+	size_t pos = shaderProgram_str.find(' ');
+	size_t posB = shaderProgram_str.find('\t');
+	pos = (pos != string::npos) ? ((posB != string::npos) ? min(pos, posB) : pos) : posB;
+	if (pos == string::npos)
 	{
-		file->read(str_tmp, 255);
-		str = str_tmp;
-		allParams += str;
+		printf("Error : parsing shaderProgram : %s \n", str_mem.c_str());
+		LibXenoverse::notifyError();
+		return;
 	}
-	offset += str.size() + 1;						//one char by letter
-	file->goToAddress(offset);
+	name = shaderProgram_str.substr(0, pos);	
+	shaderProgram_str = shaderProgram_str.substr(pos + 1);
+
+	//vertexShader name
+	vertexShader_name = "";
+	pos = shaderProgram_str.find(' ');
+	posB = shaderProgram_str.find('\t');
+	pos = (pos != string::npos) ? ((posB != string::npos) ? min(pos, posB) : pos) : posB;
+	if (pos == string::npos)
+	{
+		printf("Error : parsing shaderProgram : %s \n", str_mem.c_str());
+		LibXenoverse::notifyError();
+		return;
+	}
+	vertexShader_name = shaderProgram_str.substr(0, pos);
+	shaderProgram_str = shaderProgram_str.substr(pos + 1);
+
+
+	//pixelShader name
+	pixelShader_name = "";
+	pos = shaderProgram_str.find(' ');
+	posB = shaderProgram_str.find('\t');
+	pos = (pos != string::npos) ? ((posB != string::npos) ? min(pos, posB) : pos) : posB;
+
+	pixelShader_name = (pos != string::npos) ? shaderProgram_str.substr(0, pos) : shaderProgram_str;
+	shaderProgram_str = (pos != string::npos) ? shaderProgram_str.substr(pos + 1) : "";
+
+
+	if (shaderProgram_str.length() == 0)						//case No parameters for this shaderProgram.
+		return;
 
 	
-
-	std::vector<string> listType = File::split(allParams, "\t/");
-
-	string type = "";
-	std::vector<string> listArguments;
+	//parameters
+	string str = "";
+	std::vector<string> sv;
 	size_t nbArg = 0;
 
-	size_t nbType = listType.size();
-	for (size_t i = 0; i < nbType; i++)
+	std::vector<string> listParameters = File::split(shaderProgram_str, "\t/");
+
+	for (size_t i = 0, nbParams = listParameters.size(); i < nbParams; i++)
 	{
-		str = listType.at(i);
-		if (str == "")
+		str = listParameters.at(i);
+		if (str.length()==0)
 			continue;
 
-		listArguments = File::split(str, " ");
-
-		nbArg = listArguments.size();
+		sv = File::split(str, " ");
+		nbArg = sv.size();
 		if (nbArg <= 1)
+		{
+			printf("Warning : parsing shaderProgram parameters. skipped : %s \n", str.c_str());
+			LibXenoverse::notifyWarning();
 			continue;
+		}
 
-		type = listArguments.at(0);
-		for (size_t j = 1; j < nbArg; j++)
-			parameters.push_back(new SDSParameter(listArguments.at(j), type));
+		for(size_t j=1; j<nbArg; j++)
+			parameters.push_back(new SDSParameter(sv.at(j), sv.at(0)));				//once type for many parameters
 	}
 }
+
 
 
 void SDSShaderProgram::write(File *file)

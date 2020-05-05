@@ -8,6 +8,16 @@
 
 //notice: there is some holes on certain cases from current colorTags, but it's about a bug on game's dev's tools witch create memory garabage, on allow to not have a parameter for a material.
 
+
+
+#define EMM_ANIMCHANNEL_MATCOL_0		0x1
+#define EMM_ANIMCHANNEL_MATCOL_1		0x2
+#define EMM_ANIMCHANNEL_MATCOL_2		0x4
+#define EMM_ANIMCHANNEL_MATCOL_3		0x8
+#define EMM_ANIMCHANNEL_TEXTSCROLL_0	0x10000
+#define EMM_ANIMCHANNEL_TEXTSCROLL_1	0x20000
+
+
 namespace LibXenoverse
 {
 
@@ -25,9 +35,9 @@ static_assert(sizeof(EMM_Header) == 0x10, "Incorrect structure size.");
 struct EMM_Header_Sub				//depend of the size of header_size.
 {
 	uint32_t offset_unknowValues; // 0
-	uint32_t unknown_0;			// 4			//padding
-	uint32_t unknown_1;			// 8			//padding
-	uint32_t unknown_2;			// C			//padding
+	uint32_t unknow_0;			// 4			//padding
+	uint32_t unknow_1;			// 8			//padding
+	uint32_t unknow_2;			// C			//padding
 } PACKED;
 static_assert(sizeof(EMM_Header_Sub) == 0x10, "Incorrect structure size.");
 
@@ -36,7 +46,7 @@ struct EMM_Material_Section
 	char name[32];				// 0
 	char shaderProgName[32];	// 20
 	uint16_t number_parameters;	// 40
-	uint16_t unknown_0;			// 42
+	uint16_t unknow_0;			// 42
 } PACKED;
 static_assert(sizeof(EMM_Material_Section) == 0x44, "Incorrect structure size.");
 
@@ -45,7 +55,7 @@ struct EMM_Parameter_Section
 {
 	char name[32];				// 0
 	uint16_t type;				// 20	// 0: Float, 1: uint.
-	uint16_t unknown_0;			// 22
+	uint16_t unknow_0;			// 22
 	uint32_t value;				// 24	//could also be a Float32, depend of type.
 } PACKED;
 static_assert(sizeof(EMM_Parameter_Section) == 0x28, "Incorrect structure size.");
@@ -115,7 +125,10 @@ public:
 	~EMMMaterial(void);
 
 	string	getName(void) { return string(name); }
+	void	setName(string name) { this->name = name; }
 	string	getShaderName(void) { return string(shaderProgramName); }
+	void	setShaderName(string name) { this->shaderProgramName = name; }
+	void	setUnknow_0(uint16_t value) { this->unknow_0 = value; }
 	vector<EMMParameter*>	&getParameters(void) { return parameters; }
 	EMMParameter*	getParameter(const string &name);
 	vector<Sampler2D_shaderDefinition>	&getListSampler2D(void) { return listSampler2D; }
@@ -140,16 +153,17 @@ protected:
 	string version;
 	uint32_t unknow_0;					//padding.
 	uint32_t unknow_1;					//padding.
-	uint32_t unknow_2;					//padding.
+	uint32_t unknow_2;					//padding.	
 
 	vector<EMMMaterial*> materials;
 	std::vector<size_t> listUnknowValues;
 
 public:
-	EMM(void) { name = ""; version = ""; unknow_0 = unknow_1 = unknow_2 = 0; }
+	EMM(void) { name = ""; version = "0.147.0.0"; unknow_0 = unknow_1 = unknow_2 = 0; }
 	~EMM(void);
 
 	string	getName(void) { return name; }
+	void	setName(string name) { this->name = name; }
 	vector<EMMMaterial *>	&getMaterials(void) { return materials; }
 	EMMMaterial*	getMaterial(string name);
 	std::vector<string>	getListUniqueParameters(void);

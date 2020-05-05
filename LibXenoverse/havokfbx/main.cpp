@@ -72,7 +72,7 @@ void replaceAll_component_mad(std::string& str, const std::string& searchCompone
 
 		double value = std::stod(number_str);
 		double newValue = offset + value * factor;
-		string newValue_str = FloatToString(newValue);
+		string newValue_str = FloatToString((float)newValue);
 
 		str.replace(start_pos, end_pos - start_pos, newValue_str);
 		start_pos += newValue_str.length();
@@ -363,7 +363,7 @@ int main(int argc, char** argv)
 
 			listNodeAllReadyCreated.push_back(fbxNode);
 
-			havok->importFBX(fbxNode);				//by the anme could update values on a Object hierarchy.
+			havok->importFBX(fbxNode);				//by the name could update values on a Object hierarchy.
 		}
 
 
@@ -654,18 +654,18 @@ int main(int argc, char** argv)
 
 				
 				string xmlBoxTemplate_tmp = xmlBoxTemplate;
-				replaceAll(xmlBoxTemplate_tmp, "template_Xmin_sub_eps", FloatToString(Xmin_sub_eps));		//because of names to replace, keep longer first.
-				replaceAll(xmlBoxTemplate_tmp, "template_Ymin_sub_eps", FloatToString(Ymin_sub_eps));
-				replaceAll(xmlBoxTemplate_tmp, "template_Zmin_sub_eps", FloatToString(Zmin_sub_eps));
-				replaceAll(xmlBoxTemplate_tmp, "template_Xmax_add_eps", FloatToString(Xmax_add_eps));
-				replaceAll(xmlBoxTemplate_tmp, "template_Ymax_add_eps", FloatToString(Ymax_add_eps));
-				replaceAll(xmlBoxTemplate_tmp, "template_Zmax_add_eps", FloatToString(Zmax_add_eps));
-				replaceAll(xmlBoxTemplate_tmp, "template_Xmin", FloatToString(Xmin));
-				replaceAll(xmlBoxTemplate_tmp, "template_Ymin", FloatToString(Ymin));
-				replaceAll(xmlBoxTemplate_tmp, "template_Zmin", FloatToString(Zmin));
-				replaceAll(xmlBoxTemplate_tmp, "template_Xmax", FloatToString(Xmax));
-				replaceAll(xmlBoxTemplate_tmp, "template_Ymax", FloatToString(Ymax));
-				replaceAll(xmlBoxTemplate_tmp, "template_Zmax", FloatToString(Zmax));
+				replaceAll(xmlBoxTemplate_tmp, "template_Xmin_sub_eps", FloatToString((float)Xmin_sub_eps));		//because of names to replace, keep longer first.
+				replaceAll(xmlBoxTemplate_tmp, "template_Ymin_sub_eps", FloatToString((float)Ymin_sub_eps));
+				replaceAll(xmlBoxTemplate_tmp, "template_Zmin_sub_eps", FloatToString((float)Zmin_sub_eps));
+				replaceAll(xmlBoxTemplate_tmp, "template_Xmax_add_eps", FloatToString((float)Xmax_add_eps));
+				replaceAll(xmlBoxTemplate_tmp, "template_Ymax_add_eps", FloatToString((float)Ymax_add_eps));
+				replaceAll(xmlBoxTemplate_tmp, "template_Zmax_add_eps", FloatToString((float)Zmax_add_eps));
+				replaceAll(xmlBoxTemplate_tmp, "template_Xmin", FloatToString((float)Xmin));
+				replaceAll(xmlBoxTemplate_tmp, "template_Ymin", FloatToString((float)Ymin));
+				replaceAll(xmlBoxTemplate_tmp, "template_Zmin", FloatToString((float)Zmin));
+				replaceAll(xmlBoxTemplate_tmp, "template_Xmax", FloatToString((float)Xmax));
+				replaceAll(xmlBoxTemplate_tmp, "template_Ymax", FloatToString((float)Ymax));
+				replaceAll(xmlBoxTemplate_tmp, "template_Zmax", FloatToString((float)Zmax));
 				
 
 
@@ -871,7 +871,7 @@ int main(int argc, char** argv)
 				string newName = name + "_" + string(fbxNode->GetName()) + ".hkx";
 				string newfilename = basefilename + "_" + string(fbxNode->GetName()) + ".hkx";
 
-
+				/*
 				listHitboxXml_str += "\n\
 					<Destruction>\n\
 						<unk_0 u32=\"0x3\" />\n\
@@ -884,6 +884,38 @@ int main(int argc, char** argv)
 						<HavokFile filename=\"" + newName + "\" />\n\
 					</Destruction>\n\
 				";
+				*/
+
+				//you can walk on this.
+				listHitboxXml_str += "\n\
+					<Destruction>\n\
+						<unk_0 u32=\"0xd\" />\n\
+						<unk_1 u32=\"0x60\" />\n\
+						<unk_2 u32=\"0x0\" />\n\
+						<unk_5 u32=\"0xc0\" />\n\
+						<unk_6 u32=\"0x20\" />\n\
+						<unk_7 float=\"0.00999999978\" />\n\
+						<DestructionSubPart />\n\
+						<HavokFile filename=\"" + newName + "\" />\n\
+					</Destruction>\n\
+				";
+
+				/*
+				//you fly up to this one
+				listHitboxXml_str += "\n\
+							<Destruction>\n\
+								<unk_0 u32=\"0x10\" />\n\
+								<unk_1 u32=\"0x1b0\" />\n\
+								<unk_2 u32=\"0x0\" />\n\
+								<unk_5 u32=\"0x0\" />\n\
+								<unk_6 u32=\"0x90\" />\n\
+								<unk_7 float=\"0.00999999978\" />\n\
+								<DestructionSubPart />\n\
+								<HavokFile filename=\"" + newName + "\" />\n\
+							</Destruction>\n\
+						";
+				*/
+
 
 				listHitboxXmlCouple_str += "<IndexCouple Index0 = \"" + std::to_string(inc) + "\" Index1 = \"4\" / >\n";
 				inc++;

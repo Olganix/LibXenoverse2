@@ -56,7 +56,7 @@ bool NSK::loadXml(string filename)
 	TiXmlDocument doc(filename);
 	if (!doc.LoadFile())
 	{
-		printf("Loading xml %s fail. skip.'\n", filename);
+		printf("Loading xml %s fail. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -66,7 +66,7 @@ bool NSK::loadXml(string filename)
 	TiXmlElement* rootNode = hDoc.FirstChildElement("NSK").Element();
 	if (!rootNode)
 	{
-		printf("%s don't have 'NSK' tags. skip.'\n", filename);
+		printf("%s don't have 'NSK' tags. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -135,7 +135,7 @@ void NSK::read(File *file)
 			delete mEsk;
 			mEsk = 0;
 		}
-	}catch (exception &e) {
+	}catch(exception &e) {
 		LOG_DEBUG("load ESK part faild : %s\n", e.what());
 
 		delete mEsk;
@@ -258,7 +258,7 @@ bool NSK::direct_extract(string filename)
 	size_t startAddress_Esk = 0;
 	size_t startAddress_Emd = 0;
 
-	file.goToAddress(startAddress_Esk + 0x14);					//the first adresse, witch is in 0x10, it's for Esk, but, it will be readed directly by the read from the begining of the file. by contrerary,  0x14 adress, it's for emd.
+	file.goToAddress(startAddress_Esk + 0x14);					//the first adress, witch is in 0x10, it's for Esk, but, it will be readed directly by the read from the begining of the file. by contrerary,  0x14 adress, it's for emd.
 	file.readInt32E(&startAddress_Emd);
 
 
@@ -269,7 +269,13 @@ bool NSK::direct_extract(string filename)
 		file.goToAddress(startAddress_Esk);
 
 		size_t size_esk = startAddress_Emd - startAddress_Esk;
+
+		ESK esk;							//to be more precise on Size , and avoid padding in new esk.
+		if (esk.load(&file, "test"))
+			size_esk = sizeof(ESK_Header) + esk.getWriteSize(esk.getBone(0)->haveTransformMatrix);
+
 		char* buf = (char*)malloc(size_esk);
+		file.goToAddress(startAddress_Esk);
 		file.read(buf, size_esk);
 
 		buf[0x14] = buf[0x15] = buf[0x16] = buf[0x17] = 0;					//cancel offset_emd, now it's a single esk
@@ -322,7 +328,12 @@ bool NSK::direct_import(string filename_esk, string filename_emd)
 
 	size_t startAddress_Esk = 0;
 	size_t size_esk = file_Esk.getFileSize();
-	size_t startAddress_Emd = size_esk;
+
+	size_t offset = size_esk;
+	if (offset % 16 != 0)
+		offset = (size_t)(ceilf((float)size_esk / 16.0f) * 16.0);
+
+	size_t startAddress_Emd = offset;
 	size_t size_emd = file_Emd.getFileSize();
 	
 
@@ -335,6 +346,9 @@ bool NSK::direct_import(string filename_esk, string filename_emd)
 
 	file.write(buf, size_esk);
 	::free(buf);
+
+	if (size_esk % 16 != 0)
+		file.writeNull(16 - (size_esk % 16));						//padding.
 
 	file.goToAddress(startAddress_Esk + 0x14);
 	file.writeInt32E(&startAddress_Emd);							//add offset adress for begin of Emd.

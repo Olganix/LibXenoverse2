@@ -27,10 +27,9 @@ void EANAnimationNode::read(File *file, unsigned char index_size, unsigned char 
 
 	LOG_DEBUG("[%i] bone_index : %i, keyframed_animation_count : %i, keyframed_animation_offset : [%i]\n", base_animation_node_address, bone_index, keyframed_animation_count, keyframed_animation_offset);
 
-	//LOG_DEBUG("Reading Animation Node at %d\n", base_animation_node_address);
-	//LOG_DEBUG("Animation Node Keyframed Animations (%d) for node %d:\n", keyframed_animation_count, bone_index);
 	keyframed_animations.resize(keyframed_animation_count);
-	for (size_t i = 0; i < keyframed_animation_count; i++) {
+	for (size_t i = 0; i < keyframed_animation_count; i++) 
+	{
 		file->goToAddress(base_animation_node_address + keyframed_animation_offset + i * 4);
 		unsigned int address = 0;
 		file->readInt32E(&address);
@@ -66,6 +65,7 @@ size_t EANAnimationNode::write(File *file, unsigned char index_size, unsigned ch
 		LOG_DEBUG("-- KFanim %i : [%i] = %i => [%i]\n", i, base_animation_node_address + keyframed_animation_offset + i * 4, address, base_animation_node_address + address);
 		keyframedAnim_size += keyframed_animations[i].write(file, index_size, keyframe_size);
 	}
+	
 
 	return (keyframed_animation_offset + keyframed_animation_count * 4 + keyframedAnim_size);
 }
@@ -99,24 +99,24 @@ bool EANAnimationNode::getInterpolatedFrame(unsigned int frame, unsigned int fla
 \-------------------------------------------------------------------------------*/
 void EANAnimationNode::addTPoseAnimation(bool addCameraComponent)
 {
-	keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION));
+	keyframed_animations.push_back(EANKeyframedAnimation((unsigned int) LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION));
 	vector<EANKeyframe> &listPos = keyframed_animations.back().getKeyframes();
 	listPos.push_back(EANKeyframe(0, 0.0f, 0.0f, 0.0f, 1.0f));
 	listPos.push_back(EANKeyframe(1, 0.0f, 0.0f, 0.0f, 1.0f));
 
-	keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION));
+	keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition));
 	vector<EANKeyframe> &listRot = keyframed_animations.back().getKeyframes();
 	listRot.push_back(EANKeyframe(0, 0.0f, 0.0f, 0.0f, 1.0f));
 	listRot.push_back(EANKeyframe(1, 0.0f, 0.0f, 0.0f, 1.0f));
 
-	keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE));
-	vector<EANKeyframe> &listScale = keyframed_animations.back().getKeyframes();
-	listScale.push_back(EANKeyframe(0, 1.0f, 1.0f, 1.0f, 1.0f));
-	listScale.push_back(EANKeyframe(1, 1.0f, 1.0f, 1.0f, 1.0f));
-
-	if (addCameraComponent)
+	if (!addCameraComponent)
 	{
-		keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA));
+		keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA));
+		vector<EANKeyframe> &listScale = keyframed_animations.back().getKeyframes();
+		listScale.push_back(EANKeyframe(0, 1.0f, 1.0f, 1.0f, 1.0f));
+		listScale.push_back(EANKeyframe(1, 1.0f, 1.0f, 1.0f, 1.0f));
+	}else {
+		keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA));
 		vector<EANKeyframe> &listScale = keyframed_animations.back().getKeyframes();
 		listScale.push_back(EANKeyframe(0, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));
 		listScale.push_back(EANKeyframe(1, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));

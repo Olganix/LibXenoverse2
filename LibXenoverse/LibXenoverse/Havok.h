@@ -176,7 +176,7 @@ public:
 
 	TiXmlElement* exportXml(std::vector<Havok_TagType*> &listType);
 	void importXml(TiXmlElement* node);
-	void importXml_secondStep(TiXmlElement* node, std::vector<Havok_TagType*> &listType);
+	void importXml_secondkeyframe(TiXmlElement* node, std::vector<Havok_TagType*> &listType);
 
 };
 
@@ -332,6 +332,14 @@ public:
 	bool	importFBX(FbxNode *fbxNode);
 	void	exportFBX(FbxScene *scene);
 #endif
+
+	//to get debug, to find what is going on.
+	void simplifyHavokXml(string filename, string filenameOut);
+	TiXmlElement* simplifyHavokXml_Node(TiXmlElement* currentNode_src, size_t &nbVertices, size_t &nbTriangles, size_t &nbStaticNodes, size_t &nbAABB, EMDModel* emdModel);			//recursive
+	TiXmlElement* simplifyHavokXml_Node_Vertices(TiXmlElement* currentNode_src, size_t &nbVertices, EMDModel* emdModel);
+	TiXmlElement* simplifyHavokXml_Node_Faces(TiXmlElement* currentNode_src, size_t &nbTriangles, EMDModel* emdModel);
+	TiXmlElement* simplifyHavokXml_Node_AabbTree(TiXmlElement* currentNode_src, size_t nbTriangles, size_t &nbStaticNodes, EMDModel* emdModel);
+	TiXmlElement* simplifyHavokXml_Node_SimTree(TiXmlElement* currentNode_src, size_t nbStaticNodes, size_t &nbAABB, EMDModel* emdModel);
 };
 
 

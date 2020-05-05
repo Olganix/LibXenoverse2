@@ -89,12 +89,18 @@ void EMM::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 		EMM_Header_Sub* emm_Header_Sub = (EMM_Header_Sub*)(EMO_BaseFile::GetOffsetPtr_native(buf, offset_EMM_Header_Sub));
 		
 		binCt.write_Coloration_Tag("offset_unknowValues", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(startAdress + emm_Header_Sub->offset_unknowValues, true) + " EMM_Section", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-		if(hdr->header_size > 0x14)
-			binCt.write_Coloration_Tag("unknown_0", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		if (hdr->header_size > 0x14)
+		{
+			binCt.write_Coloration_Tag("unknow_0", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		}
 		if (hdr->header_size > 0x18)
-			binCt.write_Coloration_Tag("unknown_1", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		{
+			binCt.write_Coloration_Tag("unknow_1", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		}
 		if (hdr->header_size > 0x1C)
-			binCt.write_Coloration_Tag("unknown_2", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		{
+			binCt.write_Coloration_Tag("unknow_2", "uint32_t", "padding", offset, sizeof(uint32_t), "EMM_Header_Sub", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+		}
 
 		if ((emm_Header_Sub->offset_unknowValues)&&(startAdress + emm_Header_Sub->offset_unknowValues < size))
 		{
@@ -132,7 +138,7 @@ void EMM::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 		binCt.write_Coloration_Tag("name", "32 x char", "", offset, 32 * sizeof(char), "EMM_Material_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 32 * sizeof(char);
 		binCt.write_Coloration_Tag("shaderProgName", "32 x char", "", offset, 32 * sizeof(char), "EMM_Material_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 32 * sizeof(char);
 		binCt.write_Coloration_Tag("number_parameters", "uint16_t", "", offset, sizeof(uint16_t), "EMM_Material_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-		binCt.write_Coloration_Tag("unknown_0", "uint16_t", "", offset, sizeof(uint16_t), "EMM_Material_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+		binCt.write_Coloration_Tag("unknow_0", "uint16_t", "", offset, sizeof(uint16_t), "EMM_Material_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 
 
 
@@ -148,10 +154,14 @@ void EMM::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 
 			binCt.write_Coloration_Tag("name", "32 x char", "", offset, 32 * sizeof(char), "EMM_Parameter_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 32 * sizeof(char);
 			binCt.write_Coloration_Tag("type", "uint16_t", " 0: Float, 1: uint", offset, sizeof(uint16_t), "EMM_Parameter_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-			binCt.write_Coloration_Tag("unknown_0", "uint16_t", "", offset, sizeof(uint16_t), "EMM_Parameter_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+			binCt.write_Coloration_Tag("unknow_0", "uint16_t", "", offset, sizeof(uint16_t), "EMM_Parameter_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 			binCt.write_Coloration_Tag("value", "uint32_t or float32", "", offset, sizeof(uint32_t), "EMM_Parameter_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 		}
 	}
+
+	if (*number_materials == 0)						//case dbxv Ibm_Crg_light.emm padding to be on % 8
+		binCt.write_Coloration_Tag("padding", "uint32_t", "", offset, sizeof(uint32_t), "EMM_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+
 
 	binCt.write_Coloration_Gaps(0x0, size, sizeof(uint8_t), idTag, "Empty", parent, listBytesAllreadyTagged);		//test Empty/gaps/holes.
 }

@@ -50,14 +50,14 @@ struct EMD_Header
 	uint16_t endian;			// 4
 	uint16_t header_size;		// 6
 	uint8_t version[4];			// 8			//could be something else but difficult to see.
-	uint32_t unknown_0;			// C
+	uint32_t unknow_0;			// C
 } PACKED;
 static_assert(sizeof(EMD_Header) == 0x10, "Incorrect structure size.");
 
 
 struct EMD_Section
 {
-	uint16_t unknown_0;			// 0
+	uint16_t unknow_0;			// 0
 	uint16_t number_models;		// 2
 	uint32_t offset_models;		// 4
 	uint32_t offset_models_name;// 8
@@ -66,7 +66,7 @@ static_assert(sizeof(EMD_Section) == 0xC, "Incorrect structure size.");
 
 struct EMDModel_Section
 {
-	uint16_t unknown_0;			// 0
+	uint16_t unknow_0;			// 0
 	uint16_t number_meshs;		// 2
 	uint32_t offset_meshs;		// 4
 } PACKED;
@@ -87,7 +87,7 @@ struct EMDMesh_Section
 	float	aabb_max_z;			// 28
 	float	aabb_max_w;			// 2c
 	uint32_t offset_mesh_name;	// 30
-	uint16_t unknown_0;			// 34
+	uint16_t unknow_0;			// 34
 	uint16_t number_submeshs;	// 36
 	uint32_t offset_submeshs;	// 38
 } PACKED;
@@ -112,7 +112,7 @@ struct EMDSubmesh_Section
 	uint32_t number_vertex;		// 38
 	uint32_t offset_vertex;		// 3c
 	uint32_t offset_submesh_name;// 40
-	uint8_t unknown_0;			// 44
+	uint8_t unknow_0;			// 44
 	uint8_t number_textureDef;	// 45
 	uint16_t number_triangles;	// 46
 	uint32_t offset_textureDef;	// 48
@@ -122,10 +122,10 @@ static_assert(sizeof(EMDSubmesh_Section) == 0x50, "Incorrect structure size.");
 
 struct EMDTextureDef_Section
 {
-	uint8_t unknown_0;			// 0
+	uint8_t flag0;				// 0
 	uint8_t textureIndex;		// 1
-	uint8_t unknown_1;			// 2
-	uint8_t unknown_2;			// 3
+	uint8_t adressMode_uv;		// 2
+	uint8_t filtering_minMag;	// 3
 	float	texture_scale_u;	// 4
 	float	texture_scale_v;	// 8
 } PACKED;
@@ -166,11 +166,11 @@ public:
 	float norm_x;					//same is in DBX (may the flags 0x8000),
 	float norm_y;					// you have float16 values
 	float norm_z;					// we will stock in float (is float32)
-
+	
 	float tang_x;					//same as norm_x, could be in float16 in file
 	float tang_y;					// but stock in float32.
 	float tang_z;
-
+	
 	float text_u;					//same : text_u could be in float16 in certain files, 
 	float text_v;					// but stock in float32.
 
@@ -182,14 +182,13 @@ public:
 	uint8_t blend[4];
 	float blend_weight[4];			//same blend_weight[1] could be a float16 in certain files
 
-
 	EMDVertex(EMDVertex* emdVertex = 0);
 
 	void	zero(void);
 	bool	operator == (const EMDVertex& vertex);
 	
-	void	read(File *file, uint16_t parentflags);
-	void	write(File *file, uint16_t flags);
+	void	read(File *file, uint16_t parentflags, uint16_t &paddingForCompressedVertex);
+	void	write(File *file, uint16_t flags, uint16_t paddingForCompressedVertex);
 
 	void	getColorRGBAFloat(float &r, float &g, float &b, float &a);			//get values into [0,1] ranges
 	void	setColorFromRGBAFloat(float r, float g, float b, float a);			//set values from [0,1] ranges
@@ -212,7 +211,6 @@ public:
 	vector<unsigned int> faces;
 	vector<string> bone_names;
 
-
 	EMDTriangles(EMDTriangles* emdTriangles = 0);
 
 	void	read(File *file);
@@ -222,7 +220,7 @@ public:
 	void	replaceBonesNames(const string &oldName, const string &newName);
 
 	bool	importXml(TiXmlElement* xmlCurrentNode, vector<EMDVertex> &vertices);
-	TiXmlElement*	exportXml(void);
+	TiXmlElement*	exportXml(vector<EMDVertex> &vertices);
 };
 
 /*-------------------------------------------------------------------------------\
@@ -231,7 +229,7 @@ public:
 class EMDTextureUnitState
 {
 	friend class EMD;
-	friend class EMG_Texture;
+	friend class EMGTextureUnitState;
 
 public:
 	unsigned char flag0;
@@ -254,6 +252,9 @@ public:
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+
+	bool	importTextureDefXml(TiXmlElement* xmlCurrentNode);
+	TiXmlElement*	exportTextureDefXml(void);
 };
 
 
@@ -302,17 +303,21 @@ public:
 	void	zero(void);
 
 
-	void	read(File *file);
-	void	write(File *file);
+	void	read(File *file, uint16_t &paddingForCompressedVertex);
+	void	write(File *file, uint16_t paddingForCompressedVertex);
+
 
 	size_t	getVertexTypeFlags(void) { return vertex_type_flag; }
+	void	setVertexTypeFlags(size_t flags) { vertex_type_flag = flags; vertex_size = EMDVertex::getSizeFromFlags(vertex_type_flag); }
 	void	setVertexScale(float scale);
 	void	getBonesNames(vector<string> &bones_names);
 	void	replaceBonesNames(const string &oldName, const string &newName);
 	string	getMaterialName(void) { return name; }
+	void	setMaterialName(string name) { this->name = name; }
 	vector<EMDVertex>	&getVertices(void) { return vertices; }
 	vector<EMDTriangles>	&getTriangles(void) { return triangles; }
 	vector<EMDTextureUnitState>	&getDefinitions(void) { return definitions; }
+	void	setAABB(float aabb_center_x, float aabb_center_y, float aabb_center_z, float aabb_center_w, float aabb_min_x, float aabb_min_y, float aabb_min_z, float aabb_min_w, float aabb_max_x, float aabb_max_y, float aabb_max_z, float aabb_max_w)  { this->aabb_center_x = aabb_center_x; this->aabb_center_y = aabb_center_y; this->aabb_center_z = aabb_center_z; this->aabb_center_w = aabb_center_w; this->aabb_min_x = aabb_min_x; this->aabb_min_y = aabb_min_y; this->aabb_min_z = aabb_min_z; this->aabb_min_w = aabb_min_w; this->aabb_max_x = aabb_max_x; this->aabb_max_y = aabb_max_y; this->aabb_max_z = aabb_max_z; this->aabb_max_w = aabb_max_w; }
 	size_t	mergeVertex(EMDVertex &v);
 	void	mergeTriangles();
 
@@ -321,6 +326,10 @@ public:
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+
+	void	useTextureDefTemplate(EMDSubmesh* other);
+	bool	importTextureDefXml(TiXmlElement* xmlCurrentNode);
+	TiXmlElement*	exportTextureDefXml(void);
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
@@ -345,7 +354,7 @@ class EMDMesh
 
 protected:
 	string name;
-	unsigned short unknown_total;
+	unsigned short unknow_total;
 	vector<EMDSubmesh*> submeshes;
 	
 	float aabb_center_x;
@@ -368,11 +377,13 @@ public:
 	~EMDMesh(void);
 	void	zero(void);
 
-	void	read(File *file);
-	void	write(File *file);
+	void	read(File *file, uint16_t &paddingForCompressedVertex);
+	void	write(File *file, uint16_t paddingForCompressedVertex);
 
 	void	setVertexScale(float scale);
 	string	getName(void) { return name; }
+	void	setName(string name) { this->name = name; }
+	void	setAABB(float aabb_center_x, float aabb_center_y, float aabb_center_z, float aabb_center_w, float aabb_min_x, float aabb_min_y, float aabb_min_z, float aabb_min_w, float aabb_max_x, float aabb_max_y, float aabb_max_z, float aabb_max_w) { this->aabb_center_x = aabb_center_x; this->aabb_center_y = aabb_center_y; this->aabb_center_z = aabb_center_z; this->aabb_center_w = aabb_center_w; this->aabb_min_x = aabb_min_x; this->aabb_min_y = aabb_min_y; this->aabb_min_z = aabb_min_z; this->aabb_min_w = aabb_min_w; this->aabb_max_x = aabb_max_x; this->aabb_max_y = aabb_max_y; this->aabb_max_z = aabb_max_z; this->aabb_max_w = aabb_max_w; }
 	
 	void	getBonesNames(vector<string> &bones_names);
 	void	replaceBonesNames(const string &oldName, const string &newName);
@@ -382,6 +393,10 @@ public:
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+
+	void	useTextureDefTemplate(EMDMesh* other);
+	bool	importTextureDefXml(TiXmlElement* xmlCurrentNode);
+	TiXmlElement*	exportTextureDefXml(void);
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
@@ -404,17 +419,18 @@ class EMDModel
 
 protected:
 	string name;
-	unsigned short unknown_total;
+	unsigned short unknow_total;
 	vector<EMDMesh*> meshes;
 
 public:
 	EMDModel(EMDModel* emdModel = 0);
 	~EMDModel(void);
 
-	void	read(File *file);
-	void	write(File *file);
+	void	read(File *file, uint16_t &paddingForCompressedVertex);
+	void	write(File *file, uint16_t paddingForCompressedVertex);
 
 	string	getName(void) { return name; }
+	void	setName(string name) { this->name = name; }
 	void	setVertexScale(float scale);
 	vector<string> getMeshNames(void);
 	vector<EMDMesh *>	&getMeshes(void) { return meshes; }
@@ -424,6 +440,10 @@ public:
 
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+
+	void	useTextureDefTemplate(EMDModel* other);
+	bool	importTextureDefXml(TiXmlElement* xmlCurrentNode);
+	TiXmlElement*	exportTextureDefXml(void);
 
 #ifdef LIBXENOVERSE_FBX_SUPPORT
 	void	importFBX(FbxNode* fbxNode, bool compressedFlag = true);
@@ -445,11 +465,10 @@ class EMD
 protected:
 	string name;
 	string version;
-	uint16_t header_size;				//test Todo remove and uncomment into read() and write()
 	uint32_t unknow_0;
 	uint16_t unknow_1;
 	vector<EMDModel*> models;
-
+	uint16_t paddingForCompressedVertex;
 
 	
 
@@ -466,9 +485,11 @@ public:
 	void	write(File *file);
 
 	string	getName(void) { return name; }
+	void	setName(string name) { this->name = name; }
 	void	setVertexScale(float scale);
 	vector<string>	getBonesNames(void);
 	void	replaceBonesNames(const string &oldName, const string &newName);
+	vector<EMDModel*> &getModel() { return models; }
 	size_t	getNumberModel() { return models.size(); }
 	void	mergeTriangles();
 
@@ -476,6 +497,13 @@ public:
 	void	saveXml(string filename);
 	bool	importXml(TiXmlElement* xmlCurrentNode);
 	TiXmlElement*	exportXml(void);
+	
+	
+	bool	loadTextureDefXml(string filename);
+	void	saveTextureDefXml(string filename);
+	void	useTextureDefTemplate(EMD* other);
+	bool	importTextureDefXml(TiXmlElement* xmlCurrentNode);
+	TiXmlElement*	exportTextureDefXml(void);
 
 
 	//Debug/work: create a file for wxHexEditor, for add tag and color on section of the file. also detect if a file still have empty part (but you better have to ouput in a log file)

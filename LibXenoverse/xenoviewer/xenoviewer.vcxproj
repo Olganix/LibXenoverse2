@@ -56,7 +56,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>qt-gradient-editor/gradLib/src;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/qt/include/QtGui;$(SolutionDir)/depends/qt/include/QtWidgets;$(SolutionDir)/depends/qt/include/QtWinExtras;$(SolutionDir)/depends/ogre_v1_7/include;$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/depends/zlib/include;$(SolutionDir)/depends/ogre_v1_7/ogre/OgreMain/include;$(SolutionDir)/depends/ogre_v1_7/ogre/RenderSystems/Direct3D9/include;$(SolutionDir)/depends/ogre_v1_7\ogre\CmakeResults_32b\include;$(SolutionDir)/depends/ogre_v1_7/Include/OIS;$(SolutionDir)/depends/ogre_v1_7/Include/freetype;$(SolutionDir)/depends/ogre_v1_7/ogre/Samples/Common/include;$(SolutionDir)/LibXenoverse/LibXenoverse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LIBXENOVERSE_WINSDK_SUPPORT;LIBXENOVERSE_ZLIB_SUPPORT;LIBXENOVERSE_DEBUGGING_LOG;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LIBXENOVERSE_WINSDK_SUPPORT;LIBXENOVERSE_ZLIB_SUPPORT;LIBXENOVERSE_DEBUGGING_LOG;_MBCS;LIBXENOVERSE_FBX_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
       <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
@@ -77,7 +77,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>qt-gradient-editor/gradLib/src;$(SolutionDir)/depends/qt/include;$(SolutionDir)/depends/qt/include/QtCore;$(SolutionDir)/depends/qt/include/QtGui;$(SolutionDir)/depends/qt/include/QtWidgets;$(SolutionDir)/depends/qt/include/QtWinExtras;$(SolutionDir)/depends/ogre_v1_7/include;$(SolutionDir)/depends/fbxsdk/include;$(SolutionDir)/depends/zlib/include;$(SolutionDir)/depends/ogre_v1_7/ogre/OgreMain/include;$(SolutionDir)/depends/ogre_v1_7/ogre/RenderSystems/Direct3D9/include;$(SolutionDir)/depends/ogre_v1_7\ogre\CmakeResults_32b\include;$(SolutionDir)/depends/ogre_v1_7/Include/OIS;$(SolutionDir)/depends/ogre_v1_7/Include/freetype;$(SolutionDir)/depends/ogre_v1_7/ogre/Samples/Common/include;$(SolutionDir)/LibXenoverse/LibXenoverse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <PreprocessorDefinitions>LIBXENOVERSE_WINSDK_SUPPORT;LIBXENOVERSE_ZLIB_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LIBXENOVERSE_WINSDK_SUPPORT;LIBXENOVERSE_ZLIB_SUPPORT;LIBXENOVERSE_FBX_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -98,6 +98,7 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MOC</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <ClInclude Include="CollisionMaker.h" />
     <ClInclude Include="EANOgre.h" />
     <ClInclude Include="EMBOgre.h" />
     <ClInclude Include="EMDOgre.h" />
@@ -151,6 +152,7 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CollisionMaker.cpp" />
     <ClCompile Include="DocumentWindow.cpp" />
     <ClCompile Include="EANOgre.cpp" />
     <ClCompile Include="EMBOgre.cpp" />

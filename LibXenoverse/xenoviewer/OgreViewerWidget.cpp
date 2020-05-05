@@ -5,6 +5,7 @@
 #include "EANOgre.h"
 #include "SkeletonDebug.h"
 #include "SkeletonDebug2.h"
+#include "CollisionMaker.h"
 #include "EMDRenderObjectListener.h"
 #include "ViewerGrid.h"
 #include "OgreWidget.h"
@@ -251,6 +252,10 @@ namespace QtOgre
 			}
 		}
 
+
+		mCollisionMaker = new CollisionMaker(mSceneMgr, mCamera);
+
+
 		//loadDebugModels();				//redondant test.
 	}
 
@@ -376,57 +381,36 @@ namespace QtOgre
 				EANOgreAnimation *force_animation = (*it)->toForceAnimation();
 				EANOgreAnimation *force_animation2 = (*it)->toForceAnimation2();
 
-				if ((force_animation)&&(force_animation->getEANAnimation()))
+				if ((force_animation)&&(force_animation->getEanAnimation()))
 				{
 					for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
 						(*it)->tagAnimationChange(force_animation);
 				}
 
-				if ((force_animation2) && (force_animation2->getEANAnimation()))
+				if ((force_animation2) && (force_animation2->getEanAnimation()))
 				{
 					for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end(); it++)
 						(*it)->tagAnimationChange2(force_animation2);
 				}
 
 				
-				if ((force_animation) && (force_animation->getEmaMaterialAnimation()))
+				if ( ((force_animation) && (force_animation->getEmaAnimation())) || 
+					 ((force_animation2) && (force_animation2->getEmaAnimation())) )
 				{
 					EMMOgre* emmOgre = 0;
-					EMA_Material_Animation* ema_matAnim = force_animation->getEmaMaterialAnimation();
-					vector<EMA_Material_Material> &materials = ema_matAnim->getMaterials();
+					EmaAnimation* ema_matAnim = force_animation->getEmaAnimation();
+					vector<EMAAnimation_ByNode> &nodes = ema_matAnim->getOrganizedNodes();
 
-					for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
+					for (list<EMDOgre *>::iterator it2 = emd_list.begin(); it2 != emd_list.end(); it2++)
 					{
-						emmOgre = (*it)->getMaterialPack();
-
-						for (size_t i = 0, nb = materials.size(); i < nb; i++)
+						emmOgre = (*it2)->getMaterialPack();
+						if (emmOgre->getName() == (*it)->getName())			//get concerned EmmMaterial by name
 						{
-							if (emmOgre->getMaterial(materials.at(i).getName()))
-							{
+							if((force_animation) && (force_animation->getEmaAnimation()))
 								emmOgre->tagAnimationChange(force_animation);
-								break;
-							}
-						}
-					}
-				}
 
-				if ((force_animation2) && (force_animation2->getEmaMaterialAnimation()))
-				{
-					EMMOgre* emmOgre = 0;
-					EMA_Material_Animation* ema_matAnim = force_animation2->getEmaMaterialAnimation();
-					vector<EMA_Material_Material> &materials = ema_matAnim->getMaterials();
-
-					for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end(); it++)
-					{
-						emmOgre = (*it)->getMaterialPack();
-
-						for (size_t i = 0, nb = materials.size(); i < nb; i++)
-						{
-							if (emmOgre->getMaterial(materials.at(i).getName()))
-							{
+							if ((force_animation2) && (force_animation2->getEmaAnimation()))
 								emmOgre->tagAnimationChange(force_animation2);
-								break;
-							}
 						}
 					}
 				}
@@ -436,8 +420,7 @@ namespace QtOgre
 
 
 
-
-
+			
 			for (list<ESKOgre *>::iterator it = esk_list.begin(); it != esk_list.end();)
 			{
 				if ((*it)->toDelete())
@@ -517,7 +500,6 @@ namespace QtOgre
 				it++;
 			}
 
-			
 
 			for (list<EMDOgre *>::iterator it = emd_list.begin(); it != emd_list.end();)
 			{
@@ -776,10 +758,11 @@ namespace QtOgre
 			if(haveMoved == false)
 			{
 				QMenu myMenu;
-				QMenu* displayMenu = myMenu.addMenu("Display");
 
-				QAction* getRayCastInfoAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&getInfo"), this);
-				myMenu.addAction(getRayCastInfoAct);
+
+
+				//////////////////////////// Display Context Menu
+				QMenu* displayMenu = myMenu.addMenu("Display");
 
 				QAction* displayFullscreen = NULL;
 				if (mIsFullscreen)
@@ -936,6 +919,70 @@ namespace QtOgre
 				
 
 				
+
+
+
+
+
+
+				
+				//////////////////////////// Collisions Context Menu
+
+				QAction* buildVoxelAct = 0, *reduceVoxelAct = 0, *exportFbxAct = 0, *exportEmdAct = 0, *exportHavokAct = 0, *voxelVisibleAct = 0, *voxelCleanAct = 0, *voxelOpaqueAct = 0, *reduceVoxelAllowIntersectionOpaqueAct = 0,
+					*voxelWidthAct_0_05 = 0, *voxelWidthAct_0_1 = 0, *voxelWidthAct_0_2 = 0, *voxelWidthAct_0_3 = 0, *voxelWidthAct_0_4 = 0, *voxelWidthAct_0_5 = 0, *voxelWidthAct_0_6 = 0, *voxelWidthAct_0_7 = 0, *voxelWidthAct_0_8 = 0, *voxelWidthAct_0_9 = 0, *voxelWidthAct_1_0 = 0, *voxelWidthAct_1_5 = 0, *voxelWidthAct_2_0 = 0;
+				{
+					QMenu* collisionsMenu = myMenu.addMenu("Collisions");
+
+					buildVoxelAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Build Voxels"), this);
+					collisionsMenu->addAction(buildVoxelAct);
+
+					
+
+					voxelVisibleAct = new QAction(QIcon((mCollisionMaker->getVisible()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&Visible"), this); collisionsMenu->addAction(voxelVisibleAct);
+					voxelOpaqueAct = new QAction(QIcon((mCollisionMaker->getIsOpaque()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&isOpaque"), this); collisionsMenu->addAction(voxelOpaqueAct);
+
+
+					if (mCollisionMaker->haveVoxel())
+					{
+						if (!mCollisionMaker->getIsReduced())
+						{
+							reduceVoxelAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Reduce Voxels"), this); collisionsMenu->addAction(reduceVoxelAct);
+							reduceVoxelAllowIntersectionOpaqueAct = new QAction(QIcon((mCollisionMaker->getCouldHaveBoxIntersection()) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&Allow Insters."), this); collisionsMenu->addAction(reduceVoxelAllowIntersectionOpaqueAct);
+						}
+
+						voxelCleanAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Clean"), this);
+						collisionsMenu->addAction(voxelCleanAct);
+
+
+						QMenu* collisionsExportMenu = collisionsMenu->addMenu("Export");
+						exportFbxAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Export Fbx"), this); collisionsExportMenu->addAction(exportFbxAct);
+						exportEmdAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Export Emd"), this); collisionsExportMenu->addAction(exportEmdAct);
+						exportHavokAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&Export Havok"), this); collisionsExportMenu->addAction(exportHavokAct);
+					}
+
+					QMenu* voxelWidthMenu = collisionsMenu->addMenu("VoxelWidth");
+					voxelWidthAct_0_05 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.05) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.05"), this); voxelWidthMenu->addAction(voxelWidthAct_0_05);
+					voxelWidthAct_0_1 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.1) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.1"), this); voxelWidthMenu->addAction(voxelWidthAct_0_1);
+					voxelWidthAct_0_2 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.2) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.2"), this); voxelWidthMenu->addAction(voxelWidthAct_0_2);
+					voxelWidthAct_0_3 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.3) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.3"), this); voxelWidthMenu->addAction(voxelWidthAct_0_3);
+					voxelWidthAct_0_4 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.4) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.4"), this); voxelWidthMenu->addAction(voxelWidthAct_0_4);
+					voxelWidthAct_0_5 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.5) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.5"), this); voxelWidthMenu->addAction(voxelWidthAct_0_5);
+					voxelWidthAct_0_6 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.6) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.6"), this); voxelWidthMenu->addAction(voxelWidthAct_0_6);
+					voxelWidthAct_0_7 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.7) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.7"), this); voxelWidthMenu->addAction(voxelWidthAct_0_7);
+					voxelWidthAct_0_8 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.8) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.8"), this); voxelWidthMenu->addAction(voxelWidthAct_0_8);
+					voxelWidthAct_0_9 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 0.9) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&0.9"), this); voxelWidthMenu->addAction(voxelWidthAct_0_9);
+					voxelWidthAct_1_0 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 1.0) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&1.0"), this); voxelWidthMenu->addAction(voxelWidthAct_1_0);
+					voxelWidthAct_1_5 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 1.5) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&1.5"), this); voxelWidthMenu->addAction(voxelWidthAct_1_5);
+					voxelWidthAct_2_0 = new QAction(QIcon((mCollisionMaker->getVoxelSize() == 2.0) ? ":/resources/icons/play.png" : ":/resources/icons/stop.png"), tr("&2.0"), this); voxelWidthMenu->addAction(voxelWidthAct_2_0);
+				}
+
+				//////////////////////////// RayCast info Context Menu
+				QAction* getRayCastInfoAct = 0;
+				{
+					getRayCastInfoAct = new QAction(QIcon(":/resources/icons/apply_material.png"), tr("&getInfo"), this);
+					myMenu.addAction(getRayCastInfoAct);
+				}
+
 
 
 				//menuBar()->addSeparator();
@@ -1157,7 +1204,7 @@ namespace QtOgre
 					}
 
 
-				}else if (selectedItem == getRayCastInfoAct){
+				}else if ((getRayCastInfoAct) && (selectedItem == getRayCastInfoAct)) {
 
 					Ogre::Ray mouseRay = mCamera->getCameraToViewportRay((event->x() - this->pos().rx()) / (double)(mViewport->getActualWidth()), (event->y() - this->pos().ry()) / (double)(mViewport->getActualHeight()));
 
@@ -1240,6 +1287,7 @@ namespace QtOgre
 
 					SHOW_SMSG(str);
 
+
 				}else {
 
 					for (size_t i = 0, nb = listBkColorAction.size(); i < nb; i++)
@@ -1253,6 +1301,74 @@ namespace QtOgre
 
 				}
 				
+
+
+				if (mCollisionMaker)
+				{
+					if ((buildVoxelAct) && (selectedItem == buildVoxelAct)) {
+						mCollisionMaker->buildVoxel(emd_list);
+
+					}else if ((voxelVisibleAct) && (selectedItem == voxelVisibleAct)) {
+						mCollisionMaker->setVisible(!mCollisionMaker->getVisible());
+					}else if ((voxelOpaqueAct) && (selectedItem == voxelOpaqueAct)) {
+						mCollisionMaker->setIsOpaque(!mCollisionMaker->getIsOpaque());
+					}else if ((voxelCleanAct) && (selectedItem == voxelCleanAct)) {
+						mCollisionMaker->destroyVoxel();
+					}else if ((reduceVoxelAct) && (selectedItem == reduceVoxelAct)) {
+						mCollisionMaker->reduceVoxel();
+					}else if ((reduceVoxelAllowIntersectionOpaqueAct) && (selectedItem == reduceVoxelAllowIntersectionOpaqueAct)) {
+						mCollisionMaker->setCouldHaveBoxIntersection(!mCollisionMaker->getCouldHaveBoxIntersection());
+						
+						
+
+					}else if ((exportFbxAct) && (selectedItem == exportFbxAct)) {
+						mCollisionMaker->exportVoxel_Fbx(((emd_list.size() != 0) ? folderFromFilename((*emd_list.begin())->fullName) : "") + "Voxels");
+					}else if ((exportEmdAct) && (selectedItem == exportEmdAct)) {
+						mCollisionMaker->exportVoxel_Emd(((emd_list.size() != 0) ? folderFromFilename((*emd_list.begin())->fullName) : "") + "Voxels");
+					}else if ((exportHavokAct) && (selectedItem == exportHavokAct)) {
+						mCollisionMaker->exportVoxel_Havok(((emd_list.size() != 0) ? folderFromFilename((*emd_list.begin())->fullName) : "") + "Voxels");
+
+					}else if ((voxelWidthAct_0_05) && (selectedItem == voxelWidthAct_0_05)) {
+						mCollisionMaker->setVoxelSize(0.05);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_1) && (selectedItem == voxelWidthAct_0_1)) {
+						mCollisionMaker->setVoxelSize(0.1);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_2) && (selectedItem == voxelWidthAct_0_2)) {
+						mCollisionMaker->setVoxelSize(0.2);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_3) && (selectedItem == voxelWidthAct_0_3)) {
+						mCollisionMaker->setVoxelSize(0.3);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_4) && (selectedItem == voxelWidthAct_0_4)) {
+						mCollisionMaker->setVoxelSize(0.4);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_5) && (selectedItem == voxelWidthAct_0_5)) {
+						mCollisionMaker->setVoxelSize(0.5);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_6) && (selectedItem == voxelWidthAct_0_6)) {
+						mCollisionMaker->setVoxelSize(0.6);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_7) && (selectedItem == voxelWidthAct_0_7)) {
+						mCollisionMaker->setVoxelSize(0.7);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_8) && (selectedItem == voxelWidthAct_0_8)) {
+						mCollisionMaker->setVoxelSize(0.8);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_0_9) && (selectedItem == voxelWidthAct_0_9)) {
+						mCollisionMaker->setVoxelSize(0.9);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_1_0) && (selectedItem == voxelWidthAct_1_0)) {
+						mCollisionMaker->setVoxelSize(1.0);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_1_5) && (selectedItem == voxelWidthAct_1_5)) {
+						mCollisionMaker->setVoxelSize(1.5);
+						mCollisionMaker->buildVoxel(emd_list);
+					}else if ((voxelWidthAct_2_0) && (selectedItem == voxelWidthAct_2_0)) {
+						mCollisionMaker->setVoxelSize(2.0);
+						mCollisionMaker->buildVoxel(emd_list);
+					}
+				}
 
 				
 				if ((mSkeletonVisible) && (skeleton_debug2))
@@ -1582,6 +1698,7 @@ namespace QtOgre
 
 		if (model->load(filename))
 		{
+			model->fullName = filename;
 			model->setMaterialPack(material);
 			Ogre::SceneNode *emd_root_node = model->build(mSceneMgr);
 			emd_list.push_back(model);

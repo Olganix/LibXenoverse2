@@ -44,6 +44,1124 @@ namespace LibXenoverse
 
 
 
+
+
+bool EMO::Load(const uint8_t *buf, unsigned int size)							//read
+{
+	Reset();
+
+	EMO_Header *hdr = (EMO_Header *)buf;
+	if (size < sizeof(EMO_Header) || hdr->signature != EMO_SIGNATURE)
+		return false;
+
+	this->big_endian = (buf[4] != 0xFE);
+	vertexInside = (hdr->vertex_offset == 0);
+
+	if (!EMO_Skeleton::Load(GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset)))
+	{
+		LOG_DEBUG("%s: Bad file, Skeleton sub file couldn't be loaded\n", FUNCNAME);
+	}
+
+	for (EMO_Bone &b : this->bones)
+		b.meta_original_offset += val32(hdr->skeleton_offset);
+
+	version = ToString((uint32_t)hdr->version[0]) + "." + ToString((uint32_t)hdr->version[1]) + "." + ToString((uint32_t)hdr->version[2]) + "." + ToString((uint32_t)hdr->version[3]);
+	this->unknow_0 = val32(hdr->unknow_0);
+	this->unknow_1 = val32(hdr->unknow_1);
+
+
+	EMO_PartsGroupHeader *pghdr = (EMO_PartsGroupHeader *)GetOffsetPtr(buf, hdr->parts_offset);
+
+
+	uint32_t *names_table = (uint32_t *)GetOffsetPtr(pghdr, pghdr->names_offset);
+
+	for (uint16_t i = 0; i < val16(pghdr->groups_count); i++)
+	{
+		EMO_PartsGroup group;
+
+		group.name = std::string((char *)GetOffsetPtr(pghdr, names_table, i));
+
+		EMO_PartHeader *phdr = (EMO_PartHeader *)GetOffsetPtr(pghdr, pghdr->offsets, i);
+		group.meta_original_offset = EMO_BaseFile::DifPointer(phdr, buf);
+
+		for (uint16_t j = 0; j < val32(phdr->emg_count); j++)
+		{
+			EMG part(big_endian);
+			char meta_name[2048];
+
+			snprintf(meta_name, sizeof(meta_name), "%s_%04x", group.name.c_str(), j);
+			part.meta_name = meta_name;
+
+			if (phdr->offsets[j] == 0)
+			{
+				group.parts.push_back(part);
+				continue;
+			}
+
+			uint8_t *emg_buf = GetOffsetPtr(phdr, phdr->offsets, j);
+
+			if (!part.Load(emg_buf, EMO_BaseFile::DifPointer(buf + size, emg_buf), this))
+			{
+				LOG_DEBUG("%s: Bad file, #EMG sub file couldn't be loaded (in group %s, part %04x)\n", FUNCNAME, group.name.c_str(), j);
+				continue;
+			}
+
+			group.parts.push_back(part);
+		}
+
+		this->groups.push_back(group);
+	}
+
+	return true;
+}
+
+
+
+
+bool sortEmg(EMG* a, EMG* b) 
+{
+	return a->getUnknow_inc() < b->getUnknow_inc(); 
+}
+
+uint8_t *EMO::CreateFile(unsigned int *psize)							//write
+{
+	unsigned int file_size;
+	uint32_t offset, vertex_start;
+	bool first = true;
+
+
+	/*
+	// We need to reorder parts first: but only when there are empty parts before non-empty parts!			// => wrong with case SSSS HYG_08.emo Todo look on it.
+	for (EMO_PartsGroup &pg : groups)
+	{
+		// Ignore these...
+		//if (pg.name == "face" || pg.name == "edge")
+		//	continue;
+
+		uint16_t first_empty = 0xFFFF;
+
+		for (size_t i = 0; i < pg.parts.size(); i++)
+		{
+			if (first_empty == 0xFFFF && pg.parts[i].IsEmpty())
+			{
+				first_empty = i;
+				break;
+			}
+		}
+
+		if (first_empty != 0xFFFF)
+		{
+			bool do_sort = false;
+
+			for (size_t i = 0; i < pg.parts.size(); i++)
+			{
+				if (!pg.parts[i].IsEmpty() && i > first_empty)
+				{
+					do_sort = true;
+					break;
+				}
+			}
+
+			//printf("do_sort = %d\n", do_sort);
+
+			if (do_sort)
+				std::sort(pg.parts.begin(), pg.parts.end(), EMO_PartsSorter(pg));
+		}
+	}
+	*/
+
+
+	/*
+	//solve EMG::unknow_0 = increment, if it's wrong order.	=> wrong for SSSSS HSY_00.emo
+	bool isWrong = false;
+	size_t inc = (size_t)-1;
+	for (EMO_PartsGroup &pg : groups)
+	{
+		for (size_t i = 0; i < pg.parts.size(); i++)
+		{
+			if ( (inc!=(size_t)-1) && (pg.parts.at(i).unknow_inc <= inc))
+			{
+				isWrong = true;
+				break;
+			}
+			inc = pg.parts.at(i).unknow_inc;
+		}
+		if (isWrong)
+			break;
+	}
+	if (isWrong)
+	{
+		inc = 2;									//most of files have diff of 2.
+		for (EMO_PartsGroup &pg : groups)
+			for (size_t i = 0; i < pg.parts.size(); i++)
+				pg.parts.at(i).unknow_inc = inc++;
+	}
+	*/
+
+
+	file_size = CalculateFileSize(&vertex_start);
+
+	size_t startOffsetVertices = vertex_start;
+
+	uint8_t *buf = new uint8_t[file_size];
+	if (!buf)
+	{
+		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		LibXenoverse::notifyError();
+		return nullptr;
+	}
+
+	memset(buf, 0, file_size);
+
+	EMO_Header *hdr = (EMO_Header *)buf;
+
+	hdr->signature = EMO_SIGNATURE;
+	hdr->endianess_check = val16(0xFFFE);
+	hdr->header_size = val16(sizeof(EMO_Header));
+
+	if (version.length() == 0)
+		version = "0";
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+			hdr->version[i] = (uint8_t)std::stoi(sv.at(i));
+		else
+			hdr->version[i] = 0;
+	}
+
+	hdr->unknow_0 = val32(this->unknow_0);
+	hdr->unknow_1 = val32(this->unknow_1);
+
+
+
+	offset = sizeof(EMO_Header);
+	hdr->parts_offset = val32(offset);
+
+	EMO_PartsGroupHeader *pghdr = (EMO_PartsGroupHeader *)GetOffsetPtr(buf, offset, true);
+
+	assert(groups.size() < 65536);
+	pghdr->groups_count = val16(groups.size());
+
+
+	std::vector<std::string> listEmm;
+	uint16_t material_count = GetEmmMaterials(listEmm, false);
+	pghdr->material_count = val16(material_count);
+
+	offset += sizeof(EMO_PartsGroupHeader);
+	if (groups.size() != 0)
+		offset += (groups.size() - 1) * sizeof(uint32_t);
+
+	for (size_t i = 0; i < groups.size(); i++)
+	{
+		EMO_PartsGroup &pg = groups[i];
+		
+		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
+		std::vector<EMG*> orderedByInc;
+		for (EMG &emg : pg.parts)
+			orderedByInc.push_back(&emg);
+
+		std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
+
+
+		if (offset & 0xF)
+			offset += (0x10 - (offset & 0xF));
+
+		pghdr->offsets[i] = val32(offset - sizeof(EMO_Header));
+
+
+		EMO_PartHeader *phdr = (EMO_PartHeader *)GetOffsetPtr(buf, offset, true);
+		assert(pg.parts.size() < 65536);
+		phdr->emg_count = val32(pg.parts.size());
+		offset += sizeof(EMO_PartHeader);
+
+		if (pg.parts.size() != 0)
+			offset += (pg.parts.size() - 1) * sizeof(uint32_t);
+
+
+		
+
+		for (size_t j = 0; j < orderedByInc.size(); j++)
+		{
+			EMG* part = orderedByInc.at(j);
+
+			part->big_endian = big_endian;
+
+			if (part->IsEmpty())
+			{
+				phdr->offsets[j] = 0;
+				continue;
+			}
+
+			if (offset & 0xF)
+				offset += (0x10 - (offset & 0xF));
+
+			// phdr->offsets[X] is ordered for the respect of emg inside partgroup, so we need to find the real index for offests.
+			for (size_t k = 0; k < pg.parts.size(); k++)
+			{
+				if (part == &pg.parts.at(k))
+				{
+					phdr->offsets[k] = val32(EMO_BaseFile::DifPointer(buf + offset, phdr));
+					break;
+				}
+			}
+
+			if (first)
+			{
+				first = false;
+			}else{
+				if (vertex_start & 0xf)
+					vertex_start += (0x10 - (vertex_start & 0xF));
+			}
+
+			/*
+			uint32_t vertex_start_local1, vertex_start_local2;
+			vertex_start_local1 = vertex_start_local2 = vertex_start - offset;
+
+			offset += part.CreatePart(buf + offset, this, startOffsetVertices - offset, &vertex_start_local2);
+
+			vertex_start += (vertex_start_local2 - vertex_start_local1);
+			*/
+
+			offset += part->CreatePart(buf + offset, this, startOffsetVertices, offset, &vertex_start, vertexInside);
+
+			if ((j + 1 != pg.parts.size()) && (vertex_start & 0xF))
+				vertex_start += (0x10 - (vertex_start & 0xF));
+
+			if (vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
+			{
+				size_t offset_vertices = offset;
+				offset += part->CreateVertex(buf + offset, offset);
+
+				if ((offset - offset_vertices) & 0xF)
+					offset += (0x10 - ((offset - offset_vertices) & 0xF));
+
+				if (offset & 0xF)
+					offset += (0x10 - (offset & 0xF));
+			}
+		}
+	}
+
+	if (offset & 0xF)
+		offset += (0x10 - (offset & 0xF));
+
+
+	pghdr->names_offset = (groups.size() != 0) ? val32(offset - sizeof(EMO_Header)) : 0;
+
+	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, offset, true);
+	offset += groups.size() * sizeof(uint32_t);
+
+	std::vector<string> listEMG;
+	for (size_t i = 0; i < groups.size(); i++)
+	{
+		EMO_PartsGroup &pg = groups[i];
+
+		names_table[i] = val32(offset - sizeof(EMO_Header));
+
+		strcpy((char *)buf + offset, pg.name.c_str());
+		offset += pg.name.length() + 1;
+
+		listEMG.push_back(pg.name);
+	}
+
+	if (offset & 0x3F)
+		offset += (0x40 - (offset & 0x3F));
+
+	unsigned int skl_size;
+	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, listEMG, EMA_TYPE_ANIM_Object_or_Camera, ((groups.size() != 0)&&(!vertexInside)));
+	if (!skl)
+	{
+		delete[] buf;
+		return nullptr;
+	}
+
+	hdr->skeleton_offset = val32(offset);
+	::memcpy(buf + offset, skl, skl_size);
+	delete[] skl;
+
+	offset += skl_size;
+
+
+	hdr->vertex_offset = 0;
+	if (!vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
+	{
+		hdr->vertex_offset = (groups.size() != 0) ? val32(offset) : val32(((size_t)ceil((double)offset / 16)) * 16);			//case Ibm_Crg.light.emo: same if there is no group, so no vertex, the vertex offset is as there is paading (same if in binaries there is no add lastpadding for skeleton)
+
+		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
+		first = true;
+		for (EMO_PartsGroup &pg : groups)
+		{
+			std::vector<EMG*> orderedByInc;
+			for (EMG &emg : pg.parts)
+				orderedByInc.push_back(&emg);
+
+			std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
+
+			for (EMG* p : orderedByInc)
+			{
+				if ((!first) && (offset & 0xF))
+					offset += (0x10 - (offset & 0xF));
+				
+				size_t verticesSize = p->CreateVertex(buf + offset, offset);
+				offset += verticesSize;
+				if(verticesSize!=0)
+					first = false;
+			}
+		}
+	}
+	assert(offset == file_size);
+
+	*psize = file_size;
+	return buf;
+}
+
+
+
+
+
+
+
+
+
+unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
+{
+	unsigned int file_size;
+
+	file_size = sizeof(EMO_Header);
+	file_size += sizeof(EMO_PartsGroupHeader);
+
+	if (groups.size() != 0)
+		file_size += (groups.size() - 1) * sizeof(uint32_t);
+
+	for (EMO_PartsGroup &pg : groups)
+	{
+		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
+		std::vector<EMG*> orderedByInc;
+		for (EMG &emg : pg.parts)
+			orderedByInc.push_back(&emg);
+
+		std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
+
+
+		if (file_size & 0xF)
+			file_size += (0x10 - (file_size & 0xF));
+
+		//LOG_DEBUG("file size before part %s: %x\n", pg.name.c_str(), file_size);
+
+		file_size += sizeof(EMO_PartHeader);
+		if (pg.parts.size() != 0)
+			file_size += (pg.parts.size() - 1) * sizeof(uint32_t);
+
+		for (EMG* p : orderedByInc)
+		{
+			if (p->IsEmpty())
+				continue;
+
+			if (file_size & 0xF)
+				file_size += (0x10 - (file_size & 0xF));
+
+			file_size += p->CalculatePartSize(vertexInside);
+
+			if (vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
+			{
+				size_t offset_vertices = file_size;
+				file_size += p->CalculateVertexSize(file_size);
+
+				if ((file_size - offset_vertices) & 0xF)
+					file_size += (0x10 - ((file_size - offset_vertices) & 0xF));
+
+				if (file_size & 0xF)
+					file_size += (0x10 - (file_size & 0xF));
+			}
+		}
+	}
+
+	if (file_size & 0xF)
+	{
+		file_size += (0x10 - (file_size & 0xF));
+	}
+
+	//LOG_DEBUG("file_size before names table %x\n", file_size);
+
+	file_size += groups.size() * sizeof(uint32_t);
+	for (EMO_PartsGroup &pg : groups)
+		file_size += (pg.name.length() + 1);
+
+	if (file_size & 0x3F)
+		file_size += (0x40 - (file_size & 0x3F));
+
+
+	//LOG_DEBUG("file size before skeleton: %x\n", file_size);
+
+	file_size += EMO_Skeleton::CalculateFileSize((groups.size() != 0)&&(!vertexInside));
+
+
+	*vertex_start = 0;
+	if (!vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
+	{
+		*vertex_start = file_size;
+
+		bool first = true;
+		for (EMO_PartsGroup &pg : groups)
+		{
+			std::vector<EMG*> orderedByInc;
+			for (EMG &emg : pg.parts)
+				orderedByInc.push_back(&emg);
+
+			std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
+
+			for (EMG* p : orderedByInc)
+			{
+				if ((!first) && (file_size & 0xF))
+					file_size += (0x10 - (file_size & 0xF));
+
+				size_t verticesSize = p->CalculateVertexSize(file_size);
+				file_size += verticesSize;
+				if (verticesSize != 0)
+					first = false;
+			}
+		}
+	}
+
+	//LOG_DEBUG("File size = %x\n", file_size);
+	return file_size;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// load/save the Xml version	/////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             DecompileToFile		                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::DecompileToFile(const std::string &path, bool show_error, bool build_path)	//save
+{
+	LOG_DEBUG("Emo is being saved to .xml file. This process may take several seconds.\n");
+	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
+
+	if (ret)
+	{
+		LOG_DEBUG("Emo has been saved to .xml.\n");
+	}
+
+	return ret;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+TiXmlDocument *EMO::Decompile() const
+{
+	TiXmlDocument *doc = new TiXmlDocument();
+
+	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
+	doc->LinkEndChild(decl);
+
+	TiXmlElement *root = new TiXmlElement("EMO");
+	root->SetAttribute("version", version);
+	root->SetAttribute("vertexInside", vertexInside ? "true" : "false");
+	root->SetAttribute("unknow_0", unknow_0);					//always 0
+	root->SetAttribute("unknow_1", unknow_1);					//always 0
+
+	EMO_Skeleton::Decompile(root);
+
+	size_t emg_inc = 0;
+	for (const EMO_PartsGroup &pg : groups)
+		pg.Decompile(root, emg_inc);
+
+	doc->LinkEndChild(root);
+	
+
+	return doc;
+}
+
+/*-------------------------------------------------------------------------------\
+|                             Decompile				                             |
+\-------------------------------------------------------------------------------*/
+void EMO_PartsGroup::Decompile(TiXmlNode *root, size_t &emg_inc) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("PartsGroup");
+
+	entry_root->SetAttribute("name", name);
+
+	for (size_t i = 0; i < parts.size(); i++)
+		parts.at(i).Decompile(entry_root, i, emg_inc);
+
+	root->LinkEndChild(entry_root);
+}
+
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             CompileFromFile		                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::CompileFromFile(const std::string &path, bool show_error, bool big_endian)		//load
+{
+	LOG_DEBUG("Emo is being loaded from .xml file. This process may take several seconds.\n");
+	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
+
+	if (ret)
+	{
+		LOG_DEBUG("Emo has been loaded from .xml.\n");
+	}
+
+	return ret;
+}
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
+{
+	Reset();
+	this->big_endian = big_endian;
+
+	
+
+	TiXmlHandle handle(doc);
+	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMO");
+	if (!root)
+	{
+		LOG_DEBUG("Cannot find\"EMO\" in xml.\n");
+		return false;
+	}
+
+	if (!EMO_Skeleton::Compile(root->FirstChildElement("Skeleton")))
+		return false;
+
+
+	root->QueryStringAttribute("version", &version);
+	root->QueryBoolAttribute("vertexInside", &vertexInside);
+	root->QueryUnsignedAttribute("unknow_0", &unknow_0);			//always 0
+	root->QueryUnsignedAttribute("unknow_1", &unknow_1);			//always 0
+	
+
+	for (const TiXmlElement *elem = root->FirstChildElement("PartsGroup"); elem; elem = elem->NextSiblingElement("PartsGroup"))
+	{
+		EMO_PartsGroup pg;
+
+		if (!pg.Compile(elem, this))
+		{
+			LOG_DEBUG("%s: PartsGroup compilation failed.\n", FUNCNAME);
+			continue;
+		}
+
+		groups.push_back(pg);
+	}
+
+	return true;
+}
+/*-------------------------------------------------------------------------------\
+|                             Compile				                             |
+\-------------------------------------------------------------------------------*/
+bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
+{
+	parts.clear();
+
+
+	if (root->QueryStringAttribute("name", &name) != TIXML_SUCCESS)
+	{
+		LOG_DEBUG("%s: Cannot get name of PartsGroup\n", FUNCNAME);
+		return false;
+	}
+
+	meta_original_offset = 0xFFFFFFFF;
+
+
+	for (const TiXmlElement *elem = root->FirstChildElement("EMG"); elem; elem = elem->NextSiblingElement("EMG"))
+	{
+		EMG emg;
+
+		if (!emg.Compile(elem, skl))
+		{
+			LOG_DEBUG("%s: Compilation of EMG failed.\n", FUNCNAME);
+			continue;
+		}
+
+		char meta_name[2048];
+		snprintf(meta_name, sizeof(meta_name), "%s_%04x", name.c_str(), parts.size());
+		emg.meta_name = meta_name;				//may be for unique name.
+
+		parts.push_back(emg);
+	}
+
+	return true;
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// EMD conversions	/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             readEmd				                             |
+\-------------------------------------------------------------------------------*/
+void EMO::readEmd(EMD* emd)
+{
+	name = emd->name;
+
+	size_t nbSection = 1;
+
+	size_t nbElements = emd->models.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		groups.push_back(EMO_PartsGroup());
+		groups.back().readEmdModel(emd->models.at(i), this, nbSection);
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             readEsk				                             |
+\-------------------------------------------------------------------------------*/
+void EMO::readEsk(ESK* esk)
+{
+	name = esk->name;
+	skeletonUniqueId = esk->skeletonUniqueId;
+
+
+	EskTreeNode* rootNode = esk->getTreeOrganisation();
+
+	vector<EskTreeNode*> newListBonesOrdered;
+	rootNode->getTreeBonesList(newListBonesOrdered);					//we get back the list of bones from follow hierarchy, to not having trouble for missing parents.
+
+	bones.clear();
+
+	EskTreeNode* node;
+	size_t nbBones = newListBonesOrdered.size();
+	for (size_t i = 1; i < nbBones; i++)					//we begin to 1 because the first is not a bone.
+	{
+		node = newListBonesOrdered.at(i);
+
+		bones.push_back(EMO_Bone());
+		bones.back().readESKBone(node->mBone);
+	}
+
+
+	for (size_t i = 1; i < nbBones; i++)					//same
+	{
+		node = newListBonesOrdered.at(i);
+
+		if ((node->mParent) && (node->mParent->mBone))
+		{
+			string parentName = node->mParent->mBone->getName();
+			for (size_t j = i - 1; j < i; --j)
+			{
+				if (bones.at(j).GetName() == parentName)
+				{
+					bones.at(i - 1).parent = &(bones.at(j));
+
+					if (bones.at(j).child == nullptr)
+					{
+						bones.at(j).child = &bones.at(i - 1);
+					}
+					else {
+
+						size_t inc = 0;
+						EMO_Bone* childBone = bones.at(j).child;
+
+						while (childBone->sibling != nullptr)
+						{
+							childBone = childBone->sibling;
+							++inc;
+						}
+						++inc;
+
+						childBone->sibling = &bones.at(i - 1);
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+
+
+
+
+	//Ik datas
+	listInverseKinematic.clear();
+	size_t nbBones_all = bones.size();
+	size_t nbGroup = esk->listInverseKinematic.size();
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Esk_IK_Group &group = esk->listInverseKinematic.at(i);
+		listInverseKinematic.push_back(Emo_IK_Group());
+
+		size_t nbIk = group.mListIK.size();
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			Esk_IK_Relation &ik = group.mListIK.at(j);
+			listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
+			Emo_IK_Relation &ik_b = listInverseKinematic.back().mListIK.back();
+
+			size_t nbBones = ik.mListBones.size();
+			for (size_t k = 0; k < nbBones; k++)
+			{
+				ESKBone* bone = ik.mListBones.at(k).bone;
+				EMO_Bone* bone_b = 0;
+
+				for (size_t m = 0; m < nbBones_all; m++)
+				{
+					if (bones.at(m).name == bone->getName())
+					{
+						bone_b = &bones.at(m);
+						break;
+					}
+				}
+				if (!bone_b)
+					continue;
+
+				ik_b.mListBones.push_back(Emo_IK_Relation::IKR_Bone(bone_b, ik.mListBones.at(k).value));
+			}
+		}
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             readEmdModel			                             |
+\-------------------------------------------------------------------------------*/
+void EMO_PartsGroup::readEmdModel(EMDModel* emd, EMO* emo, size_t &nbSection)
+{
+	name = emd->name;
+
+	size_t nbElements = emd->meshes.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		parts.push_back(EMG());
+
+		nbSection++;
+		//parts.back().unknow_inc = nbSection;						//not valid for certain SSSS files (case HSY_00.emo), but valid for all dbxv1 dbxv2 and sdbh emo. Todo fill only on conversion from other format , like from fbx.
+
+		parts.back().readEmdMesh(emd->meshes.at(i), emo);
+	}
+}
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             writeEmd				                             |
+\-------------------------------------------------------------------------------*/
+void EMO::writeEmd(EMD* emd)
+{
+	emd->name = name;
+
+	size_t nbElements = groups.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		emd->models.push_back(new EMDModel());
+		groups.at(i).writeEmdModel(emd->models.back());
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             writeEmdModel			                             |
+\-------------------------------------------------------------------------------*/
+void EMO_PartsGroup::writeEmdModel(EMDModel* emd)
+{
+	emd->name = name;
+
+	size_t nbElements = parts.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		emd->meshes.push_back(new EMDMesh());
+		parts.at(i).writeEmdMesh(emd->meshes.back(), name + "_" + std::to_string(i));
+	}
+}
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// FBX conversions	/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+#ifdef FBX_SUPPORT
+
+
+
+
+
+
+
+bool EMO::ExportFbx(FbxScene *scene, bool normal_parts, bool edges) const
+{
+	std::vector<FbxNode *> fbx_bones;
+
+	if (!EMO_Skeleton::ExportFbx(scene, fbx_bones))
+		return false;
+
+	for (const EMO_PartsGroup &pg : groups)
+	{
+		if (!edges && pg.IsEdge())
+			continue;
+
+		if (!normal_parts && !pg.IsEdge())
+			continue;
+
+		if (!pg.ExportFbx(*this, fbx_bones, scene))
+			return false;
+	}
+
+	return true;
+}
+bool EMO::ExportFbx(const std::string &subpart, FbxScene *scene)
+{
+	EMG_SubPart *sp = GetSubPart(subpart);
+	if (!sp)
+		return false;
+
+	std::vector<FbxNode *> fbx_bones;
+
+	if (!EMO_Skeleton::ExportFbx(scene, fbx_bones))
+		return false;
+
+	return sp->ExportFbx(*this, fbx_bones, scene);
+}
+bool EMO_PartsGroup::ExportFbx(const EMO_Skeleton &skl, const std::vector<FbxNode *> &fbx_bones, FbxScene *scene) const
+{
+	for (const EMG &p : parts)
+	{
+		if (!p.IsEmpty() && !p.ExportFbx(skl, fbx_bones, scene))
+			return false;
+	}
+
+	return true;
+}
+
+
+
+
+//importFbx
+bool EMO::InjectFbx(FbxScene *scene, bool normal_parts, bool edges, bool use_fbx_tangent)
+{
+	for (EMO_PartsGroup &pg : groups)
+	{
+		if (!edges && pg.IsEdge())
+			continue;
+
+		if (!normal_parts && !pg.IsEdge())
+			continue;
+
+		if (!pg.InjectFbx(*this, scene, use_fbx_tangent))
+			return false;
+	}
+
+	for (size_t i = 0; i < groups.size(); i++)
+	{
+		if (groups[i].parts.size() == 0 || groups[i].parts[0].IsEmpty())
+		{
+			LOG_DEBUG("Parts group \"%s\" has become empty. We will delete it.\n", groups[i].name.c_str());
+			groups.erase(groups.begin() + i);
+			i--;
+		}
+	}
+
+	return true;
+}
+bool EMO::InjectFbx(const std::string &subpart, FbxScene *scene, bool use_fbx_tangent)
+{
+	EMG_SubPart *sp = GetSubPart(subpart);
+	if (!sp)
+		return false;
+
+	return sp->InjectFbx(*this, scene, use_fbx_tangent);
+}
+bool EMO_PartsGroup::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tangent)
+{
+	size_t first_empty = parts.size();
+
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		if (parts[i].IsEmpty())
+		{
+			first_empty = i;
+			break;
+		}
+	}
+
+	for (EMG &p : parts)
+	{
+		if (!p.IsEmpty() && !p.InjectFbx(skl, scene, use_fbx_tangent))
+			return false;
+	}
+
+	for (size_t i = 0; i < first_empty; i++)
+	{
+		if (parts[i].IsEmpty())
+		{
+			LOG_DEBUG("Part \"%s\" has become empty. We will delete it.\n", parts[i].meta_name.c_str());
+			parts.erase(parts.begin() + i);
+			i--;
+			first_empty--;
+		}
+	}
+
+	return true;
+}
+
+
+
+
+
+
+void EMO::oldSaveFbx(string filename)	//test because of saintSeya work well with old emoTools fbx convertion
+{
+	string output = filename;
+
+	FbxManager *sdk_manager = FbxManager::Create();
+	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
+	sdk_manager->SetIOSettings(ios);
+
+	FbxScene *scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
+
+	if (!ExportFbx(scene, true, false))
+	{
+		printf("ExportFbx failed.\n");
+		return;
+	}
+
+	bool ascii = false;
+	bool y_up = true;
+	bool inches = false;
+
+	//static bool export_fbx_scene(FbxManager *sdk_manager, FbxScene *scene, const std::string &output, const FbxString &version, bool ascii, bool y_up, bool inches)
+	{
+		int format = sdk_manager->GetIOPluginRegistry()->GetNativeWriterFormat();
+
+		if (ascii)
+		{
+			int count = sdk_manager->GetIOPluginRegistry()->GetWriterFormatCount();
+
+			for (int i = 0; i < count; i++)
+			{
+				if (sdk_manager->GetIOPluginRegistry()->WriterIsFBX(i))
+				{
+					FbxString desc = sdk_manager->GetIOPluginRegistry()->GetWriterFormatDescription(i);
+					if (desc.Find("ascii") >= 0)
+					{
+						format = i;
+						break;
+					}
+				}
+			}
+		}
+
+		FbxExporter* exporter = FbxExporter::Create(sdk_manager, "");
+		bool ret = exporter->Initialize(output.c_str(), format, sdk_manager->GetIOSettings());
+
+		if (!ret)
+		{
+			printf("FbxExporter::Initialize error:: %s\n\n", exporter->GetStatus().GetErrorString());
+			LibXenoverse::notifyError();
+			return;
+		}
+
+		if (!y_up)
+			scene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eMax);
+
+		if (inches)
+			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::Inch);
+		else
+			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
+
+		//exporter->SetFileExportVersion(version);
+		exporter->Export(scene);
+		exporter->Destroy();
+	}
+
+
+	/*
+	string output_dir = output.substr(0, output.length() - 4) + "_exported";
+	LibXenoverse::EMO_BaseFile::CreatePath(output_dir, true);
+
+	for (const LibXenoverse::EMO_PartsGroup &pg : *emo)
+	{
+		for (const LibXenoverse::EMG &p : pg)
+		{
+			for (const LibXenoverse::EMG_SubPart &sp : p)
+			{
+				if (sp.IsEdge() && !true)
+					continue;
+
+				if (!sp.IsEdge() && !true)
+					continue;
+
+				printf("Exporting subpart \"%s\"\n", sp.GetMetaName().c_str());
+
+				scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
+				output = output_dir + "/" + sp.GetMetaName();
+
+				if (!emo->ExportFbx(sp.GetMetaName(), scene))
+				{
+					printf("ExportFbx failed on subpart \"%s\"\n", sp.GetMetaName().c_str());
+					return;
+				}
+
+				if (!export_fbx_scene(sdk_manager, scene, output, version, ascii, y_up, inches))
+					return;
+			}
+		}
+	}
+	*/
+
+	sdk_manager->Destroy();
+}
+
+
+
+
+#endif
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
 bool EMO_PartsGroup::IsEdge() const
 {
 	size_t count = 0;
@@ -220,96 +1338,6 @@ size_t EMO_PartsGroup::ExportObj(std::string *vertex_out, std::string *uvmap_out
 
 
 
-/*-------------------------------------------------------------------------------\
-|                             readEmdModel			                             |
-\-------------------------------------------------------------------------------*/
-void EMO_PartsGroup::readEmdModel(EMDModel* emd, EMO* emo, size_t &nbSection)
-{
-	name = emd->name;
-
-	size_t nbElements = emd->meshes.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		parts.push_back(EMG());
-
-		nbSection++;
-		parts.back().unk_04 = nbSection;				//section increment.
-
-		parts.back().readEmdMesh(emd->meshes.at(i), emo);
-	}
-}
-/*-------------------------------------------------------------------------------\
-|                             writeEmdModel			                             |
-\-------------------------------------------------------------------------------*/
-void EMO_PartsGroup::writeEmdModel(EMDModel* emd)
-{
-	emd->name = name;
-
-	size_t nbElements = parts.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		emd->meshes.push_back(new EMDMesh());
-		parts.at(i).writeEmdMesh(emd->meshes.back(), name + "_" + std::to_string(i));
-	}
-}
-
-
-
-
-#ifdef FBX_SUPPORT
-
-bool EMO_PartsGroup::ExportFbx(const EMO_Skeleton &skl, const std::vector<FbxNode *> &fbx_bones, FbxScene *scene) const
-{
-    for (const EMG &p : parts)
-    {
-        if (!p.IsEmpty() && !p.ExportFbx(skl, fbx_bones, scene))
-            return false;
-    }
-
-    return true;
-}
-
-bool EMO_PartsGroup::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tangent)
-{
-    size_t first_empty = parts.size();
-
-    for (size_t i = 0; i < parts.size(); i++)
-    {
-        if (parts[i].IsEmpty())
-        {
-            first_empty = i;
-            break;
-        }
-    }
-
-    for (EMG &p : parts)
-    {
-        if (!p.IsEmpty() && !p.InjectFbx(skl, scene, use_fbx_tangent))
-            return false;
-    }
-
-    for (size_t i = 0; i < first_empty; i++)
-    {
-        if (parts[i].IsEmpty())
-        {
-            LOG_DEBUG("Part \"%s\" has become empty. We will delete it.\n", parts[i].meta_name.c_str());
-            parts.erase(parts.begin() + i);
-            i--;
-            first_empty--;
-        }
-    }
-
-    return true;
-}
-
-#endif
-
-
-
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,9 +1440,10 @@ void EMO::Copy(const EMO &other)
 	EMO_Skeleton::Copy(other);
 
 	this->groups = other.groups;
-	this->material_count = other.material_count;
-	memcpy(this->unk_08, other.unk_08, sizeof(this->unk_08));
-	memcpy(this->unk_18, other.unk_18, sizeof(this->unk_18));
+	this->version = other.version;
+	this->unknow_0 = other.unknow_0;
+	this->unknow_1 = other.unknow_1;
+
 
 	for (EMO_PartsGroup &pg : groups)
 	{
@@ -439,9 +1468,10 @@ void EMO::Copy(const EMO &other)
 void EMO::Reset()
 {
 	//EMO_Skeleton::Reset();			//TODO
+	version = "0.0.0.0";
+	unknow_0 = unknow_1 = 0;
+	vertexInside = false;
 
-	unk_08[0] = 37568;
-	unk_08[1] = unk_18[0] = unk_18[1] = 0;
 	groups.clear();
 }
 
@@ -795,9 +1825,7 @@ size_t EMO::GetEmmMaterials(std::vector<std::string> &list, bool clear_vector, b
 		list.clear();
 
 	for (const EMO_PartsGroup &pg : groups)
-	{
 		count += pg.GetEmmMaterials(list, false, unique);
-	}
 
 	return count;
 }
@@ -849,375 +1877,6 @@ size_t EMO::ReplaceEmbIndex(uint8_t old_index, uint8_t new_index)
 
 
 
-
-
-
-bool EMO::Load(const uint8_t *buf, unsigned int size)
-{
-	Reset();
-
-	EMO_Header *hdr = (EMO_Header *)buf;
-	if (size < sizeof(EMO_Header) || hdr->signature != EMO_SIGNATURE)
-		return false;
-
-	this->big_endian = (buf[4] != 0xFE);
-
-	if (!EMO_Skeleton::Load(GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset)))
-		return false;
-
-	for (EMO_Bone &b : this->bones)
-		b.meta_original_offset += val32(hdr->skeleton_offset);
-
-	this->unk_08[0] = val16(hdr->unk_08[0]);
-	this->unk_08[1] = val16(hdr->unk_08[1]);
-	this->unk_18[0] = val32(hdr->unk_18[0]);
-	this->unk_18[1] = val32(hdr->unk_18[1]);
-
-	EMO_PartsGroupHeader *pghdr = (EMO_PartsGroupHeader *)GetOffsetPtr(buf, hdr->parts_offset);
-	this->material_count = val16(pghdr->material_count);
-
-	uint32_t *names_table = (uint32_t *)GetOffsetPtr(pghdr, pghdr->names_offset);
-
-	for (uint16_t i = 0; i < val16(pghdr->groups_count); i++)
-	{
-		EMO_PartsGroup group;
-
-		group.name = std::string((char *)GetOffsetPtr(pghdr, names_table, i));
-
-		EMO_PartHeader *phdr = (EMO_PartHeader *)GetOffsetPtr(pghdr, pghdr->offsets, i);
-		group.meta_original_offset = EMO_BaseFile::DifPointer(phdr, buf);
-
-		if (phdr->unk_02 != 0)
-		{
-			LOG_DEBUG("%s: unk_02 not 0 as expected, in group %s\n", FUNCNAME, group.name.c_str());
-			return false;
-		}
-
-		for (uint16_t j = 0; j < val16(phdr->emg_count); j++)
-		{
-			EMG part(big_endian);
-			char meta_name[2048];
-
-			snprintf(meta_name, sizeof(meta_name), "%s_%04x", group.name.c_str(), j);
-			part.meta_name = meta_name;
-
-			if (phdr->offsets[j] == 0)
-			{
-				group.parts.push_back(part);
-				continue;
-			}
-
-			uint8_t *emg_buf = GetOffsetPtr(phdr, phdr->offsets, j);
-
-			if (!part.Load(emg_buf, EMO_BaseFile::DifPointer(buf + size, emg_buf), this))
-			{
-				LOG_DEBUG("%s: Bad file, #EMG sub file couldn't be loaded (in group %s, part %04x)\n", FUNCNAME, group.name.c_str(), j);
-				return false;
-			}
-
-			group.parts.push_back(part);
-		}
-
-		this->groups.push_back(group);
-	}
-
-	return true;
-}
-
-uint8_t *EMO::CreateFile(unsigned int *psize)
-{
-	unsigned int file_size;
-	uint32_t offset, vertex_start;
-	bool first = true;
-
-	// We need to reorder parts first: but only when there are empty parts before non-empty parts!
-	for (EMO_PartsGroup &pg : groups)
-	{
-		// Ignore these...
-		//if (pg.name == "face" || pg.name == "edge")
-		//	continue;
-
-		uint16_t first_empty = 0xFFFF;
-
-		for (size_t i = 0; i < pg.parts.size(); i++)
-		{
-			if (first_empty == 0xFFFF && pg.parts[i].IsEmpty())
-			{
-				first_empty = i;
-				break;
-			}
-		}
-
-		if (first_empty != 0xFFFF)
-		{
-			bool do_sort = false;
-
-			for (size_t i = 0; i < pg.parts.size(); i++)
-			{
-				if (!pg.parts[i].IsEmpty() && i > first_empty)
-				{
-					do_sort = true;
-					break;
-				}
-			}
-
-			//printf("do_sort = %d\n", do_sort);
-
-			if (do_sort)
-			{
-				std::sort(pg.parts.begin(), pg.parts.end(), EMO_PartsSorter(pg));
-			}
-		}
-	}
-
-	file_size = CalculateFileSize(&vertex_start);
-
-	uint8_t *buf = new uint8_t[file_size];
-	if (!buf)
-	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
-		LibXenoverse::notifyError();
-		return nullptr;
-	}
-
-	memset(buf, 0, file_size);
-
-	EMO_Header *hdr = (EMO_Header *)buf;
-
-	hdr->signature = EMO_SIGNATURE;
-	hdr->endianess_check = val16(0xFFFE);
-	hdr->header_size = val16(sizeof(EMO_Header));
-	hdr->unk_08[0] = val16(this->unk_08[0]);
-	hdr->unk_08[1] = val16(this->unk_08[1]);
-	hdr->unk_18[0] = val32(this->unk_18[0]);
-	hdr->unk_18[1] = val32(this->unk_18[1]);
-
-	offset = sizeof(EMO_Header);
-	hdr->parts_offset = val32(offset);
-
-	EMO_PartsGroupHeader *pghdr = (EMO_PartsGroupHeader *)GetOffsetPtr(buf, offset, true);
-
-	assert(groups.size() < 65536);
-	pghdr->groups_count = val16(groups.size());
-	pghdr->material_count = val16(this->material_count);
-
-	offset += sizeof(EMO_PartsGroupHeader);
-
-	if (groups.size() != 0)
-		offset += (groups.size() - 1) * sizeof(uint32_t);
-
-	for (size_t i = 0; i < groups.size(); i++)
-	{
-		if (offset & 0xF)
-			offset += (0x10 - (offset & 0xF));
-
-		pghdr->offsets[i] = val32(offset - sizeof(EMO_Header));
-
-		EMO_PartHeader *phdr = (EMO_PartHeader *)GetOffsetPtr(buf, offset, true);
-		EMO_PartsGroup &pg = groups[i];
-
-		assert(pg.parts.size() < 65536);
-
-		phdr->emg_count = val16(pg.parts.size());
-
-		offset += sizeof(EMO_PartHeader);
-
-		if (pg.parts.size() != 0)
-		{
-			offset += (pg.parts.size() - 1) * sizeof(uint32_t);
-		}
-
-		for (size_t j = 0; j < pg.parts.size(); j++)
-		{
-			EMG &part = pg.parts[j];
-
-			part.big_endian = big_endian;
-
-			if (part.IsEmpty())
-			{
-				phdr->offsets[j] = 0;
-				continue;
-			}
-
-			if (offset & 0xF)
-				offset += (0x10 - (offset & 0xF));
-
-			phdr->offsets[j] = val32(EMO_BaseFile::DifPointer(buf + offset, phdr));
-
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				if (vertex_start & 0xf)
-					vertex_start += (0x10 - (vertex_start & 0xF));
-			}
-
-			uint32_t vertex_start_local1, vertex_start_local2;
-			vertex_start_local1 = vertex_start_local2 = vertex_start - offset;
-
-			offset += part.CreatePart(buf + offset, this, &vertex_start_local2);
-
-			vertex_start += (vertex_start_local2 - vertex_start_local1);
-		}
-	}
-
-	if (offset & 0xF)
-	{
-		offset += (0x10 - (offset & 0xF));
-	}
-
-	pghdr->names_offset = val32(offset - sizeof(EMO_Header));
-
-	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, offset, true);
-	offset += groups.size() * sizeof(uint32_t);
-
-	std::vector<string> listEMG;
-	for (size_t i = 0; i < groups.size(); i++)
-	{
-		EMO_PartsGroup &pg = groups[i];
-
-		names_table[i] = val32(offset - sizeof(EMO_Header));
-
-		strcpy((char *)buf + offset, pg.name.c_str());
-		offset += pg.name.length() + 1;
-		
-		listEMG.push_back(pg.name);
-	}
-
-	if (offset & 0x3F)
-		offset += (0x40 - (offset & 0x3F));
-
-	unsigned int skl_size;
-	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, listEMG);
-	if (!skl)
-	{
-		delete[] buf;
-		return nullptr;
-	}
-
-	hdr->skeleton_offset = val32(offset);
-	memcpy(buf + offset, skl, skl_size);
-	delete[] skl;
-
-	offset += skl_size;
-
-	hdr->vertex_offset = val32(offset);
-	first = true;
-
-	for (EMO_PartsGroup &pg : groups)
-	{
-		for (EMG &p : pg.parts)
-		{
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				if (offset & 0xf)
-					offset += (0x10 - (offset & 0xF));
-			}
-
-			offset += p.CreateVertex(buf + offset);
-		}
-	}
-
-	assert(offset == file_size);
-
-	*psize = file_size;
-	return buf;
-}
-
-
-
-
-
-
-
-
-
-unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
-{
-	unsigned int file_size;
-
-	file_size = sizeof(EMO_Header);
-	file_size += sizeof(EMO_PartsGroupHeader);
-
-	if (groups.size() != 0)
-		file_size += (groups.size() - 1) * sizeof(uint32_t);
-
-	for (EMO_PartsGroup &pg : groups)
-	{
-		if (file_size & 0xF)
-			file_size += (0x10 - (file_size & 0xF));
-
-		//LOG_DEBUG("file size before part %s: %x\n", pg.name.c_str(), file_size);
-
-		file_size += sizeof(EMO_PartHeader);
-		if (pg.parts.size() != 0)
-		{
-			file_size += (pg.parts.size() - 1) * sizeof(uint32_t);
-		}
-
-		for (EMG &p : pg.parts)
-		{
-			if (p.IsEmpty())
-				continue;
-
-			if (file_size & 0xF)
-				file_size += (0x10 - (file_size & 0xF));
-
-			file_size += p.CalculatePartSize();
-		}
-	}
-
-	if (file_size & 0xF)
-	{
-		file_size += (0x10 - (file_size & 0xF));
-	}
-
-	//LOG_DEBUG("file_size before names table %x\n", file_size);
-
-	file_size += groups.size() * sizeof(uint32_t);
-	for (EMO_PartsGroup &pg : groups)
-	{
-		file_size += (pg.name.length() + 1);
-	}
-
-	if (file_size & 0x3F)
-		file_size += (0x40 - (file_size & 0x3F));
-
-
-	//LOG_DEBUG("file size before skeleton: %x\n", file_size);
-
-	file_size += EMO_Skeleton::CalculateFileSize();
-
-	*vertex_start = file_size;
-	bool first = true;
-
-	for (EMO_PartsGroup &pg : groups)
-	{
-		for (EMG &p : pg.parts)
-		{
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				if (file_size & 0xf)
-					file_size += (0x10 - (file_size & 0xF));
-			}
-
-			file_size += p.CalculateVertexSize();
-		}
-	}
-
-	//LOG_DEBUG("File size = %x\n", file_size);
-	return file_size;
-}
 
 
 
@@ -1396,147 +2055,6 @@ size_t EMO::InjectObjBySubParts(const std::string &obj, bool do_uv, bool do_norm
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-/*-------------------------------------------------------------------------------\
-|                             readEmd				                             |
-\-------------------------------------------------------------------------------*/
-void EMO::readEmd(EMD* emd)
-{
-	name = emd->name;
-
-	this->material_count = 0;
-
-	size_t nbSection = 1;
-
-	size_t nbElements = emd->models.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		groups.push_back(EMO_PartsGroup());
-		groups.back().readEmdModel( emd->models.at(i), this, nbSection);
-	}
-}
-/*-------------------------------------------------------------------------------\
-|                             writeEmd				                             |
-\-------------------------------------------------------------------------------*/
-void EMO::writeEmd(EMD* emd)
-{
-	emd->name = name;
-
-	size_t nbElements = groups.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		emd->models.push_back(new EMDModel());
-		groups.at(i).writeEmdModel(emd->models.back());
-	}
-}
-/*-------------------------------------------------------------------------------\
-|                             readEsk				                             |
-\-------------------------------------------------------------------------------*/
-void EMO::readEsk(ESK* esk)
-{
-	name = esk->name;
-	unk_38[0] = *(float*)(&(esk->unknown_offset_2));
-	unk_38[1] = *(float*)(&(esk->unknown_offset_3));
-	
-
-	EskTreeNode* rootNode = esk->getTreeOrganisation();
-
-	vector<EskTreeNode*> newListBonesOrdered;
-	rootNode->getTreeBonesList(newListBonesOrdered);					//we get back the list of bones from follow hierarchy, to not having trouble for missing parents.
-
-	bones.clear();
-
-	EskTreeNode* node;
-	size_t nbBones = newListBonesOrdered.size();
-	for (size_t i = 1; i < nbBones; i++)					//we begin to 1 because the first is not a bone.
-	{
-		node = newListBonesOrdered.at(i);
-
-		bones.push_back(EMO_Bone());
-		bones.back().readESKBone(node->mBone);
-	}
-
-
-	for (size_t i = 1; i < nbBones; i++)					//same
-	{
-		node = newListBonesOrdered.at(i);
-
-		if ((node->mParent) && (node->mParent->mBone))
-		{
-			string parentName = node->mParent->mBone->getName();
-			for (size_t j = i - 1; j < i; --j)
-			{
-				if (bones.at(j).GetName() == parentName)
-				{
-					bones.at(i-1).parent = &(bones.at(j));
-
-					if (bones.at(j).child == nullptr)
-					{
-						bones.at(j).child = &bones.at(i - 1);
-					}else {
-
-						size_t inc = 0;
-						EMO_Bone* childBone = bones.at(j).child;
-
-						while (childBone->sibling != nullptr)
-						{
-							childBone = childBone->sibling;
-							++inc;
-						}
-						++inc;
-
-						childBone->sibling = &bones.at(i - 1);
-					}
-
-					break;
-				}
-			}
-		}
-	}
-
-
-
-
-
-	//Ik datas
-	listInverseKinematic.clear();
-	size_t nbBones_all = bones.size();
-	size_t nbGroup = esk->listInverseKinematic.size();
-	for (size_t i = 0; i < nbGroup; i++)
-	{
-		Esk_IK_Group &group = esk->listInverseKinematic.at(i);
-		listInverseKinematic.push_back(Emo_IK_Group());
-
-		size_t nbIk = group.mListIK.size();
-		for (size_t j = 0; j < nbIk; j++)
-		{
-			Esk_IK_Relation &ik = group.mListIK.at(j);
-			listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
-			Emo_IK_Relation &ik_b = listInverseKinematic.back().mListIK.back();
-
-			size_t nbBones = ik.mListBones.size();
-			for (size_t k = 0; k < nbBones; k++)
-			{
-				ESKBone* bone = ik.mListBones.at(k).bone;
-				EMO_Bone* bone_b = 0;
-
-				for (size_t m = 0; m < nbBones_all; m++)
-				{
-					if (bones.at(m).name == bone->getName())
-					{
-						bone_b = &bones.at(m);
-						break;
-					}
-				}
-				if (!bone_b)
-					continue;
-
-				ik_b.mListBones.push_back(Emo_IK_Relation::IKR_Bone(bone_b, ik.mListBones.at(k).value));
-			}
-		}
-	}
-}
-
-
 
 
 
@@ -1649,203 +2167,13 @@ size_t EMO::CloneLinkedBones(const EMO &other, EMO_PartsGroup &group, EMO_Bone *
 
 
 
-#ifdef FBX_SUPPORT
 
-
-
-
-void EMO::oldSaveFbx(string filename)	//test because of saintSeya work well with old emoTools fbx convertion
-{
-	string output = filename;
-
-	FbxManager *sdk_manager = FbxManager::Create();
-	FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
-	sdk_manager->SetIOSettings(ios);
-
-	FbxScene *scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
-
-	if (!ExportFbx(scene, true, false))
-	{
-		printf("ExportFbx failed.\n");
-		return;
-	}
-
-	bool ascii = false;
-	bool y_up = true;
-	bool inches = false;
-
-	//static bool export_fbx_scene(FbxManager *sdk_manager, FbxScene *scene, const std::string &output, const FbxString &version, bool ascii, bool y_up, bool inches)
-	{
-		int format = sdk_manager->GetIOPluginRegistry()->GetNativeWriterFormat();
-
-		if (ascii)
-		{
-			int count = sdk_manager->GetIOPluginRegistry()->GetWriterFormatCount();
-
-			for (int i = 0; i < count; i++)
-			{
-				if (sdk_manager->GetIOPluginRegistry()->WriterIsFBX(i))
-				{
-					FbxString desc = sdk_manager->GetIOPluginRegistry()->GetWriterFormatDescription(i);
-					if (desc.Find("ascii") >= 0)
-					{
-						format = i;
-						break;
-					}
-				}
-			}
-		}
-
-		FbxExporter* exporter = FbxExporter::Create(sdk_manager, "");
-		bool ret = exporter->Initialize(output.c_str(), format, sdk_manager->GetIOSettings());
-
-		if (!ret)
-		{
-			printf("FbxExporter::Initialize error:: %s\n\n", exporter->GetStatus().GetErrorString());
-			LibXenoverse::notifyError();
-			return;
-		}
-
-		if (!y_up)
-			scene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eMax);
-
-		if (inches)
-			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::Inch);
-		else
-			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
-
-		//exporter->SetFileExportVersion(version);
-		exporter->Export(scene);
-		exporter->Destroy();
-	}
-
-
-	/*
-	string output_dir = output.substr(0, output.length() - 4) + "_exported";
-	LibXenoverse::EMO_BaseFile::CreatePath(output_dir, true);
-
-	for (const LibXenoverse::EMO_PartsGroup &pg : *emo)
-	{
-		for (const LibXenoverse::EMG &p : pg)
-		{
-			for (const LibXenoverse::EMG_SubPart &sp : p)
-			{
-				if (sp.IsEdge() && !true)
-					continue;
-
-				if (!sp.IsEdge() && !true)
-					continue;
-
-				printf("Exporting subpart \"%s\"\n", sp.GetMetaName().c_str());
-
-				scene = FbxScene::Create(sdk_manager, "EMOTOOL3");
-				output = output_dir + "/" + sp.GetMetaName();
-
-				if (!emo->ExportFbx(sp.GetMetaName(), scene))
-				{
-					printf("ExportFbx failed on subpart \"%s\"\n", sp.GetMetaName().c_str());
-					return;
-				}
-
-				if (!export_fbx_scene(sdk_manager, scene, output, version, ascii, y_up, inches))
-					return;
-			}
-		}
-	}
-	*/
-
-	sdk_manager->Destroy();
-}
-
-
-
-bool EMO::ExportFbx(FbxScene *scene, bool normal_parts, bool edges) const
-{
-    std::vector<FbxNode *> fbx_bones;
-
-    if (!EMO_Skeleton::ExportFbx(scene, fbx_bones))
-        return false;
-
-    for (const EMO_PartsGroup &pg : groups)
-    {
-        if (!edges && pg.IsEdge())
-            continue;
-
-        if (!normal_parts && !pg.IsEdge())
-            continue;
-
-        if (!pg.ExportFbx(*this, fbx_bones, scene))
-            return false;
-    }
-
-    return true;
-}
-
-
-bool EMO::ExportFbx(const std::string &subpart, FbxScene *scene)
-{
-	EMG_SubPart *sp = GetSubPart(subpart);
-	if (!sp)
-		return false;
-
-	std::vector<FbxNode *> fbx_bones;
-
-	if (!EMO_Skeleton::ExportFbx(scene, fbx_bones))
-		return false;
-
-	return sp->ExportFbx(*this, fbx_bones, scene);
-}
-
-
-bool EMO::InjectFbx(FbxScene *scene, bool normal_parts, bool edges, bool use_fbx_tangent)
-{
-    for (EMO_PartsGroup &pg : groups)
-    {
-        if (!edges && pg.IsEdge())
-            continue;
-
-        if (!normal_parts && !pg.IsEdge())
-            continue;
-
-        if (!pg.InjectFbx(*this, scene, use_fbx_tangent))
-            return false;
-    }
-
-    for (size_t i = 0; i < groups.size(); i++)
-    {
-        if (groups[i].parts.size() == 0 || groups[i].parts[0].IsEmpty())
-        {
-            LOG_DEBUG("Parts group \"%s\" has become empty. We will delete it.\n", groups[i].name.c_str());
-            groups.erase(groups.begin()+i);
-            i--;
-        }
-    }
-
-    return true;
-}
-
-bool EMO::InjectFbx(const std::string &subpart, FbxScene *scene, bool use_fbx_tangent)
-{
-    EMG_SubPart *sp = GetSubPart(subpart);
-    if (!sp)
-        return false;
-
-    return sp->InjectFbx(*this, scene, use_fbx_tangent);
-}
-
-#endif
 
 bool EMO::operator==(const EMO &rhs) const
 {
-    if (this->material_count != rhs.material_count)
-        return false;
-
-    if (memcmp(this->unk_08, rhs.unk_08, sizeof(this->unk_08)) != 0)
-        return false;
-
-    if (memcmp(this->unk_18, rhs.unk_18, sizeof(this->unk_18)) != 0)
-        return false;
-
+	if ((this->version != rhs.version) || (this->unknow_0 != rhs.unknow_0) || (this->unknow_1 != rhs.unknow_1))
+		return false;	
+	
     if (this->groups != rhs.groups)
         return false;
 
@@ -1857,208 +2185,6 @@ bool EMO::operator==(const EMO &rhs) const
 
 
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////// load/save the Xml version	/////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-/*-------------------------------------------------------------------------------\
-|                             DecompileToFile		                             |
-\-------------------------------------------------------------------------------*/
-bool EMO::DecompileToFile(const std::string &path, bool show_error, bool build_path)	//save
-{
-	LOG_DEBUG("Emo is being saved to .xml file. This process may take several seconds.\n");
-	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
-
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been saved to .xml.\n");
-	}
-
-	return ret;
-}
-
-/*-------------------------------------------------------------------------------\
-|                             Decompile				                             |
-\-------------------------------------------------------------------------------*/
-TiXmlDocument *EMO::Decompile() const
-{
-	TiXmlDocument *doc = new TiXmlDocument();
-
-	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
-	doc->LinkEndChild(decl);
-
-	TiXmlElement *root = new TiXmlElement("EMO");
-
-	EMO_BaseFile::WriteParamUnsigned(root, "MATERIAL_COUNT", material_count);
-	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_08", std::vector<uint16_t>(unk_08, unk_08 + 2), true);
-	EMO_BaseFile::WriteParamMultipleUnsigned(root, "U_18", std::vector<uint32_t>(unk_18, unk_18 + 2), true);
-
-	for (const EMO_PartsGroup &pg : groups)
-		pg.Decompile(root);
-
-	doc->LinkEndChild(root);
-	EMO_Skeleton::Decompile(doc);
-
-	return doc;
-}
-
-/*-------------------------------------------------------------------------------\
-|                             Decompile				                             |
-\-------------------------------------------------------------------------------*/
-void EMO_PartsGroup::Decompile(TiXmlNode *root) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("PartsGroup");
-
-	entry_root->SetAttribute("name", name);
-
-	for (size_t i = 0; i < parts.size(); i++)
-		parts.at(i).Decompile(entry_root, i);
-
-	root->LinkEndChild(entry_root);
-}
-
-
-
-
-
-
-
-/*-------------------------------------------------------------------------------\
-|                             CompileFromFile		                             |
-\-------------------------------------------------------------------------------*/
-bool EMO::CompileFromFile(const std::string &path, bool show_error, bool big_endian)		//load
-{
-	LOG_DEBUG("Emo is being loaded from .xml file. This process may take several seconds.\n");
-	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
-
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been loaded from .xml.\n");
-	}
-
-	return ret;
-}
-
-/*-------------------------------------------------------------------------------\
-|                             Compile				                             |
-\-------------------------------------------------------------------------------*/
-bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
-{
-	Reset();
-	this->big_endian = big_endian;
-
-	if (!EMO_Skeleton::Compile(doc, big_endian))
-		return false;
-
-	TiXmlHandle handle(doc);
-	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMO");
-
-	if (!root)
-	{
-		LOG_DEBUG("Cannot find\"EMO\" in xml.\n");
-		return false;
-	}
-
-	unsigned int value;
-	if (!EMO_BaseFile::GetParamUnsigned(root, "MATERIAL_COUNT", &value))
-		value = 0;
-
-	if (value > 0xFFFF)
-	{
-		LOG_DEBUG("%s: material_count must be a 16 bits value.\n", FUNCNAME);
-		return false;
-	}
-	material_count = value;
-
-
-	std::vector<uint16_t> unk_08;
-	EMO_BaseFile::GetParamMultipleUnsigned(root, "U_08", unk_08);
-
-	if (unk_08.size() != 2)
-	{
-		LOG_DEBUG("%s: Invalid size of U_08. must be 2.\n", FUNCNAME);
-		
-		for (size_t i = unk_08.size(); i < 2; i++)			// get the minimum
-			unk_08.push_back(0);
-	}
-
-	std::vector<uint32_t> unk_18;
-	EMO_BaseFile::GetParamMultipleUnsigned(root, "U_18", unk_18);
-
-	if (unk_18.size() != 2)
-	{
-		LOG_DEBUG("%s: Invalid size of U_18. must be 2.\n", FUNCNAME);
-		
-		for (size_t i = unk_18.size(); i < 2; i++)			// get the minimum
-			unk_08.push_back(0);
-	}
-
-
-	for (int i = 0; i < 2; i++)
-	{
-		this->unk_08[i] = unk_08.at(i);
-		this->unk_18[i] = unk_18.at(i);
-	}
-
-
-	for (const TiXmlElement *elem = root->FirstChildElement("PartsGroup"); elem; elem = elem->NextSiblingElement("PartsGroup"))
-	{
-		EMO_PartsGroup pg;
-
-		if (!pg.Compile(elem, this))
-		{
-			LOG_DEBUG("%s: PartsGroup compilation failed.\n", FUNCNAME);
-			continue;
-		}
-
-		groups.push_back(pg);
-	}
-
-	return true;
-}
-
-
-/*-------------------------------------------------------------------------------\
-|                             Compile				                             |
-\-------------------------------------------------------------------------------*/
-bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
-{
-	parts.clear();
-
-
-	if (root->QueryStringAttribute("name", &name) != TIXML_SUCCESS)
-	{
-		LOG_DEBUG("%s: Cannot get name of PartsGroup\n", FUNCNAME);
-		return false;
-	}
-
-	meta_original_offset = 0xFFFFFFFF;
-
-	
-	for (const TiXmlElement *elem = root->FirstChildElement("EMG"); elem; elem = elem->NextSiblingElement("EMG"))
-	{
-		EMG emg;
-
-		if (!emg.Compile(elem, skl))
-		{
-			LOG_DEBUG("%s: Compilation of EMG failed.\n", FUNCNAME);
-			continue;
-		}
-
-		char meta_name[2048];
-		snprintf(meta_name, sizeof(meta_name), "%s_%04x", name.c_str(), parts.size());
-		emg.meta_name = meta_name;				//may be for unique name.
-
-		parts.push_back(emg);
-	}
-
-	return true;
-}
 
 
 

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01_MiniTools", "01_MiniTools", "{9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}"
 EndProject
@@ -137,6 +137,21 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "havokfbx", "LibXenoverse\ha
 		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UassetUexpPack", "LibXenoverse\UassetUexpPack\UassetUexpPack.vcxproj", "{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "emdTextureDef", "LibXenoverse\emdTextureDef\emdTextureDef.vcxproj", "{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HavokXmlSimplifier", "LibXenoverse\havokXmlSimplifier\HavokXmlSimplifier.vcxproj", "{86163233-8F9E-4150-9AF4-F630B755A812}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4002449E-E580-472F-84B2-81EEE5991C3F} = {4002449E-E580-472F-84B2-81EEE5991C3F}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -263,6 +278,18 @@ Global
 		{BE2D8EF9-A09F-40F7-BDEE-5496822AEB87}.Debug|Win32.Build.0 = Debug|Win32
 		{BE2D8EF9-A09F-40F7-BDEE-5496822AEB87}.Release|Win32.ActiveCfg = Release|Win32
 		{BE2D8EF9-A09F-40F7-BDEE-5496822AEB87}.Release|Win32.Build.0 = Release|Win32
+		{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F}.Debug|Win32.Build.0 = Debug|Win32
+		{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F}.Release|Win32.ActiveCfg = Release|Win32
+		{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F}.Release|Win32.Build.0 = Release|Win32
+		{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC}.Debug|Win32.Build.0 = Debug|Win32
+		{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC}.Release|Win32.ActiveCfg = Release|Win32
+		{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC}.Release|Win32.Build.0 = Release|Win32
+		{86163233-8F9E-4150-9AF4-F630B755A812}.Debug|Win32.ActiveCfg = Debug|Win32
+		{86163233-8F9E-4150-9AF4-F630B755A812}.Debug|Win32.Build.0 = Debug|Win32
+		{86163233-8F9E-4150-9AF4-F630B755A812}.Release|Win32.ActiveCfg = Release|Win32
+		{86163233-8F9E-4150-9AF4-F630B755A812}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -296,5 +323,11 @@ Global
 		{0DED95C2-6FB4-487E-9418-0D0A4FB6543F} = {149BFC27-4BEF-4C72-A2F3-89164172D2BD}
 		{4182F05D-1B82-411D-9ECF-DF3F0CA69E40} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
 		{BE2D8EF9-A09F-40F7-BDEE-5496822AEB87} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
+		{CAF49F66-1A15-442E-80B7-72FBEFBEEE9F} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
+		{D8C611BE-0FE4-408B-A101-0FF23CAFDBDC} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
+		{86163233-8F9E-4150-9AF4-F630B755A812} = {9FB19FE4-62F0-40B5-9DE2-25348FD24BE6}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {319F861F-8560-451D-BBE1-11FCDB6ED35C}
 	EndGlobalSection
 EndGlobal

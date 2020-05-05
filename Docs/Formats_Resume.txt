@@ -1,0 +1,274 @@
+
+
+
+******************************************************************************** Introduction
+
+Hi. It's Olganix.
+
+After some stranges crashs or inifinilty loops of DragonBallXenoverse2 (Dbxv2) on trying to making stage objects, 
+    and discovered there is Inverse Kinematic on skeletons files, I concluded the basic files aren't well full knowed.
+
+after making my way to discovered file formats for map of havok file, I decided to apply it on emd, esk, ean, emb, emm, sds, emo ema, nsk to find what is not yet discovered. 
+It's take me a wild because :
+-I discovered there is parameters witch must be splitted because they have 2 or more behaviours
+-and also because I tryed to get what some unknow parameter is for
+-and also I try to resolve some strange padding to have perfect rebuild.
+
+I have extended the work on all files of few games : SSSSS (Saint Seya), Sdbh (Super DragonBall Heroes), Sfiv (StreetFighter IV), SFxTK (StreetFighterxTekken).
+
+I discovered a lots of things. hope that will be enought to avoid wrong reactions in game.
+    But, not all unknow parameters are well unknow, also some padding.
+
+ 
+So, in this file we will talk about file format works, 
+    but also the unknow parameters, what I discovered about them without could mark as resolved. 
+    if you are not afraid about c++ code, you could take a look on libxenoverse2 git. 
+
+Knowed a parameter help to other conversion tools, when it could, to do a automatic fill it. 
+For non automatic fill, that help user in xml version to fastly iddentify 
+    what is to change to be accepted by the game  (by comparaison with original file of the game) 
+
+SO, if you have a trouble with a modified file, the game don't accept it :
+    -try to compare the Xml version with the original
+    -read this file to know about unknow parameters and try things.
+    -read in forum/discord if someone talk about this kind a trouble.
+
+
+Notice: all complex format's files of the list could be colored/tagged by using XenoWxHexEditorColorMaker.exe and whHexEditor.
+    Also, if you drag and drop a folder (with the xml version of files) on AnalyzeXml.exe, 
+    you will have the list of all possibles values of a attribute of value by Xmlpath.   
+    So if you want to help to find a unknow parameter, you have the tools for.
+    If you discovered a things, try to give me the information, 
+    I will could test on every file of games or/and add debug in Xml to valide a hypothsis.
+     
+
+
+
+******************************************************************************** common
+
+
+-emo and ema are the old format of emd esk and nsk.
+
+on most of files, there is what I call a "version" parameter. it's not totally sure, but :
+  -it's look like having a relation with games's evolutions (same if the number don't have incrementation).
+  -it's the same number on some related files (on differents file's formats)
+  -it's look not be a values used in game, in sens about changing something (like gravity, or number of bninary's section). 
+  it could/should be the id of the project. but not sure, also because someof files are shared between games.
+
+
+
+
+******************************************************************************** sds
+
+sds is a file witch list and defined shaderPrograms. 
+A shaderProgram is the list of shaders used. 
+In this games, there is 3 types of shaders :
+-VertexShader ("vs"): it's a programs apply on each vertex of a object. you can use it to move the vertex position (like for animate some water), or calcul something for pixelShader
+-PixelShader ("ps"): it's a programs apply on each pixel of the object after razterisation. 
+    you can use it to define the final color of the pixel. you can use it to make light calculation or other stuff like using textures.
+-GeometryShader ("cs"): is for making new polygones, duplicate some geometry, doing calculations for physics. it's a little more complexe and few used in the games, only for specials particules.
+
+
+[Todo explain the sds]
+
+About the prefect rebuild, one file on dbxv2 have a space at the end of a shaderprogram's name.
+But in emm use it, you don't have the space. So the rebuild without the space is good also.
+
+
+
+******************************************************************************** emb
+
+Emb are pacakaged files, generally for textures, effect's files, or sds .
+
+[Todo explain the Emb]
+
+ 
+
+About the perfect rebuild, it's good on every files except for 10 files of SfxTk witch have too much padding with no reasons. Should be nothing problematic.
+some emb files have inside some filenames with folders. We remove the path part and it didn't break the perfect rebuild. 
+
+******************************************************************************** emm
+
+Emm is a file format for Materials.
+
+[Todo explain the Xml]
+
+About the perfect rebuild, it's good on every files except for dbxv2 witch have old memory leak in some original game's files.
+Apparently, when a version of a game's tool had changed, the memory was bad reaffected, so we see duplicated and truncated material's names.  
+I think it's not a problem because more recent games don't have the problem.
+So, you can consider the rebuild emm as good.  
+
+also this file of dbxv1 are not emm , but emb (see inside the first tags) : 800_GGK_CSS.pbind.emm 810_GVG_FBL.pbind.emm 811_GVG_CBT.pbind.emm 820_GFR_EEG.pbind.emm, 
+                                same for dbxv2 1520_KFL_GBU.pbind.emm, 1520_KFL_GBU.tbind.emm, 1521_KFL_GBR.pbind.emm, 1521_KFL_GBR.tbind.emm, 1522_KFL_RAB.pbind.emm  
+
+******************************************************************************** nsk
+
+nsk is a package of one emd and one esk. 
+It's apparently only for stage models.
+
+There is perfect rebuild on all files because new nskpack tool only binary split esk and emd.
+
+
+******************************************************************************** emd
+
+Emd are models, with définition of a geometry (vertex, faces/polygones) linked to skeleton's bones, materials and textures.
+
+[Todo explain the Emd]
+
+Perfect Rebuild is done on all files.
+
+
+
+******************************************************************************** esk
+
+Esk are skeleton for skinning object like characters, or Node hierarchy like to place stage's objects.
+For more easely speaking, we will tallk about Bones, same in case of Nodes.
+
+There is also esk inside ean, but with littles differences on transform definitions of bones, but it's the same code definition.  
+There is also lot of similarity with skeleton definition of old format emo and ema.
+ 
+(Notice: why stage's objects are on the middle of the scene ? because of precision of the floating number ("float") :
+If you put them on theirs place by adding the position into vertex position, you will have less precision on small piece.) 
+
+
+
+
+[Todo explain the esk]
+
+You could see there is skeletonUniqueId, it's the same on same skeleton and  it's 0 for some esk with one bone/node, like for camera ean.
+
+
+About strange behaviour, there is :
+-I don't know why, but certain first bone don't have "child" at "0xFFFF" instead normal value (most of case "1").
+    It's concern 39 files of dbvx2 esk (not esk in nks), and there is a lots of scd files in this list (but not scd is concerned, and also there is 2 normal esk).
+    it's not the version of file, not unknow_0 to 3.
+    in ean, there is 588 files concerned, it's also the case of flagD, or case flag="0" => (flagD == 0) && (FlagA || FlagB || Flagc == 0) ?
+    but in esk, only 39,  flagD is 177 and all combinaison not work.
+    apparently all child=0xFFFF have flag=0x1, but it's not the invese case.
+    I didn't found a explanation => So I have to add a childIndex_is0xFFFF, to rebuild correctly.
+
+-by looking some strange case about "parent" "child" "sibling" indexes to make a hierarchy, we discovered there is more than one hierarchy.
+    [TODO talk about be careful on certain file, to redo the hierarchy after editing in blender, 3dsmax or some others dbxv2 tools. ]
+
+
+
+about the perfect rebuild, 
+    -there is 8 files of sdbh (look like SCTxx_Mxxxx.esk) witch have some "-0.0" change to "0.0" values on the duplicate root bone (the one we delete on xml because is more easier for modder)
+    -there is also a big section with all 0 , on sdbh SNR00_00.esk. 
+        -as the number of 0 is strange for the number of bones (same with padding considerations)
+        -as the skeleton in the equivalent ean don't have this.
+        -and as there is no differences* (in sens, no parameter with a special value to explain a new section) with others esk files. ( *except flag = 0, but in ean and others games, some of have flag=0 and no section)
+        -[Todo test ingame the modified file]
+         so we could considerate it's a error in creation of the game file. 
+         
+
+
+******************************************************************************** ean
+
+
+
+
+-[todo talk about float imprecision when conversion into degree, because it's more easy for modders, but we try to keep radians to test perfect rebuild]
+-[Todo talk about minimum things into keyframes, checks : reorder keyframe by time, add keyframe for (duration-1) , same for 0].
+    
+-there is also a wrong sibling on "light" bone on sdbh bcs17l03.ean, but  in dbxv2 BFpot04.esk there is light but correct sibling => skipped.
+-there is too much padding on rebuilded sdbh bg_twn_anm.ean, and bg_twn_anm_taitli.ean. and the inverse on sdbh GTX_C00_T02_New1.ean, there is too much padding in original file, but the same case found (not having AnimNode or keyframesAnim) don't have padding. 
+
+
+
+
+******************************************************************************** emo
+
+
+-old model format, emd, esk and nsk replace it.
+
+
+-for simplification color are in [0.0, 1.0], but that make trouble about perfect rebuild.
+-strangely the paddingForCompressedVertex is incrementation in the file dbxv1 AFnmc01.emo
+-todo complete.
+
+-for perfect rebuild, still troubles :
+    -there is something look like memory leaks on groupNames, as if in previous version of the game's tools, there is also materialName and something else (sssss, Sfiv).
+    - ~50 files (sssss, Sfiv) have the wrong materialCount (generally 0, and sometime +1)
+    -2 files have a padding 4 instead 16 after boneNames Sfiv GEN_01.obj.emo and GEN_01.shd.emo (not compatible with others way padding)
+    -Sfiv JRI_04.obj.emo have a padding on Ik1 not at 0, may be old memory. and also ROS_01.obj.emo ROS_02.obj.emo and ROS_03.obj.emo don't respect the order unknow_inc in EMO Partgroup
+
+
+
+******************************************************************************** ema
+
+-timesByteSize in xml is keeped because of some SSSS and SFIv files witch didn't respect the rule depending of duration (duration = nbFrames, so if it's up to 0xFF = 255, need 16 bits).
+    BUT, I test the rule to pass into 16 bits (same if timesByteSize is 8bits) to avoid crash or strange effects.
+
+for perfect rebuild, there is padding trouble for SFiv 136 files, but having too much padding is not a big deal.
+the second trouble is about SfxTekken's BFU_kouro_L.ema and MAD_LIG.ema, witch are lights, have a padding 64, but all light from dbvx2 don't have it, I prefer setup for dbxv2 and the most number cases.
+  
+
+******************************************************************************** spm
+
+
+-spm have 3 type/flags : SPM (also a version with no tags), SPE, SPX
+
+
+
+-TODO test spm
+    A-test with 0000 instead of truncated part/memory leak. => 0 will desactivate the effect , no it's useless.
+     
+    
+    -test if the dbxv2 accept old SPM.
+        V-remove DSC (without change SPX -> SPE, and with) => successs, I don't know what is for Dsc, but it's didn't be needed, and effect like underwater still working.
+            -dbxv1 version of AFmnc is SPE, and dbxv2 is SPX. main differencies is unk_20 and 21 u16="0x625" -> 0x122 , and +52 octets in unknowEnd (if no empty values) + Dsc.
+              -0x625 = 11000100101 (inv16 : 0101 0010  0110 0000)
+              -0x122 = 00100100010 (inv16 : 0010 0010  0001 0000)
+        V-test to convert into SPE -> SPM 0x310 => no crash but is like if the game read value from others part.
+            -unk_8_c 0xFFFF -> 0x0000 : same
+            -unk_5 00001 -> 0000 : same
+            -unk_8_e 00 00 00 00 -> 04 00 00 00 : same ...
+            -unk_8_a_1_c to 00000000 : same
+            -remove second section1 just in case.
+            -put lots of  00000 at the end like for AFR.spm : same
+            -copy the section1 part of AFR.spm : same 
+            => SPM is not well readed by dbxv2 
+            => we can't take Spm account for the size, or we have to test in the concerneded game. 
+            
+            
+    -same test to remove some part on SPM to see if game crash
+        -Bflnd, I have removed the bad  values started at 0x380 on both section1, change the size of Section1 in header (0x360) => crash
+            -and after test to change the 0xFFFF to 0x0000 (like for smallest section1) on line 0x180, the game accept the file again
+            => So with 0xFFFF, it's stilll need a part of the space between 0x380 and 0x470
+            => the 0x00000000 overwrited on old memory are for desactivate the effects (taht why next values are not re writted, because useless)
+        -Bflnd, I redo (keep 0xFFFF) with 0x3E0 = no crash. 0x3a0 = crash, 0x3C0 = no crash,  03b0 = crash
+        - Notice: unk_8_c is sometime look for a part of float, => so there is something to activate it.
+        
+    V-retest allready done changed tags
+    -add the part in unknowEnd witch activate postEffect. and get a name of each. 
+    V-inversion values from underwater and air on
+        -I tryed to switch Section1 order, same for DSC => do nothing
+        -I switch the unk_11 value => that work. 
+        -I also see there is more that 0x0 and 0x1 value for unk_11, but only in common.spm witch I didn't know is used by what. may be on some skill or demo.
+        -I also try to search the value 0x1 in map file, to try to have more than one Section1 possibly activated, but I didn't found, so may be "underwater is 0x1", "air is 0x0" are hard coded ingame.   
+    
+    -desactivate everything (00 01) and add one by one, try to find witch unkonw parameters don't react. => classic but with a hole on water around character , like in xenoviewer (may be missing someting like a RTT ? ).
+        -remove all weird datas (0x360) = no crash, -80 octects = no crash but all dark blue + artefact.
+    
+    -one test could be cool is to test (from normal spm file) : you force a color like for multiplyColor, and you try to setup , one by one, the unin16 to 0, to get the one witch active it
+        -
+    
+    -TODO guess some values from the RenderDoc capture.
+    
+    -activate everything (00 01 -> FF FF), and change unknow parameter
+    -when find something regroup tag by fonctionnalities (god ray, sun, light , shadows, etc ...). 
+
+
+-unk_11 is a id for map file or game (linked to underwater vs air)
+-unk_8_a_1_b_22 : shadow filtering factor (may be anisotropie bias) : 0 = hardEdge, 1 = normal blurred /filtering, 4 = most blured.
+-unk_8_a_1_c it's a float
+
+
+
+
+
+
+
+
+

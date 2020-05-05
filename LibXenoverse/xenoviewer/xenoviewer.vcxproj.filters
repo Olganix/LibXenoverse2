@@ -46,6 +46,12 @@
     <Filter Include="Header Files\Interface\FileTree">
       <UniqueIdentifier>{d83c6d40-c126-47a9-adb1-8e6809c0b92b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Collisions">
+      <UniqueIdentifier>{0dfc8180-eba8-4e7d-a4a9-dc41d621dd71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Collisions">
+      <UniqueIdentifier>{3f1e4e6f-fdef-47cd-9db2-b13068092a4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -89,6 +95,9 @@
     </ClInclude>
     <ClInclude Include="SkeletonDebug2.h">
       <Filter>Header Files\SkeletonDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionMaker.h">
+      <Filter>Header Files\Collisions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +175,9 @@
     </ClCompile>
     <ClCompile Include="SkeletonDebug2.cpp">
       <Filter>Source Files\SkeletonDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionMaker.cpp">
+      <Filter>Source Files\Collisions</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

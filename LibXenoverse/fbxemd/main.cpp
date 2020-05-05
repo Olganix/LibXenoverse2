@@ -155,7 +155,7 @@ bool importFbxCameraAnimation(std::vector<string> &arguments)
 	
 
 	LibXenoverse::EAN* ean_anim = new LibXenoverse::EAN();
-	ean_anim->setType(0x401);										//special type for Camera Animations.
+	ean_anim->setType(LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA);				//special type for Camera Animations.
 	LibXenoverse::ESK* esk = new LibXenoverse::ESK();
 	esk->addBone(new LibXenoverse::ESKBone("Node"));
 	ean_anim->setSkeleton(esk);

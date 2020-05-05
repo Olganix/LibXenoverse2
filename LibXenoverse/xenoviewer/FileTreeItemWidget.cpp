@@ -105,7 +105,7 @@ AnimationPackItemWidget::AnimationPackItemWidget(EANOgre *data, QTreeWidget *par
 AnimationItemWidget::AnimationItemWidget(EANOgreAnimation *data, QTreeWidget *parent) : FileTreeItemWidget(parent)
 {
 	data_ptr = data;
-	setText(0, (data->getName()).c_str());
+	setText(0, ("" + ToString(data->getIndex()) + ":  "+ data->getName()).c_str());
 	setIcon(0, QIcon(":/resources/icons/animation.png"));
 	setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 

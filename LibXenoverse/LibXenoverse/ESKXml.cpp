@@ -14,7 +14,7 @@ bool ESK::loadXml(string filename)
 	TiXmlDocument doc(filename);
 	if(!doc.LoadFile())
 	{
-		printf("Loading xml %s fail. skip.'\n", filename);
+		printf("Loading xml %s fail. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -24,7 +24,7 @@ bool ESK::loadXml(string filename)
 	TiXmlElement* rootNode = hDoc.FirstChildElement("ESK").Element();
 	if (!rootNode)
 	{
-		printf("%s don't have 'ESK' tags. skip.'\n", filename);
+		printf("%s don't have 'ESK' tags. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -59,28 +59,32 @@ void ESK::saveXml(string filename)
 bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
+	xmlCurrentNode->QueryStringAttribute("version", &version);
 
 	string str = "";
-	
 	xmlCurrentNode->QueryStringAttribute("flag", &str); flag = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknown_offset_2", &str); unknown_offset_2 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknown_offset_3", &str); unknown_offset_3 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryBoolAttribute("haveExtraBytesOnEachBone", &mHaveExtraBytesOnEachBone);
+	xmlCurrentNode->QueryStringAttribute("skeletonUniqueId", &str); skeletonUniqueId = EMO_BaseFile::GetUnsigned64(str);
+
+	xmlCurrentNode->QueryStringAttribute("unknow_0", &str); unknow_0 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_1", &str); unknow_1 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_2", &str); unknow_2 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_3", &str); unknow_3 = EMO_BaseFile::GetUnsigned(str);
+	
 
 
-	TiXmlElement* bonesNode = xmlCurrentNode->FirstChildElement("ESKBones");
+	TiXmlElement* bonesNode = xmlCurrentNode->FirstChildElement("Bones");
 	if (!bonesNode)
 	{
-		printf("No 'ESKBones' tags find. skip.'\n");
+		printf("No 'Bones' tags find. skip.'\n");
 		getchar();
 		return false;
 	}
 
-	//node will be organize into hieirarchy, to be more readable.
+	//node will be organize into hierarchy, to be more readable.
 	EskTreeNode* treeRootNode = new EskTreeNode(nullptr, (size_t)-1, nullptr);
 
 	
-	for (TiXmlElement* xmlNode = bonesNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
+	for (TiXmlElement* xmlNode = bonesNode->FirstChildElement("Bone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Bone"))
 	{
 		ESKBone* eskBone = new ESKBone();
 		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeRootNode, mHaveExtraBytesOnEachBone);
@@ -94,13 +98,16 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	
 	setTreeOrganisation(treeRootNode);					//read hieirarchy to make the list of bones.
 	
-	delete treeRootNode;					//delete the hieirarchy organisation, but not the bones
+	delete treeRootNode;					//delete the hierarchy organisation, but not the bones
 
 
 	//read IK and Extra
 	TiXmlElement* node_IK_list = xmlCurrentNode->FirstChildElement("InverseKinematic");
 	if (node_IK_list)
 	{
+		string str = "";
+		uint32_t tmp = 0;
+
 		for (TiXmlElement* node_group = node_IK_list->FirstChildElement("Group"); node_group; node_group = node_group->NextSiblingElement("Group"))
 		{
 			listInverseKinematic.push_back(Esk_IK_Group());
@@ -108,28 +115,63 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 			for (TiXmlElement* node_ik = node_group->FirstChildElement("IK"); node_ik; node_ik = node_ik->NextSiblingElement("IK"))
 			{
 				listInverseKinematic.back().mListIK.push_back(Esk_IK_Relation());
-				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
+				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();				
+				node_ik->QueryUnsignedAttribute("unknow_0", &tmp); ik.unknow_0 = (uint8_t)tmp;
+				
+				TiXmlElement* node_influenced = node_ik->FirstChildElement("BoneInfluenced");
+				if (!node_influenced)
+				{
+					printf("No 'BoneInfluenced' tags find. skip.'\n");
+					getchar();
+					listInverseKinematic.pop_back();
+					continue;
+				}
+				
+				string name = "";
+				double value = 0.0;
+				ESKBone* eskBone = 0;
+				size_t nbBones = bones.size();
+
+				node_influenced->QueryStringAttribute("name", &name);
+				node_influenced->QueryStringAttribute("value", &str);
+				value = StringToFloat(str);
+
+				for (size_t i = 0; i < nbBones; i++)
+				{
+					if (bones.at(i)->getName() == name)
+					{
+						eskBone = bones.at(i);
+						break;
+					}
+				}
+
+				if (eskBone)
+				{
+					ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(eskBone, (float)value));
+				}else {
+					printf("'BoneInfluenced' not found in bones declaration. skip.'\n");
+					getchar();
+					listInverseKinematic.pop_back();
+					continue;
+				}
+
 
 				for (TiXmlElement* node = node_ik->FirstChildElement("Bone"); node; node = node->NextSiblingElement("Bone"))
 				{
-					string name = "";
-					double value = 0.0;
+					name = "";
+					value = 0.0;
 					node->QueryStringAttribute("name", &name);
-					node->QueryDoubleAttribute("value", &value);
+					node->QueryStringAttribute("value", &str); 
+					value = StringToFloat(str);
 
-					ESKBone* eskBone = 0;
-					size_t nbBones = bones.size();
 					for (size_t i = 0; i < nbBones; i++)
 					{
 						if (bones.at(i)->getName()== name)
 						{
-							eskBone = bones.at(i);
+							ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(bones.at(i), (float)value));
 							break;
 						}
-					}
-
-					if(eskBone)
-						ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(eskBone, (float)value));
+					}						
 				}
 			}
 		}
@@ -147,18 +189,42 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 	bones.push_back(this);
 	
 	xmlCurrentNode->QueryStringAttribute("name", &name);
-
+	
 	size_t tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_index_4", &tmp);
-	index_4 = (unsigned short)tmp;
+	xmlCurrentNode->QueryUnsignedAttribute("ik_flag", &tmp); ik_flag = (uint16_t)tmp;				//Test todo remove.
+	
 
+	string str = "";
 	if (haveExtraBytesOnEachBone)
 	{
-		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_0", &unk_extraInfo_0);
-		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_1", &unk_extraInfo_1);
-		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_2", &unk_extraInfo_2);
-		xmlCurrentNode->QueryUnsignedAttribute("extra_unk_3", &unk_extraInfo_3);
+		xmlCurrentNode->QueryUnsignedAttribute("exUnk_0", &unk_extraInfo_0);
+		xmlCurrentNode->QueryUnsignedAttribute("exUnk_1", &unk_extraInfo_1);
+		xmlCurrentNode->QueryStringAttribute("exUnk_2", &str); unk_extraInfo_2 = EMO_BaseFile::GetUnsigned(str);
+		xmlCurrentNode->QueryUnsignedAttribute("exUnk_3", &unk_extraInfo_3);
 	}
+
+	str = "";
+	if(bones.size()==1)
+		xmlCurrentNode->QueryStringAttribute("childIndex_is0xFFFF", &str); childIndex_is0xFFFF = (str=="true");
+
+	str = "";
+	xmlCurrentNode->QueryStringAttribute("hierarchy", &str);
+	if (str.length() == 0)
+	{
+		if((treeParentNode)&&(treeParentNode->mBone) && (treeParentNode->mBone->hierarchyIndex == (LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST | LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND) ))
+			hierarchyIndex = LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST;
+	}else{
+		hierarchyIndex = 0;
+		std::vector<string> sv = split(str, ',');
+		for (size_t i = 0; i < sv.size(); i++)
+		{
+			if (sv.at(i) == "0")
+				hierarchyIndex |= LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST;
+			else if (sv.at(i) == "1")
+				hierarchyIndex |= LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND;
+		}
+	}
+	
 
 
 	TiXmlElement* absoluteTransformMatrixNode = xmlCurrentNode->FirstChildElement("AbsoluteTransformMatrix");
@@ -176,25 +242,26 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 			getchar();
 		}else{
 
-			lineNode0->QueryFloatAttribute("x", &transform_matrix[0]);
-			lineNode0->QueryFloatAttribute("y", &transform_matrix[1]);
-			lineNode0->QueryFloatAttribute("z", &transform_matrix[2]);
-			lineNode0->QueryFloatAttribute("w", &transform_matrix[3]);
+			string str = "";
+			lineNode0->QueryStringAttribute("x", &str); absoluteMatrix[0] = StringToFloat(str);
+			lineNode0->QueryStringAttribute("y", &str); absoluteMatrix[1] = StringToFloat(str);
+			lineNode0->QueryStringAttribute("z", &str); absoluteMatrix[2] = StringToFloat(str);
+			lineNode0->QueryStringAttribute("w", &str); absoluteMatrix[3] = StringToFloat(str);
 
-			lineNode1->QueryFloatAttribute("x", &transform_matrix[4]);
-			lineNode1->QueryFloatAttribute("y", &transform_matrix[5]);
-			lineNode1->QueryFloatAttribute("z", &transform_matrix[6]);
-			lineNode1->QueryFloatAttribute("w", &transform_matrix[7]);
+			lineNode1->QueryStringAttribute("x", &str); absoluteMatrix[4] = StringToFloat(str);
+			lineNode1->QueryStringAttribute("y", &str); absoluteMatrix[5] = StringToFloat(str);
+			lineNode1->QueryStringAttribute("z", &str); absoluteMatrix[6] = StringToFloat(str);
+			lineNode1->QueryStringAttribute("w", &str); absoluteMatrix[7] = StringToFloat(str);
 
-			lineNode2->QueryFloatAttribute("x", &transform_matrix[8]);
-			lineNode2->QueryFloatAttribute("y", &transform_matrix[9]);
-			lineNode2->QueryFloatAttribute("z", &transform_matrix[10]);
-			lineNode2->QueryFloatAttribute("w", &transform_matrix[11]);
+			lineNode2->QueryStringAttribute("x", &str); absoluteMatrix[8] = StringToFloat(str);
+			lineNode2->QueryStringAttribute("y", &str); absoluteMatrix[9] = StringToFloat(str);
+			lineNode2->QueryStringAttribute("z", &str); absoluteMatrix[10] = StringToFloat(str);
+			lineNode2->QueryStringAttribute("w", &str); absoluteMatrix[11] = StringToFloat(str);
 
-			lineNode3->QueryFloatAttribute("x", &transform_matrix[12]);
-			lineNode3->QueryFloatAttribute("y", &transform_matrix[13]);
-			lineNode3->QueryFloatAttribute("z", &transform_matrix[14]);
-			lineNode3->QueryFloatAttribute("w", &transform_matrix[15]);
+			lineNode3->QueryStringAttribute("x", &str); absoluteMatrix[12] = StringToFloat(str);
+			lineNode3->QueryStringAttribute("y", &str); absoluteMatrix[13] = StringToFloat(str);
+			lineNode3->QueryStringAttribute("z", &str); absoluteMatrix[14] = StringToFloat(str);
+			lineNode3->QueryStringAttribute("w", &str); absoluteMatrix[15] = StringToFloat(str);
 		}
 	}
 
@@ -205,27 +272,28 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 		TiXmlElement* positionNode = relativeTransformNode->FirstChildElement("Position");
 		TiXmlElement* orientationNode = relativeTransformNode->FirstChildElement("Orientation");
 		TiXmlElement* scaleNode = relativeTransformNode->FirstChildElement("Scale");
+		string str = "";
 
 		if (positionNode)
 		{
-			positionNode->QueryFloatAttribute("x", &skinning_matrix[0]);
-			positionNode->QueryFloatAttribute("y", &skinning_matrix[1]);
-			positionNode->QueryFloatAttribute("z", &skinning_matrix[2]);
-			positionNode->QueryFloatAttribute("w", &skinning_matrix[3]);
+			positionNode->QueryStringAttribute("x", &str); relativeTransform[0] = StringToFloat(str);
+			positionNode->QueryStringAttribute("y", &str); relativeTransform[1] = StringToFloat(str);
+			positionNode->QueryStringAttribute("z", &str); relativeTransform[2] = StringToFloat(str);
+			positionNode->QueryStringAttribute("w", &str); relativeTransform[3] = StringToFloat(str);
 		}
 		if (orientationNode)
 		{
-			orientationNode->QueryFloatAttribute("x", &skinning_matrix[4]);
-			orientationNode->QueryFloatAttribute("y", &skinning_matrix[5]);
-			orientationNode->QueryFloatAttribute("z", &skinning_matrix[6]);
-			orientationNode->QueryFloatAttribute("w", &skinning_matrix[7]);
+			orientationNode->QueryStringAttribute("x", &str); relativeTransform[4] = StringToFloat(str);
+			orientationNode->QueryStringAttribute("y", &str); relativeTransform[5] = StringToFloat(str);
+			orientationNode->QueryStringAttribute("z", &str); relativeTransform[6] = StringToFloat(str);
+			orientationNode->QueryStringAttribute("w", &str); relativeTransform[7] = StringToFloat(str);
 		}
 		if (scaleNode)
 		{
-			scaleNode->QueryFloatAttribute("x", &skinning_matrix[8]);
-			scaleNode->QueryFloatAttribute("y", &skinning_matrix[9]);
-			scaleNode->QueryFloatAttribute("z", &skinning_matrix[10]);
-			scaleNode->QueryFloatAttribute("w", &skinning_matrix[11]);
+			scaleNode->QueryStringAttribute("x", &str); relativeTransform[8] = StringToFloat(str);
+			scaleNode->QueryStringAttribute("y", &str); relativeTransform[9] = StringToFloat(str);
+			scaleNode->QueryStringAttribute("z", &str); relativeTransform[10] = StringToFloat(str);
+			scaleNode->QueryStringAttribute("w", &str); relativeTransform[11] = StringToFloat(str);
 		}
 	}
 	
@@ -233,7 +301,7 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 
 
 	// Same for children
-	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("Bone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Bone"))
 	{
 		ESKBone* eskBone = new ESKBone();
 		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeCurrentNode, haveExtraBytesOnEachBone);
@@ -260,14 +328,46 @@ TiXmlElement* ESK::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("ESK");
 
 	xmlCurrentNode->SetAttribute("name", name);
+	xmlCurrentNode->SetAttribute("version", version);
 	xmlCurrentNode->SetAttribute("flag", EMO_BaseFile::UnsignedToString(flag, true));
-	xmlCurrentNode->SetAttribute("unknown_offset_2", EMO_BaseFile::UnsignedToString(unknown_offset_2, true));
-	xmlCurrentNode->SetAttribute("unknown_offset_3", EMO_BaseFile::UnsignedToString(unknown_offset_3, true));
-	xmlCurrentNode->SetAttribute("haveExtraBytesOnEachBone", mHaveExtraBytesOnEachBone);
+
+	xmlCurrentNode->SetAttribute("flagA", ((flag & 0x8) >> 3) );				//test Todo remove.
+	xmlCurrentNode->SetAttribute("flagB", ((flag & 0x4) >> 2));
+	xmlCurrentNode->SetAttribute("flagC", ((flag & 0x2) >> 1));
+	xmlCurrentNode->SetAttribute("flagD", (flag & 0x1));
+
+	xmlCurrentNode->SetAttribute("skeletonUniqueId", EMO_BaseFile::Unsigned64ToString(skeletonUniqueId, true));
+
+	xmlCurrentNode->SetAttribute("unknow_0", EMO_BaseFile::UnsignedToString(unknow_0, true));
+	xmlCurrentNode->SetAttribute("unknow_1", EMO_BaseFile::UnsignedToString(unknow_1, true));
+	xmlCurrentNode->SetAttribute("unknow_2", EMO_BaseFile::UnsignedToString(unknow_2, true));
+	xmlCurrentNode->SetAttribute("unknow_3", EMO_BaseFile::UnsignedToString(unknow_3, true));
+
+
+
+
+	{										//test todo remove
+		string duplicatedBoneName = "";
+		string boneName;
+		for (size_t i = 0, nbBone = bones.size(); i < nbBone; i++)
+		{
+			string boneName = bones.at(i)->getName();
+			for (size_t j = i + 1; j < nbBone; j++)
+			{
+				if (bones.at(j)->getName() == boneName)
+				{
+					duplicatedBoneName += boneName + ",";
+					continue;
+				}
+			}
+		}
+		if(duplicatedBoneName.length())
+			xmlCurrentNode->SetAttribute("duplicatedBoneName", duplicatedBoneName);
+	}
+
 
 	
-	
-	TiXmlElement* bonesNode = new TiXmlElement("ESKBones");
+	TiXmlElement* bonesNode = new TiXmlElement("Bones");
 	xmlCurrentNode->LinkEndChild(bonesNode);
 
 	EskTreeNode* rootTreeNode = getTreeOrganisation();		//get by hierarchy.
@@ -277,6 +377,7 @@ TiXmlElement* ESK::exportXml(void)
 	for (size_t i = 0; i < nbchild; i++)
 	{
 		childTreeNode = rootTreeNode->mChildren.at(i);
+		bonesNode->LinkEndChild(new TiXmlComment((string("Index: ") + ToString(childTreeNode->mIndex)).c_str()));
 		bonesNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode, mHaveExtraBytesOnEachBone));
 	}
 	delete rootTreeNode;
@@ -302,18 +403,17 @@ TiXmlElement* ESK::exportXml(void)
 			{
 				Esk_IK_Relation &ik = group.mListIK.at(j);
 				TiXmlElement* node_ik = new TiXmlElement("IK");
+				node_ik->SetAttribute("unknow_0", ik.unknow_0);
 				node_group->LinkEndChild(node_ik);
 
 				size_t nbBones = ik.mListBones.size();
-				//node_ik->SetAttribute("count", nbBones);
-				
 				for (size_t k = 0; k < nbBones; k++)
 				{
-					TiXmlElement* node = new TiXmlElement("Bone");
+					TiXmlElement* node = new TiXmlElement( (k==0) ? "BoneInfluenced" : "Bone");
 					node_ik->LinkEndChild(node);
 
 					node->SetAttribute("name", ik.mListBones.at(k).bone->getName());
-					node->SetDoubleAttribute("value", ik.mListBones.at(k).value);
+					node->SetAttribute("value", FloatToString(ik.mListBones.at(k).value));
 				}
 			}
 		}
@@ -327,19 +427,28 @@ TiXmlElement* ESK::exportXml(void)
 \-------------------------------------------------------------------------------*/
 TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEachBone)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("ESKBone");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("Bone");
 
 	xmlCurrentNode->SetAttribute("name", name);
+	xmlCurrentNode->SetAttribute("ik_flag", ik_flag);				//Test todo remove.
 
-	xmlCurrentNode->SetAttribute("unknown_index_4", (size_t)index_4);
+	if ((treeNode->mIndex == 0)&&(childIndex_is0xFFFF))
+		xmlCurrentNode->SetAttribute("childIndex_is0xFFFF", "true");
+
+	if ((hierarchyIndex & LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND) != 0)			//if hierarchyIndex==0 or there is only the first, don't need to display it.
+		xmlCurrentNode->SetAttribute("hierarchy", (hierarchyIndex & LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST) ? "0,1" : "1");		//the root will have both because is on both in the same time.
+
 
 	if (haveExtraBytesOnEachBone)
 	{
-		xmlCurrentNode->SetAttribute("extra_unk_0", unk_extraInfo_0);
-		xmlCurrentNode->SetAttribute("extra_unk_1", unk_extraInfo_1);
-		xmlCurrentNode->SetAttribute("extra_unk_2", unk_extraInfo_2);
-		xmlCurrentNode->SetAttribute("extra_unk_3", unk_extraInfo_3);
+		xmlCurrentNode->SetAttribute("exUnk_0", unk_extraInfo_0);
+		xmlCurrentNode->SetAttribute("exUnk_1", unk_extraInfo_1);
+		xmlCurrentNode->SetAttribute("exUnk_2", EMO_BaseFile::UnsignedToString(unk_extraInfo_2,true));
+		xmlCurrentNode->SetAttribute("exUnk_3", unk_extraInfo_3);
 	}
+
+	
+
 
 	if (haveTransformMatrix)
 	{
@@ -351,25 +460,25 @@ TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEac
 		TiXmlElement* lineNode3 = new TiXmlElement("Line");
 
 
-		lineNode0->SetDoubleAttribute("x", transform_matrix[0]);
-		lineNode0->SetDoubleAttribute("y", transform_matrix[1]);
-		lineNode0->SetDoubleAttribute("z", transform_matrix[2]);
-		lineNode0->SetDoubleAttribute("w", transform_matrix[3]);
+		lineNode0->SetAttribute("x", FloatToString(absoluteMatrix[0]));
+		lineNode0->SetAttribute("y", FloatToString(absoluteMatrix[1]));
+		lineNode0->SetAttribute("z", FloatToString(absoluteMatrix[2]));
+		lineNode0->SetAttribute("w", FloatToString(absoluteMatrix[3]));
 
-		lineNode1->SetDoubleAttribute("x", transform_matrix[4]);
-		lineNode1->SetDoubleAttribute("y", transform_matrix[5]);
-		lineNode1->SetDoubleAttribute("z", transform_matrix[6]);
-		lineNode1->SetDoubleAttribute("w", transform_matrix[7]);
+		lineNode1->SetAttribute("x", FloatToString(absoluteMatrix[4]));
+		lineNode1->SetAttribute("y", FloatToString(absoluteMatrix[5]));
+		lineNode1->SetAttribute("z", FloatToString(absoluteMatrix[6]));
+		lineNode1->SetAttribute("w", FloatToString(absoluteMatrix[7]));
 
-		lineNode2->SetDoubleAttribute("x", transform_matrix[8]);
-		lineNode2->SetDoubleAttribute("y", transform_matrix[9]);
-		lineNode2->SetDoubleAttribute("z", transform_matrix[10]);
-		lineNode2->SetDoubleAttribute("w", transform_matrix[11]);
+		lineNode2->SetAttribute("x", FloatToString(absoluteMatrix[8]));
+		lineNode2->SetAttribute("y", FloatToString(absoluteMatrix[9]));
+		lineNode2->SetAttribute("z", FloatToString(absoluteMatrix[10]));
+		lineNode2->SetAttribute("w", FloatToString(absoluteMatrix[11]));
 
-		lineNode3->SetDoubleAttribute("x", transform_matrix[12]);
-		lineNode3->SetDoubleAttribute("y", transform_matrix[13]);
-		lineNode3->SetDoubleAttribute("z", transform_matrix[14]);
-		lineNode3->SetDoubleAttribute("w", transform_matrix[15]);
+		lineNode3->SetAttribute("x", FloatToString(absoluteMatrix[12]));
+		lineNode3->SetAttribute("y", FloatToString(absoluteMatrix[13]));
+		lineNode3->SetAttribute("z", FloatToString(absoluteMatrix[14]));
+		lineNode3->SetAttribute("w", FloatToString(absoluteMatrix[15]));
 
 		absoluteTransformMatrixNode->LinkEndChild(lineNode0);
 		absoluteTransformMatrixNode->LinkEndChild(lineNode1);
@@ -387,20 +496,20 @@ TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEac
 		TiXmlElement* scaleNode = new TiXmlElement("Scale");
 
 
-		positionNode->SetDoubleAttribute("x", skinning_matrix[0]);
-		positionNode->SetDoubleAttribute("y", skinning_matrix[1]);
-		positionNode->SetDoubleAttribute("z", skinning_matrix[2]);
-		positionNode->SetDoubleAttribute("w", skinning_matrix[3]);
+		positionNode->SetAttribute("x", FloatToString(relativeTransform[0]));
+		positionNode->SetAttribute("y", FloatToString(relativeTransform[1]));
+		positionNode->SetAttribute("z", FloatToString(relativeTransform[2]));
+		positionNode->SetAttribute("w", FloatToString(relativeTransform[3]));
 
-		orientationNode->SetDoubleAttribute("x", skinning_matrix[4]);
-		orientationNode->SetDoubleAttribute("y", skinning_matrix[5]);
-		orientationNode->SetDoubleAttribute("z", skinning_matrix[6]);
-		orientationNode->SetDoubleAttribute("w", skinning_matrix[7]);
+		orientationNode->SetAttribute("x", FloatToString(relativeTransform[4]));
+		orientationNode->SetAttribute("y", FloatToString(relativeTransform[5]));
+		orientationNode->SetAttribute("z", FloatToString(relativeTransform[6]));
+		orientationNode->SetAttribute("w", FloatToString(relativeTransform[7]));
 
-		scaleNode->SetDoubleAttribute("x", skinning_matrix[8]);
-		scaleNode->SetDoubleAttribute("y", skinning_matrix[9]);
-		scaleNode->SetDoubleAttribute("z", skinning_matrix[10]);
-		scaleNode->SetDoubleAttribute("w", skinning_matrix[11]);
+		scaleNode->SetAttribute("x", FloatToString(relativeTransform[8]));
+		scaleNode->SetAttribute("y", FloatToString(relativeTransform[9]));
+		scaleNode->SetAttribute("z", FloatToString(relativeTransform[10]));
+		scaleNode->SetAttribute("w", FloatToString(relativeTransform[11]));
 
 		relativeTransformNode->LinkEndChild(positionNode);
 		relativeTransformNode->LinkEndChild(orientationNode);
@@ -415,6 +524,7 @@ TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEac
 	for (size_t i = 0; i < nbchild; i++)
 	{
 		childTreeNode = treeNode->mChildren.at(i);
+		xmlCurrentNode->LinkEndChild(new TiXmlComment((string("Index: ") + ToString(childTreeNode->mIndex)).c_str()));
 		xmlCurrentNode->LinkEndChild(childTreeNode->mBone->exportXml(childTreeNode, haveExtraBytesOnEachBone));
 	}
 

@@ -84,7 +84,7 @@ bool EMDVertex::operator == (const EMDVertex& vertex)
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
-void EMDVertex::read(File *file, uint16_t flags)
+void EMDVertex::read(File *file, uint16_t flags, uint16_t &paddingForCompressedVertex)
 {
 	this->flags = flags;
 	
@@ -130,7 +130,8 @@ void EMDVertex::read(File *file, uint16_t flags)
 			file->readFloat16E(&norm_x);
 			file->readFloat16E(&norm_y);
 			file->readFloat16E(&norm_z);
-			file->moveAddress(2);
+			//file->moveAddress(2);
+			file->readInt16E(&paddingForCompressedVertex);
 		}
 
 		
@@ -151,7 +152,8 @@ void EMDVertex::read(File *file, uint16_t flags)
 			file->readFloat16E(&tang_x);
 			file->readFloat16E(&tang_y);
 			file->readFloat16E(&tang_z);
-			file->moveAddress(2);
+			//file->moveAddress(2);
+			file->readInt16E(&paddingForCompressedVertex);
 		}
 	}
 
@@ -172,8 +174,10 @@ void EMDVertex::read(File *file, uint16_t flags)
 			for (size_t i = 0; i < 3; i++)				//only 3 informations, because the last is a completion.
 				file->readFloat32E(&blend_weight[ i ]);
 		}else {
-			for (size_t i = 0; i < 4; i++)
+			for (size_t i = 0; i < 3; i++)
 				file->readFloat16E(&blend_weight[ i ]);
+
+			file->readInt16E(&paddingForCompressedVertex);
 		}
 
 
@@ -186,7 +190,7 @@ void EMDVertex::read(File *file, uint16_t flags)
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDVertex::write(File *file, uint16_t flags)
+void EMDVertex::write(File *file, uint16_t flags, uint16_t paddingForCompressedVertex)
 {
 	unsigned short nullValue = 0x00;
 	
@@ -232,7 +236,8 @@ void EMDVertex::write(File *file, uint16_t flags)
 			file->writeFloat16E(&norm_x);
 			file->writeFloat16E(&norm_y);
 			file->writeFloat16E(&norm_z);
-			file->writeInt16E(&nullValue);
+			//file->writeInt16E(&nullValue);
+			file->writeInt16E(&paddingForCompressedVertex);
 		}
 
 		if (flags & EMD_VTX_FLAG_TEX)
@@ -252,7 +257,8 @@ void EMDVertex::write(File *file, uint16_t flags)
 			file->writeFloat16E(&tang_x);
 			file->writeFloat16E(&tang_y);
 			file->writeFloat16E(&tang_z);
-			file->writeInt16E(&nullValue);
+			//file->writeInt16E(&nullValue);
+			file->writeInt16E(&paddingForCompressedVertex);
 		}
 	}
 
@@ -274,12 +280,12 @@ void EMDVertex::write(File *file, uint16_t flags)
 		{
 			for (size_t i = 0; i < 3; i++)				//only 3 informations, because the last is a completion.
 				file->writeFloat32E(&blend_weight[ i ]);
-		}
-		else {
+		}else {
 			for (size_t i = 0; i < 3; i++)
 				file->writeFloat16E(&blend_weight[ i ]);
 
-			file->writeInt16E(&nullValue);
+			//file->writeInt16E(&nullValue);
+			file->writeInt16E(&paddingForCompressedVertex);
 		}
 	}
 }

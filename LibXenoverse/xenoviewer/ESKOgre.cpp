@@ -67,7 +67,7 @@ void ESKOgre::buildBone(unsigned short b, Ogre::Skeleton *ogre_skeleton, Ogre::B
 		parent_bone->addChild(mBone);
 
 
-	float* relativeTransform = bone->skinning_matrix;
+	float* relativeTransform = bone->relativeTransform;
 	
 	Ogre::Vector3 mPos = Ogre::Vector3(relativeTransform[0], relativeTransform[1], relativeTransform[2]) * relativeTransform[3];		//multiplication by w if scaled.
 	Ogre::Quaternion mRot = Ogre::Quaternion(relativeTransform[7], relativeTransform[4], relativeTransform[5], relativeTransform[6]);
@@ -391,9 +391,9 @@ void ESKOgre::applyBinding_recursive(Ogre::Bone* bone, EskTreeNode* skeletonFofB
 		matrixFromBindParentBone.decomposition(pos_tmp, scale_tmp, orient_tmp);
 
 		LibXenoverse::ESKBone* eskbone = boneForBinding->mBone;
-		pos_tmp = (Ogre::Vector3(eskbone->skinning_matrix[0], eskbone->skinning_matrix[1], eskbone->skinning_matrix[2]) / eskbone->skinning_matrix[3]) - pos_tmp;
-		orient_tmp = orient_tmp.Inverse() * Ogre::Quaternion(eskbone->skinning_matrix[7], eskbone->skinning_matrix[4], eskbone->skinning_matrix[5], eskbone->skinning_matrix[6]);
-		scale_tmp = (Ogre::Vector3(eskbone->skinning_matrix[8], eskbone->skinning_matrix[9], eskbone->skinning_matrix[10]) / eskbone->skinning_matrix[11]) / scale_tmp;
+		pos_tmp = (Ogre::Vector3(eskbone->relativeTransform[0], eskbone->relativeTransform[1], eskbone->relativeTransform[2]) / eskbone->relativeTransform[3]) - pos_tmp;
+		orient_tmp = orient_tmp.Inverse() * Ogre::Quaternion(eskbone->relativeTransform[7], eskbone->relativeTransform[4], eskbone->relativeTransform[5], eskbone->relativeTransform[6]);
+		scale_tmp = (Ogre::Vector3(eskbone->relativeTransform[8], eskbone->relativeTransform[9], eskbone->relativeTransform[10]) / eskbone->relativeTransform[11]) / scale_tmp;
 
 
 		bone->setPosition(pos_tmp);

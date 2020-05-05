@@ -17,11 +17,13 @@
 #include "EMM.h"
 
 
+
 namespace LibXenoverse
 {
 
 // "#EMO"
 #define EMO_SIGNATURE	0x4F4D4523
+	
 
 #ifdef _MSC_VER
 #pragma pack(push,1)
@@ -32,11 +34,12 @@ struct EMO_Header
 	uint32_t signature; 		// 0
 	uint16_t endianess_check;	// 4
 	uint16_t header_size;		// 6
-	uint16_t unk_08[2]; 		// 8
+	uint8_t version[4];			// 8			//could be something else but difficult to see.
 	uint32_t parts_offset; 		// 0x0C
 	uint32_t skeleton_offset;	// 0x10
 	uint32_t vertex_offset;		// 0x14
-	uint32_t unk_18[2];			// 0x18
+	uint32_t unknow_0;			// 0x18
+	uint32_t unknow_1;			// 0x1C
 	// 0x20
 } PACKED;
 
@@ -54,8 +57,7 @@ static_assert(sizeof(EMO_PartsGroupHeader) == 0xC, "Incorrect structure size.");
 
 struct EMO_PartHeader
 {
-	uint16_t emg_count; // 0
-	uint16_t unk_02; // Let's assume padding
+	uint32_t emg_count; // 0
 	uint32_t offsets[1]; // 4
 	// 0x8 Remaining offsets
 } PACKED;
@@ -77,6 +79,7 @@ class EMO_PartsGroup
 
 private:
 	std::string name;
+
 	std::vector<EMG> parts;
 
 	// METADATA - DON'T USE IN COMPARISON
@@ -116,7 +119,7 @@ public:
 
 
 	size_t ExportObj(std::string *vertex_out, std::string *uvmap_out, std::string *normal_out, std::string *topology_out, size_t v_start_idx = 0, bool write_group = false) const;
-	void Decompile(TiXmlNode *root) const;
+	void Decompile(TiXmlNode *root, size_t &emg_inc) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton *skl);
 
 
@@ -139,11 +142,7 @@ private:
 	EMO_PartsGroup group;
 
 public:
-	EMO_PartsSorter(const EMO_PartsGroup &group)
-	{
-		this->group = group; // Note: we need a real copy, not reference, pointer, etc
-	}
-
+	EMO_PartsSorter(const EMO_PartsGroup &group) { this->group = group; } // Note: we need a real copy, not reference, pointer, etc
 	bool operator()(const EMG &part1, const EMG &part2);
 
 private:
@@ -163,20 +162,17 @@ class EMO : public EMO_Skeleton
 	friend class EMG;
 
 private:
-	std::vector<EMO_PartsGroup> groups;
-	uint16_t material_count;
+	string version;
+	uint32_t unknow_0;						//may be padding
+	uint32_t unknow_1;
 
-	// From EMO_Header
-	uint16_t unk_08[2];
-	uint32_t unk_18[2];
+	std::vector<EMO_PartsGroup> groups;
+	bool vertexInside;						//case sdbh pos_har.emo
 
 public:
 	EMO();
 	EMO(uint8_t *buf, unsigned int size);
-	EMO(const EMO &other) : EMO_Skeleton()
-	{
-		Copy(other);
-	}
+	EMO(const EMO &other) : EMO_Skeleton() { Copy(other); }
 	virtual ~EMO();
 
 
@@ -196,11 +192,6 @@ public:
 	inline std::vector<EMO_PartsGroup>::iterator end() { return groups.end(); }
 	inline std::vector<EMO_PartsGroup>::const_iterator begin() const { return groups.begin(); }
 	inline std::vector<EMO_PartsGroup>::const_iterator end() const { return groups.end(); }
-
-
-	//inline void SetMaterialCount(const EMM &emm) { material_count = emm.GetNumMaterials(); }	//TODO
-	inline void SetMaterialCount(const EMM &emm) { material_count = 0; }			//test
-	inline uint16_t GetMaterialCount() const { return material_count; }
 
 
 	inline uint16_t GetNumGroups() const { return groups.size(); }
@@ -256,7 +247,6 @@ public:
 	size_t InjectObj(const std::string &obj, bool do_uv, bool do_normal, bool show_error = true);
 	size_t InjectObjBySubParts(const std::string &obj, bool do_uv, bool do_normal, bool show_error = true);
 
-
 	void readEmd(EMD* emd);
 	void readEsk(ESK* esk);
 	void writeEmd(EMD* emd);										//need read esk before emd, because of pointer
@@ -272,6 +262,9 @@ public:
 	bool InjectFbx(const std::string &subpart, FbxScene *scene, bool use_fbx_tangent);
 #endif
 
+	//Debug/work: create a file for wxHexEditor, for add tag and color on section of the file. also detect if a file still have empty part (but you better have to ouput in a log file)
+	void save_Coloration(string filename, bool show_error = false);
+	void write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8_t *buf, size_t size);
 
 protected:
 	virtual void RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr);

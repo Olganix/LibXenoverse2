@@ -65,9 +65,27 @@ void EMBOgre::createOgreTexture(EMBFile *file, size_t index)
 
 	Ogre::DataStreamPtr data_stream(new EMBOgreDataStream(file));
 	Ogre::TexturePtr texture = (Ogre::TexturePtr)Ogre::TextureManager::getSingleton().create(ogre_emb_name, XENOVIEWER_RESOURCE_GROUP);
-	Ogre::Image image;
-	image.load(data_stream, "DDS");
-	texture->loadImage(image);
+	try
+	{
+		Ogre::Image image;
+		if (emb_texture_name.length() == 0)					//No name => dds
+		{
+			image.load(data_stream, "DDS");
+
+		}
+		else {												//for other format specified in filename (png, jpg, etc ..)
+			string strExt = "";
+			size_t pos = emb_texture_name.find_last_of(".");
+			if (pos != string::npos && pos < (emb_texture_name.length() - 1))
+				strExt = emb_texture_name.substr(pos + 1);
+
+			image.load(data_stream, strExt);				//todo see why png crash.
+		}
+		texture->loadImage(image);
+
+	}catch (...) {
+
+	}
 
 	ogre_textures[index] = texture;
 }

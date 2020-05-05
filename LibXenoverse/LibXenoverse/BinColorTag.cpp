@@ -351,7 +351,7 @@ void BinColorTag::write_Coloration_Tag(string paramName, string paramType, strin
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
 		{
 			printf("warning on tagID %i : the byte %s allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, EMO_BaseFile::UnsignedToString(index, true).c_str(), (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
-			error_str += "warning on tagID " + ToString(idTag) + " : the byte %s allready taggued, may be a overflow between blocks. Infos : " + EMO_BaseFile::UnsignedToString(index, true) + ". | ";
+			error_str += "warning on tagID " + ToString(idTag) + " : the byte "+ EMO_BaseFile::UnsignedToString(index, true) +" allready taggued, may be a overflow between blocks. | ";
 			LibXenoverse::notifyError();
 		}
 

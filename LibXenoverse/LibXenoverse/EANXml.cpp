@@ -14,7 +14,7 @@ bool EAN::loadXml(string filename)
 	TiXmlDocument doc(filename);
 	if(!doc.LoadFile())
 	{
-		printf("Loading xml %s fail. skip.'\n", filename);
+		printf("Loading xml %s fail. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -24,7 +24,7 @@ bool EAN::loadXml(string filename)
 	TiXmlElement* rootNode = hDoc.FirstChildElement("EAN").Element();
 	if (!rootNode)
 	{
-		printf("%s don't have 'EAN' tags. skip.'\n", filename);
+		printf("%s don't have 'EAN' tags. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -59,14 +59,18 @@ void EAN::saveXml(string filename)
 bool EAN::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
-
-	size_t unknown_total_tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_total", &unknown_total_tmp);
-	unknown_total = (unsigned int)unknown_total_tmp;
+	xmlCurrentNode->QueryStringAttribute("version", &version);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);
 
 	string str = "";
 	xmlCurrentNode->QueryStringAttribute("type", &str);
-	type = (unsigned short)EMO_BaseFile::GetUnsigned(str);
+	if (str == "Object")
+		type = LIBXENOVERSE_EAN_ANIMATION_TYPE_NORMAL;
+	else if (str == "Camera")
+		type = LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA;
+	else
+		type = (uint8_t)EMO_BaseFile::GetUnsigned(str);
+
 
 	TiXmlElement* eskNode = xmlCurrentNode->FirstChildElement("ESK");
 	if (!eskNode)
@@ -76,6 +80,8 @@ bool EAN::importXml(TiXmlElement* xmlCurrentNode)
 		return false;
 	}
 	skeleton = new ESK();
+	skeleton->mHaveExtraBytesOnEachBone = (type==LIBXENOVERSE_EAN_ANIMATION_TYPE_NORMAL);		//camera have not extra.
+
 	if (!skeleton->importXml(eskNode))
 	{
 		delete skeleton;
@@ -83,15 +89,15 @@ bool EAN::importXml(TiXmlElement* xmlCurrentNode)
 	}
 
 
-	TiXmlElement* eanAnimsNode = xmlCurrentNode->FirstChildElement("EANAnimations");
+	TiXmlElement* eanAnimsNode = xmlCurrentNode->FirstChildElement("Animations");
 	if (!eanAnimsNode)
 	{
-		printf("No 'EANAnimations' tags find. skip.'\n");
+		printf("No 'Animations' tags find. skip.'\n");
 		getchar();
 		return false;
 	}
 
-	for (TiXmlElement* xmlNode = eanAnimsNode->FirstChildElement("EANAnimation"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EANAnimation"))
+	for (TiXmlElement* xmlNode = eanAnimsNode->FirstChildElement("Animation"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Animation"))
 	{
 		EANAnimation eanAnimation;
 		if (eanAnimation.importXml(xmlNode, this))
@@ -109,49 +115,34 @@ bool EANAnimation::importXml(TiXmlElement* xmlCurrentNode, EAN* eanParent)
 	parent = eanParent;
 
 	size_t tmp;
-	xmlCurrentNode->QueryUnsignedAttribute("frameCount", &frame_count);
+	xmlCurrentNode->QueryUnsignedAttribute("duration", &duration);
 
-	if (xmlCurrentNode->QueryUnsignedAttribute("indexSize", &tmp) == TIXML_SUCCESS)
-		frame_index_size = tmp;
-	if (xmlCurrentNode->QueryUnsignedAttribute("floatSize", &tmp) == TIXML_SUCCESS)
-		frame_float_size = tmp;
+	string str = "";
+	xmlCurrentNode->QueryStringAttribute("floatSize", &str);
+	frame_float_size = ((str == "32bits") ? 2 : ((str == "16bits") ? 1 : std::stoi(str)));
 
-	if (frame_index_size > 1)					//security on implementation
-		frame_index_size = 1;
-	if (frame_float_size < 1)
-		frame_float_size = 1;
-	if (frame_float_size > 2)
-		frame_float_size = 2;
-	
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
+	unknow_0 = (uint16_t)tmp;
 
-
-	TiXmlElement* eanNodeNode = xmlCurrentNode->FirstChildElement("EANAnimationNodes");
-	if (!eanNodeNode)
-	{
-		printf("No 'EANAnimationNodes' tags find. skip.'\n");
-		getchar();
-		return false;
-	}
-
-	for (TiXmlElement* xmlNode = eanNodeNode->FirstChildElement("EANAnimationNode"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EANAnimationNode"))
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("AnimationNode"); xmlNode; xmlNode = xmlNode->NextSiblingElement("AnimationNode"))
 	{
 		EANAnimationNode eanAnimationNode;
-		if (eanAnimationNode.importXml(xmlNode, eanParent->getSkeleton()))
+		if (eanAnimationNode.importXml(xmlNode, eanParent->getSkeleton(), eanParent->getType()))
 			nodes.push_back(eanAnimationNode);
 	}
 
-	return (nodes.size() != 0);
+	return true;							//case sdbh BBABL_01_CAM.ean, no nodes, but keep animations. (also strange because it's the same name for many animations)
 }
 /*-------------------------------------------------------------------------------\
 |                             importXml											 |
 \-------------------------------------------------------------------------------*/
-bool EANAnimationNode::importXml(TiXmlElement* xmlCurrentNode, ESK* esk)
+bool EANAnimationNode::importXml(TiXmlElement* xmlCurrentNode, ESK* esk, size_t type)
 {
 	if (!esk)
 		return false;
 
 	string boneName;
-	xmlCurrentNode->QueryStringAttribute("BoneName", &boneName);
+	xmlCurrentNode->QueryStringAttribute("name", &boneName);
 
 	bone_index = esk->getBoneIndex(boneName);
 	if (bone_index==(size_t)-1)
@@ -161,63 +152,43 @@ bool EANAnimationNode::importXml(TiXmlElement* xmlCurrentNode, ESK* esk)
 		return false;
 	}
 
-	
-	TiXmlElement* eanKFANode = xmlCurrentNode->FirstChildElement("EANKeyframedAnimations");
-	if (!eanKFANode)
-	{
-		printf("No 'EANKeyframedAnimations' tags find. skip.'\n");
-		getchar();
-		return false;
-	}
-
-	for (TiXmlElement* xmlNode = eanKFANode->FirstChildElement("EANKeyframedAnimation"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EANKeyframedAnimation"))
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("KeyframedAnimation"); xmlNode; xmlNode = xmlNode->NextSiblingElement("KeyframedAnimation"))
 	{
 		EANKeyframedAnimation eanKeyframedAnimation;
-		if (eanKeyframedAnimation.importXml(xmlNode))
+		if (eanKeyframedAnimation.importXml(xmlNode, type))
 			keyframed_animations.push_back(eanKeyframedAnimation);
 	}
 
-	return (keyframed_animations.size()!=0);
+	return true;						//case sdbh bc16gl00.ean, there is a animNode without keyframe.
 }
 /*-------------------------------------------------------------------------------\
 |                             importXml											 |
 \-------------------------------------------------------------------------------*/
-bool EANKeyframedAnimation::importXml(TiXmlElement* xmlCurrentNode)
+bool EANKeyframedAnimation::importXml(TiXmlElement* xmlCurrentNode, size_t type)
 {
+	uint32_t tmp = 0;
+	string str = "";
 	string typeName = "";
 	xmlCurrentNode->QueryStringAttribute("type", &typeName);
 
 	if (typeName == "position")
 	{
-		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION;	//1792
+		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION;
 	}else if ((typeName == "orientation")|| (typeName == "targetCameraPosition")) {
-		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION;	//1793
-	}else if (typeName == "scale") {
-		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE;		//1794
-	}else if (typeName == "camera") {
-		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA;	//0770
-	}else if(isNumber(typeName) ){
-		flag = stoi(typeName.c_str());
+		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition;
+	}else if ((typeName == "scale") || (typeName == "camera")) {
+		flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA;
 	}else{
-		printf("'type' needed. only could be 'position', 'orientation', 'scale' or 'camera' skip.'\n");
-		getchar();
-		return false;
+		flag = EMO_BaseFile::GetUnsigned(typeName.c_str());
 	}
 
-
-
-	TiXmlElement* eanKFNode = xmlCurrentNode->FirstChildElement("EANKeyframes");
-	if (!eanKFNode)
-	{
-		printf("No 'EANKeyframes' tags find. skip.'\n");
-		getchar();
-		return false;
-	}
-
-	for (TiXmlElement* xmlNode = eanKFNode->FirstChildElement("EANKeyframe"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EANKeyframe"))
+	xmlCurrentNode->QueryStringAttribute("unknow_0", &str); unknow_0 = (uint8_t)EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_1", &str); unknow_1 = (uint16_t)EMO_BaseFile::GetUnsigned(str);
+	
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("Keyframe"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Keyframe"))
 	{
 		EANKeyframe eanKeyframe;
-		if (eanKeyframe.importXml(xmlNode, flag))
+		if (eanKeyframe.importXml(xmlNode, flag, type))
 			keyframes.push_back(eanKeyframe);
 	}
 
@@ -226,28 +197,35 @@ bool EANKeyframedAnimation::importXml(TiXmlElement* xmlCurrentNode)
 /*-------------------------------------------------------------------------------\
 |                             importXml											 |
 \-------------------------------------------------------------------------------*/
-bool EANKeyframe::importXml(TiXmlElement* xmlCurrentNode, size_t flag)
+bool EANKeyframe::importXml(TiXmlElement* xmlCurrentNode, size_t flag, size_t type)
 {
-	xmlCurrentNode->QueryUnsignedAttribute("frameIndex", &frame);
+	xmlCurrentNode->QueryUnsignedAttribute("frame", &frame);
 
-	double tmp;
-	if (flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA)
+	string str = "";
+	if ((type!= LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA) || (flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA))
 	{
-		if (xmlCurrentNode->QueryDoubleAttribute("x", &tmp) == TIXML_SUCCESS)
-			x = (float)tmp;
-		if (xmlCurrentNode->QueryDoubleAttribute("y", &tmp) == TIXML_SUCCESS)
-			y = (float)tmp;
+		if (xmlCurrentNode->QueryStringAttribute("x", &str) == TIXML_SUCCESS)
+			x = StringToFloat(str);
+		if (xmlCurrentNode->QueryStringAttribute("y", &str) == TIXML_SUCCESS)
+			y = StringToFloat(str);
 
 	}else {
-		if (xmlCurrentNode->QueryDoubleAttribute("Roll", &tmp) == TIXML_SUCCESS)
-			x = (float)tmp * 3.14159265358979f / 180.0f;
-		if (xmlCurrentNode->QueryDoubleAttribute("Focale", &tmp) == TIXML_SUCCESS)
-			y = (float)tmp * 3.14159265358979f / 180.0f;
+		/*
+		if (xmlCurrentNode->QueryStringAttribute("Roll", &str) == TIXML_SUCCESS)
+			x = StringToFloat(str) * 3.14159265358979f / 180.0f;
+		if (xmlCurrentNode->QueryStringAttribute("Focale", &str) == TIXML_SUCCESS)
+			y = StringToFloat(str) * 3.14159265358979f / 180.0f;
+		*/
+
+		if (xmlCurrentNode->QueryStringAttribute("Roll", &str) == TIXML_SUCCESS)				//todo remove and get previous (to test prefect rebuild we keep radians)
+			x = StringToFloat(str);
+		if (xmlCurrentNode->QueryStringAttribute("Focale", &str) == TIXML_SUCCESS)
+			y = StringToFloat(str);
 	}
-	if (xmlCurrentNode->QueryDoubleAttribute("z", &tmp) == TIXML_SUCCESS)
-		z = (float)tmp;
-	if (xmlCurrentNode->QueryDoubleAttribute("w", &tmp) == TIXML_SUCCESS)
-		w = (float)tmp;
+	if (xmlCurrentNode->QueryStringAttribute("z", &str) == TIXML_SUCCESS)
+		z = StringToFloat(str);
+	if (xmlCurrentNode->QueryStringAttribute("w", &str) == TIXML_SUCCESS)
+		w = StringToFloat(str);
 
 	return true;
 }
@@ -265,19 +243,28 @@ TiXmlElement* EAN::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EAN");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("unknown_total", (size_t)unknown_total);
-	xmlCurrentNode->SetAttribute("type", EMO_BaseFile::UnsignedToString(type,true));
+	xmlCurrentNode->SetAttribute("version", version);
+
+	switch (type)
+	{
+	case LIBXENOVERSE_EAN_ANIMATION_TYPE_NORMAL: xmlCurrentNode->SetAttribute("type", "Object"); break;
+	case LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA: xmlCurrentNode->SetAttribute("type", "Camera"); break;
+	default: xmlCurrentNode->SetAttribute("type", EMO_BaseFile::UnsignedToString(type, true)); break;
+	}
+
+	xmlCurrentNode->SetAttribute("unknow_1", unknow_1);
+	xmlCurrentNode->SetAttribute("unknow_0", unknow_0);	
 	
 	if(skeleton)
 		xmlCurrentNode->LinkEndChild(skeleton->exportXml());
 
 
-	TiXmlElement* eanAnimsNode = new TiXmlElement("EANAnimations");
+	TiXmlElement* eanAnimsNode = new TiXmlElement("Animations");
 	size_t nbAnim = animations.size();
 	for (size_t i = 0; i < nbAnim; i++)
 	{
 		eanAnimsNode->LinkEndChild(new TiXmlComment(("index:" + std::to_string(i)).c_str()));
-		eanAnimsNode->LinkEndChild(animations.at(i).exportXml(type));
+		eanAnimsNode->LinkEndChild(animations.at(i).exportXml(type, version, i+1 == nbAnim));
 	}
 
 	xmlCurrentNode->LinkEndChild(eanAnimsNode);
@@ -288,24 +275,18 @@ TiXmlElement* EAN::exportXml(void)
 /*-------------------------------------------------------------------------------\
 |                             exportXml											 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* EANAnimation::exportXml(size_t typeAnim)
+TiXmlElement* EANAnimation::exportXml(size_t typeAnim, string version, bool isLast)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("EANAnimation");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("Animation");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	xmlCurrentNode->SetAttribute("frameCount", frame_count);
+	xmlCurrentNode->SetAttribute("duration", duration);
+	xmlCurrentNode->SetAttribute("floatSize", ((frame_float_size == 2) ? "32bits" : ((frame_float_size == 1) ? "16bits" : ToString(frame_float_size))));
+	xmlCurrentNode->SetAttribute("unknow_0", (size_t)unknow_0);
 
-	xmlCurrentNode->SetAttribute("indexSize", frame_index_size);
-	xmlCurrentNode->SetAttribute("floatSize", frame_float_size);
 
-
-	TiXmlElement* eanNodeNode = new TiXmlElement("EANAnimationNodes");
-	size_t nbNode = nodes.size();
-	for (size_t i = 0; i < nbNode; i++)
-		eanNodeNode->LinkEndChild(nodes.at(i).exportXml(parent->getSkeleton(), typeAnim));
-
-	xmlCurrentNode->LinkEndChild(eanNodeNode);
-
+	for (size_t i = 0, nbNode = nodes.size(); i < nbNode; i++)
+		xmlCurrentNode->LinkEndChild(nodes.at(i).exportXml(parent->getSkeleton(), typeAnim));
 
 	return xmlCurrentNode;
 }
@@ -314,19 +295,14 @@ TiXmlElement* EANAnimation::exportXml(size_t typeAnim)
 \-------------------------------------------------------------------------------*/
 TiXmlElement* EANAnimationNode::exportXml(ESK* esk, size_t typeAnim)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("EANAnimationNode");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("AnimationNode");
 
-	xmlCurrentNode->SetAttribute("BoneName", ((bone_index!=0xffff) ? esk->getBones().at(bone_index)->getName() : "") );
-
-
-	TiXmlElement* eanKFANode = new TiXmlElement("EANKeyframedAnimations");
+	string aa = ((bone_index != 0xffff) ? esk->getBones().at(bone_index)->getName() : "");				//todo remove.
+	xmlCurrentNode->SetAttribute("name", ((bone_index!=0xffff) ? esk->getBones().at(bone_index)->getName() : "") );
 	
 	size_t nbKeyframeAnim = keyframed_animations.size();
 	for (size_t i = 0; i < nbKeyframeAnim; i++)
-		eanKFANode->LinkEndChild(keyframed_animations.at(i).exportXml(typeAnim));
-
-	xmlCurrentNode->LinkEndChild(eanKFANode);
-
+		xmlCurrentNode->LinkEndChild(keyframed_animations.at(i).exportXml(typeAnim));
 
 	return xmlCurrentNode;
 }
@@ -335,43 +311,43 @@ TiXmlElement* EANAnimationNode::exportXml(ESK* esk, size_t typeAnim)
 \-------------------------------------------------------------------------------*/
 TiXmlElement* EANKeyframedAnimation::exportXml(size_t typeAnim)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("EANKeyframedAnimation");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("KeyframedAnimation");
 
 	switch (flag)
 	{
 	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION: xmlCurrentNode->SetAttribute("type", "position"); break;
-	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION: xmlCurrentNode->SetAttribute("type", (typeAnim != 0x401) ? "orientation" : "targetCameraPosition"); break;
-	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE: xmlCurrentNode->SetAttribute("type", "scale"); break;
-	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA: xmlCurrentNode->SetAttribute("type", "camera"); break;
-	default: xmlCurrentNode->SetAttribute("type", flag); break;
+	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition: xmlCurrentNode->SetAttribute("type", (typeAnim != LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA) ? "orientation" : "targetCameraPosition"); break;
+	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA: xmlCurrentNode->SetAttribute("type", (typeAnim != LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA) ? "scale" : "camera"); break;
+	default: xmlCurrentNode->SetAttribute("type", EMO_BaseFile::UnsignedToString(flag, true) ); break;
 	}
-	
-
-	TiXmlElement* eanKFNode = new TiXmlElement("EANKeyframes");
+	xmlCurrentNode->SetAttribute("unknow_0", EMO_BaseFile::UnsignedToString(unknow_0, true));
+	xmlCurrentNode->SetAttribute("unknow_1", EMO_BaseFile::UnsignedToString(unknow_1, true));
 
 	size_t nbKeyframe = keyframes.size();
 	for (size_t i = 0; i < nbKeyframe; i++)
-		eanKFNode->LinkEndChild(keyframes.at(i).exportXml(flag));
-
-	xmlCurrentNode->LinkEndChild(eanKFNode);
+		xmlCurrentNode->LinkEndChild(keyframes.at(i).exportXml(flag, typeAnim));
 
 	return xmlCurrentNode;
 }
 /*-------------------------------------------------------------------------------\
 |                             exportXml											 |
 \-------------------------------------------------------------------------------*/
-TiXmlElement* EANKeyframe::exportXml(size_t flag)
+TiXmlElement* EANKeyframe::exportXml(size_t flag, size_t typeAnim)
 {
-	TiXmlElement* xmlCurrentNode = new TiXmlElement("EANKeyframe");
+	TiXmlElement* xmlCurrentNode = new TiXmlElement("Keyframe");
 
-	xmlCurrentNode->SetAttribute("frameIndex", frame);
-	if (flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA)
+	xmlCurrentNode->SetAttribute("frame", frame);
+	if ((typeAnim!= LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA)||(flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA))
 	{
 		xmlCurrentNode->SetAttribute("x", FloatToString(x));
 		xmlCurrentNode->SetAttribute("y", FloatToString(y));
 	}else {
+		/*
 		xmlCurrentNode->SetAttribute("Roll", FloatToString(x * 180.0f / 3.14159265358979f));
 		xmlCurrentNode->SetAttribute("Focale", FloatToString(y * 180.0f / 3.14159265358979f));
+		*/
+		xmlCurrentNode->SetAttribute("Roll", FloatToString(x));				//todo remove and get previous (to test prefect rebuild we keep radians)
+		xmlCurrentNode->SetAttribute("Focale", FloatToString(y));
 	}
 	xmlCurrentNode->SetAttribute("z", FloatToString(z));
 	xmlCurrentNode->SetAttribute("w", FloatToString(w));

@@ -10,9 +10,9 @@ EANAnimation::EANAnimation(EAN *v)
 {
 	name = "unknow";
 	parent = v;
-	frame_count = 0;
-	frame_index_size = 0;			//default value from Apple ean.
+	duration = 0;
 	frame_float_size = 2;			//default value from Apple ean.
+	unknow_0 = 0;
 }
 /*-------------------------------------------------------------------------------\
 |                             EANAnimation			                             |
@@ -21,10 +21,10 @@ EANAnimation::EANAnimation(EANAnimation *source, EAN *v)
 {
 	this->name = source->name;
 	this->parent = v;
-	this->frame_count = source->frame_count;
-	this->frame_index_size = source->frame_index_size;
+	this->duration = source->duration;
 	this->frame_float_size = source->frame_float_size;
 	this->mListFilenameOrigin = source->mListFilenameOrigin;
+	this->unknow_0 = source->unknow_0;
 	copy(*source, false);						//this kind of copy take care of presence of the bone in skeleton.
 }
 /*-------------------------------------------------------------------------------\
@@ -34,10 +34,10 @@ EANAnimation::EANAnimation(EANAnimation *source, vector<string> &listBoneFilterN
 {
 	this->name = source->name;
 	this->parent = v;
-	this->frame_count = source->frame_count;
-	this->frame_index_size = source->frame_index_size;
+	this->duration = source->duration;
 	this->frame_float_size = source->frame_float_size;
 	this->mListFilenameOrigin = source->mListFilenameOrigin;
+	this->unknow_0 = source->unknow_0;
 	copy(*source, listBoneFilterNames, false);						//this kind of copy take care of presence of the bone in skeleton.
 }
 
@@ -69,21 +69,19 @@ void EANAnimation::read(File *file)
 		
 	unsigned int base_animation_address = file->getCurrentAddress();
 
+	uint8_t frame_index_size = (duration >= 256) ? 1 : 0;
+
 	unsigned int nodes_count = 0;
 	unsigned int nodes_offset = 0;
-	file->moveAddress(2);
+	file->readInt16E(&unknow_0);
 	file->readUChar(&frame_index_size);
 	file->readUChar(&frame_float_size);
-	file->readInt32E(&frame_count);
+	file->readInt32E(&duration);
 	file->readInt32E(&nodes_count);
 	file->readInt32E(&nodes_offset);
 
-	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, frame_count : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, frame_count, nodes_count, nodes_offset);
+	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, duration : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, duration, nodes_count, nodes_offset);
 
-	//LOG_DEBUG("Reading Animation at %d\n", base_animation_address);
-	//LOG_DEBUG("Animation Data Sizes: %d %d\n", frame_index_size, frame_float_size);
-	//LOG_DEBUG("Animation Frames: %d\n", frame_count);
-	//LOG_DEBUG("Animation Nodes (%d):\n", nodes_count);
 	nodes.resize(nodes_count);
 	unsigned int address = 0;
 	for (size_t i = 0; i < nodes_count; i++)
@@ -103,21 +101,24 @@ size_t EANAnimation::write(File *file)
 {
 	unsigned int base_animation_address = file->getCurrentAddress();
 
-	frame_index_size = ((frame_count > 256) ? 1 : 0);
+	uint8_t frame_index_size = ((duration >= 256) ? 1 : 0);
 
 	unsigned int nodes_count = nodes.size();
 	unsigned int nodes_offset = 16;				//this header size
-	file->writeNull(2);
+	file->writeInt16E(&unknow_0);
 	file->writeUChar(&frame_index_size);
 	file->writeUChar(&frame_float_size);
-	file->writeInt32E(&frame_count);
+	file->writeInt32E(&duration);
 	file->writeInt32E(&nodes_count);
 	file->writeInt32E(&nodes_offset);
 
-	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, frame_count : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, frame_count, nodes_count, nodes_offset);
+	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, duration : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, duration, nodes_count, nodes_offset);
 
+	/*
+	//todo reuse, but apparently for ean , it's not necessary , may be only for ema (I have done this when texting ema from 3dsmax, via fbx and ean conversions in betweeen)
 	for (size_t i = 0; i < nodes_count; i++)						//that will clean keyframes up to the limit, and also add keyframe for the last time (else there will have strange effect on animation or infinite loop  (case stage.ema))
-		nodes.at(i).cleanAnimationForDuration(frame_count);
+		nodes.at(i).cleanAnimationForDuration(duration);
+	*/
 
 	size_t nodes_size = 0;
 	for (size_t i = 0; i < nodes_count; i++)
@@ -137,13 +138,13 @@ size_t EANAnimation::write(File *file)
 \-------------------------------------------------------------------------------*/
 void EANAnimation::cut(size_t indexKfStart, size_t indexKfEnd)
 {
-	if (frame_count == 0)
+	if (duration == 0)
 		return;
 
 	if (indexKfStart == (size_t)-1)
 		indexKfStart = 0;
 	if (indexKfEnd == (size_t)-1)
-		indexKfEnd = frame_count - 1;
+		indexKfEnd = duration - 1;
 
 	if (indexKfEnd < indexKfStart)
 	{
@@ -152,12 +153,12 @@ void EANAnimation::cut(size_t indexKfStart, size_t indexKfEnd)
 		indexKfStart = tmp;
 	}
 
-	if (indexKfStart >= frame_count)
-		indexKfStart = frame_count -1;
-	if (indexKfEnd >= frame_count)
-		indexKfEnd = frame_count -1;
+	if (indexKfStart >= duration)
+		indexKfStart = duration -1;
+	if (indexKfEnd >= duration)
+		indexKfEnd = duration -1;
 
-	frame_count = (indexKfEnd - indexKfStart) + 1;
+	duration = (indexKfEnd - indexKfStart) + 1;
 
 	size_t nbNodes = nodes.size();
 	for (size_t i = 0; i < nbNodes; i++)
@@ -182,8 +183,7 @@ void EANAnimation::copy(EANAnimation &source, bool keepName)
 	if (!keepName)
 		this->name = source.name;
 
-	this->frame_index_size = source.frame_index_size;
-	this->frame_count = source.frame_count;
+	this->duration = source.duration;
 	this->mListFilenameOrigin = source.mListFilenameOrigin;
 		
 	ESK* skeleton_dest = this->parent->getSkeleton();
@@ -239,8 +239,8 @@ void EANAnimation::append(EANAnimation &source, bool keepName)
 	if (!keepName)
 		this->name = source.name;
 
-	size_t startFrameForNew = this->frame_count + 1;
-	this->frame_count += source.frame_count;
+	size_t startFrameForNew = this->duration + 1;
+	this->duration += source.duration;
 
 	ESK* skeleton_dest = this->parent->getSkeleton();
 	ESK* skeleton_src = source.parent->getSkeleton();
@@ -310,8 +310,7 @@ void EANAnimation::copy(EANAnimation &source, vector<string> &listBoneFilterName
 	if (!keepName)
 		this->name = source.name;
 
-	this->frame_index_size = source.frame_index_size;
-	this->frame_count = source.frame_count;
+	this->duration = source.duration;
 	this->mListFilenameOrigin = source.mListFilenameOrigin;
 
 	ESK* skeleton_dest = this->parent->getSkeleton();
@@ -466,8 +465,8 @@ void EANAnimation::addBoneAnimationFromAnotherEan(EANAnimation &ean_Anim_src, st
 			
 			EANAnimationNode &animNode = nodes.back();
 					
-			size_t target_Duration_inFrames = this->getFrameCount();
-			size_t original_Duration_inFrames = ean_Anim_src.getFrameCount();
+			size_t target_Duration_inFrames = this->getDuration();
+			size_t original_Duration_inFrames = ean_Anim_src.getDuration();
 
 			double factor = ((double)target_Duration_inFrames) / ((double)original_Duration_inFrames);
 			printf("Ok. it's about resample %i frames (%f seconds) into %i frames (%f seconds => factor of %f on keys)\nLet's go\n", original_Duration_inFrames, ((double)original_Duration_inFrames)*(1.0 / 60.0), target_Duration_inFrames, ((double)target_Duration_inFrames)*(1.0 / 60.0), factor);
@@ -529,8 +528,7 @@ void EANAnimation::addTPoseAnimation(ESK* skeleton, bool addCameraComponent)
 void EANAnimation::operator=(EANAnimation &source)
 {
 	this->name = source.name;
-	this->frame_count = source.frame_count;
-	this->frame_index_size = source.frame_index_size;
+	this->duration = source.duration;
 	this->frame_float_size = source.frame_float_size;
 	this->mListFilenameOrigin = source.mListFilenameOrigin;
 	this->nodes = source.nodes;
@@ -563,7 +561,7 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 
 	//Search all node
 	FbxStatus lStatus;
-	frame_count = 0;
+	duration = 0;
 		
 	size_t boneIndex = 0;
 	std::vector<ESKBone *> bones = skeleton->getBones();
@@ -614,12 +612,12 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 		if (nbframe!=0)												//we don't need empty Node.
 			nodes.push_back(anim_node);
 
-		if (nbframe > frame_count)
-			frame_count = nbframe;
+		if (nbframe > duration)
+			duration = nbframe;
 	}
 
 
-	size_t lastKfTime = (frame_count>0) ? (frame_count -1) : 0;
+	size_t lastKfTime = (duration >0) ? (duration -1) : 0;
 	size_t nbNodes = nodes.size();
 	for (size_t i = 0; i < nbNodes; i++)
 	{
@@ -640,43 +638,45 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 				if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION)
 				{
 					have_POS = true;
-				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) {
+				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition) {
 					have_ROT = true;
-				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE) {
-					have_SCA = true;
-				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA) {
-					have_CAM = true;
+				}else if (keyframed_animations.at(j).getFlag() == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA) {
+
+					if(!allowCamera)
+						have_SCA = true;
+					else
+						have_CAM = true;
 				}
 			}
 
 			if (!have_POS)
 			{
-				keyframed_animations.insert(keyframed_animations.begin(), EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION));
+				keyframed_animations.insert(keyframed_animations.begin(), EANKeyframedAnimation((unsigned int) LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION));
 				vector<EANKeyframe> &listPos = keyframed_animations.at(0).getKeyframes();
 				//TODO use the default position of bone instead of neutral.
-				listPos.push_back(EANKeyframe(0, bone->skinning_matrix[0], bone->skinning_matrix[1], bone->skinning_matrix[2], 1.0f));
-				listPos.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[0], bone->skinning_matrix[1], bone->skinning_matrix[2], 1.0f));
+				listPos.push_back(EANKeyframe(0, bone->relativeTransform[0], bone->relativeTransform[1], bone->relativeTransform[2], 1.0f));
+				listPos.push_back(EANKeyframe(lastKfTime, bone->relativeTransform[0], bone->relativeTransform[1], bone->relativeTransform[2], 1.0f));
 			}
 			
 			if (!have_ROT)
 			{
-				keyframed_animations.insert(keyframed_animations.begin()+1, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION));
+				keyframed_animations.insert(keyframed_animations.begin()+1, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition));
 				vector<EANKeyframe> &listRot = keyframed_animations.at(1).getKeyframes();
-				listRot.push_back(EANKeyframe(0, bone->skinning_matrix[4], bone->skinning_matrix[5], bone->skinning_matrix[6], bone->skinning_matrix[7]));
-				listRot.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[4], bone->skinning_matrix[5], bone->skinning_matrix[6], bone->skinning_matrix[7]));
+				listRot.push_back(EANKeyframe(0, bone->relativeTransform[4], bone->relativeTransform[5], bone->relativeTransform[6], bone->relativeTransform[7]));
+				listRot.push_back(EANKeyframe(lastKfTime, bone->relativeTransform[4], bone->relativeTransform[5], bone->relativeTransform[6], bone->relativeTransform[7]));
 			}
 
-			if (!have_SCA)
+			if ((!allowCamera) && (!have_SCA))
 			{
-				keyframed_animations.insert(keyframed_animations.begin() + 2, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE));
+				keyframed_animations.insert(keyframed_animations.begin() + 2, EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA));
 				vector<EANKeyframe> &listScale = keyframed_animations.at(2).getKeyframes();
-				listScale.push_back(EANKeyframe(0, bone->skinning_matrix[8], bone->skinning_matrix[9], bone->skinning_matrix[10], 1.0f));
-				listScale.push_back(EANKeyframe(lastKfTime, bone->skinning_matrix[8], bone->skinning_matrix[9], bone->skinning_matrix[10], 1.0f));
+				listScale.push_back(EANKeyframe(0, bone->relativeTransform[8], bone->relativeTransform[9], bone->relativeTransform[10], 1.0f));
+				listScale.push_back(EANKeyframe(lastKfTime, bone->relativeTransform[8], bone->relativeTransform[9], bone->relativeTransform[10], 1.0f));
 			}
 
 			if ((allowCamera)&&(!have_CAM))
 			{
-				keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA));
+				keyframed_animations.push_back(EANKeyframedAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA));
 				vector<EANKeyframe> &listScale = keyframed_animations.back().getKeyframes();
 				listScale.push_back(EANKeyframe(0, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));
 				listScale.push_back(EANKeyframe(lastKfTime, 0.0f, 39.9783516f * 3.14159265358979f / 180.0f, 1.0f, 1.0f));
@@ -685,7 +685,7 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 
 	}
 
-	LOG_DEBUG("Animation Frames: %d\n", frame_count);
+	LOG_DEBUG("Animation Frames: %d\n", duration);
 	LOG_DEBUG("Animation Nodes (%d):\n", nodes.size());
 }
 

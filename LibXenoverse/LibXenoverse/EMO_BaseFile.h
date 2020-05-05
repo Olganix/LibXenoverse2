@@ -148,6 +148,7 @@ public:
 	static bool EndsWith(const std::string &str, const std::string &substr, bool case_sensitive = true);
 
 	static std::string UnsignedToString(uint32_t value, bool hexadecimal);
+	static std::string Unsigned64ToString(uint64_t value, bool hexadecimal);
 	static std::string FloatToString(float value);
 
 	static std::string GUID2String(const uint8_t *guid);
@@ -164,7 +165,7 @@ public:
 	static TiXmlElement *FindRoot(TiXmlHandle *handle, const std::string &root_name);
 
 	static uint32_t GetUnsigned(const std::string &str, uint32_t default_value = 0);
-	static long long GetUnsigned64(const std::string &str, long long default_value = 0);
+	static uint64_t GetUnsigned64(const std::string &str, uint64_t default_value = 0);
 	static bool GetBoolean(const std::string &str, bool default_value = false);
 
 	static size_t GetElemCount(const TiXmlElement *root, const char *name);

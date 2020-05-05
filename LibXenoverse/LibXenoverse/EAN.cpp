@@ -57,28 +57,44 @@ void EAN::save(string filename, bool big_endian)
 \-------------------------------------------------------------------------------*/
 void EAN::read(File *file)
 {
-	file->goToAddress(8);
+	file->goToAddress(6);
+
+	uint16_t header_size;
+	file->readInt16E(&header_size);
+
+	version = "";
+	uint8_t tmp = 0;
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp);
+
+	file->readInt32E(&unknow_0);
 
 	unsigned int skeleton_offset = 0;
-	unsigned int animation_keyframes_offset = 0;
+	unsigned int offset_animations = 0;
 	unsigned int animation_names_offset = 0;
 	unsigned short animation_count = 0;
 
-	file->readInt32E(&unknown_total);			//it's version Todo rename
-	file->moveAddress(4);
-	file->readInt16E(&type);
+	file->readUChar(&type);
+	file->readUChar(&unknow_1);
 	file->readInt16E(&animation_count);
 	file->readInt32E(&skeleton_offset);
-	file->readInt32E(&animation_keyframes_offset);
+	file->readInt32E(&offset_animations);
 	file->readInt32E(&animation_names_offset);
 
-	LOG_DEBUG("--------------- read EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], animation_keyframes_offset : [%i], animation_names_offset : [%i]\n", unknown_total, animation_count, skeleton_offset, animation_keyframes_offset, animation_names_offset);
+	LOG_DEBUG("--------------- read EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], offset_animations : [%i], animation_names_offset : [%i]\n", unknow_0, animation_count, skeleton_offset, offset_animations, animation_names_offset);
 
 	// Read Skeleton
 	LOG_DEBUG("----------- Skeleton\n");
 	file->goToAddress(skeleton_offset);
 	skeleton = new ESK();
 	skeleton->read(file);
+	skeleton->version = version;
 
 	// Read Animations
 	LOG_DEBUG("----------- Animations KeyFrames\n");
@@ -87,16 +103,18 @@ void EAN::read(File *file)
 	for (size_t i = 0; i < animation_count; i++)
 	{
 		// Read Keyframes
-		file->goToAddress(animation_keyframes_offset + i * 4);
+		file->goToAddress(offset_animations + i * 4);
 		file->readInt32E(&address);
 		file->goToAddress(address);
 
-		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, animation_keyframes_offset + i * 4, address);
+		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, offset_animations + i * 4, address);
 
 		animations[i].setParent(this);
 		animations[i].read(file);
 	}
-		
+	
+
+
 	LOG_DEBUG("----------- Animations Names\n");
 	for (size_t i = 0; i < animation_count; i++)
 	{
@@ -116,26 +134,45 @@ void EAN::read(File *file)
 \-------------------------------------------------------------------------------*/
 void EAN::write(File *file)
 {
-	file->goToAddress(8);
+	file->goToAddress(6);
 
+	// Header
+	uint16_t header_size = 0x20;
+	file->writeInt16E(&header_size);
+
+	if (version.length() == 0)
+		version = "0";
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+		{
+			uint8_t tmp = std::stoi(sv.at(i));
+			file->writeUChar(&tmp);
+		}else {
+			file->writeNull(1);
+		}
+	}
+
+	file->writeInt32E(&unknow_0);
+	
 	unsigned int ean_header_size = 32;
 
 	unsigned short animation_count = animations.size();
 
 	//differents parts of the file
 	unsigned int skeleton_offset = ean_header_size;
-	unsigned int animation_keyframes_offset = 0;
+	unsigned int offset_animations = 0;
 	unsigned int animation_names_offset = 0;	//define after.
 
-	file->writeInt32E(&unknown_total);
-	file->writeNull(4);
-	file->writeInt16E(&type);
+	file->writeUChar(&type);
+	file->writeUChar(&unknow_1);
 	file->writeInt16E(&animation_count);
 	file->writeInt32E(&skeleton_offset);
-	file->writeInt32E(&animation_keyframes_offset);
+	file->writeInt32E(&offset_animations);
 	file->writeInt32E(&animation_names_offset);
 		
-	LOG_DEBUG("--------------- write EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], animation_keyframes_offset : [%i], animation_names_offset : [%i]\n", unknown_total, animation_count, skeleton_offset, animation_keyframes_offset, animation_names_offset);
+	LOG_DEBUG("--------------- write EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], offset_animations : [%i], animation_names_offset : [%i]\n", unknow_0, animation_count, skeleton_offset, offset_animations, animation_names_offset);
 
 	// Write Skeleton
 	LOG_DEBUG("----------- Skeleton\n");
@@ -144,53 +181,52 @@ void EAN::write(File *file)
 
 		
 	// Write Animations
-	animation_keyframes_offset = file->getCurrentAddress();
-	LOG_DEBUG("----------- Animations KeyFrames - animation_keyframes_offset : [%i] \n", animation_keyframes_offset);
+	offset_animations = file->getCurrentAddress();
+	LOG_DEBUG("----------- Animations KeyFrames - offset_animations : [%i] \n", offset_animations);
 	size_t keyframe_size = 0;
 	size_t current_keyframe_size = 0;
 	size_t sizeToFill = 0;
-	unsigned int address_start_keyframeDef = (size_t)(ceil((animation_keyframes_offset + animation_count * 4) / 16.0f) * 16);			//the adresss is always a start of a 16octets lines.
+	unsigned int address_start_keyframeDef = (size_t)(ceil((offset_animations + animation_count * 4) / 16.0f) * 16);			//the adresss is always a start of a 16octets lines.
 	unsigned int address = 0;
 
 	for (size_t i = 0; i < animation_count; i++)
 	{
 		// Write Keay frames
-		file->goToAddress(animation_keyframes_offset + i * 4);
+		file->goToAddress(offset_animations + i * 4);
 		address = address_start_keyframeDef + keyframe_size;
 		file->writeInt32E(&address);
 		file->goToAddress(address);
 
-		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, animation_keyframes_offset + i * 4, address);
+		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, offset_animations + i * 4, address);
 			
 		animations[i].setParent(this);
 		current_keyframe_size = animations[i].write(file);
 
-
-		//fill zero on end of 16 octets lines. that why we don't have the wright number.
-		sizeToFill = (size_t)(ceil(current_keyframe_size / 16.0f) * 16) - current_keyframe_size;
-		if (sizeToFill >= 16)
-			assert("sizeToFill >= 16");
-		if (sizeToFill != 0)
+		if ((i + 1 != animation_count) && (animations[i].getNodes().size() != 0))			// no padding if no node (cf bg_twn_anm.ean)
 		{
-			file->writeNull(sizeToFill);
-			current_keyframe_size += sizeToFill;
+			size_t offset = file->getCurrentAddress();
+			size_t offset_animations_mod16 = offset_animations - (offset_animations / 16) * 16;
+			size_t offset_mod16 = offset - (offset / 16) * 16;
+
+			size_t size_padding = (offset_animations_mod16 == 0) ? 0 : 0x10;												//this is resulta of searching all cases.
+			if (offset_mod16 != 0)
+				size_padding = (offset_animations_mod16 != 0xc) ? offset_mod16 : (size_padding + offset_mod16);
+
+			if (size_padding)
+				file->writeNull(size_padding);
+			current_keyframe_size += size_padding;
 		}
+
 		keyframe_size += current_keyframe_size;
-
-
-		if (i + 1 != animation_count)			//strangely not for the last.
-		{
-			//there is an empty line of 16octet
-			file->writeNull(16);
-			keyframe_size += 16;
-		}
 	}
 
-	//for Apple (the character), there is a strange behaviour on the last animaion definition. So I have 12 octet like reading say. This is not a 16octets lines cast.
-	file->writeNull(12);
-	keyframe_size += 12;
+	//strange padding, may be a bug into game's tool.
+	size_t size_padding = (offset_animations) - (offset_animations / 16) * 16;
+	if (size_padding)
+		file->writeNull(size_padding);
+	keyframe_size += size_padding;
 
-		
+
 	animation_names_offset = file->getCurrentAddress();
 	LOG_DEBUG("----------- Animations Names - animation_names_offset : [%i] \n", animation_names_offset);
 
@@ -211,7 +247,7 @@ void EAN::write(File *file)
 
 	//update header.
 	file->goToAddress(8 + 4 + 6 + 2 + 4);
-	file->writeInt32E(&animation_keyframes_offset);
+	file->writeInt32E(&offset_animations);
 	file->writeInt32E(&animation_names_offset);
 
 
@@ -357,7 +393,7 @@ void EAN::removeAnimation(string name)
 \-------------------------------------------------------------------------------*/
 void EAN::importFBXAnimations(FbxScene *scene, std::vector<FbxAnimStack *> list_AnimStack)
 {
-	bool isCameraAnimation = (type == 0x401);
+	bool isCameraAnimation = (type == LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA);
 	
 	//Skeleton is needed because aniamtion use skeleton original position/rotation/scale. definition (name of bone) is written in ean file.
 	if (!skeleton)
@@ -400,7 +436,7 @@ vector<FbxAnimCurveNode *> EAN::exportFBXAnimations(FbxScene *scene, std::vector
 			break;
 
 		animation = &(animations.at(i));
-		keyframes_count = animation->getFrameCount();
+		keyframes_count = animation->getDuration();
 		vector<EANAnimationNode> &anim_nodes = animation->getNodes();
 			
 		lAnimStack = list_AnimStack.at(i);
@@ -461,9 +497,9 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 
 		if (esk_bone)
 		{
-			pos_tmp = FbxVector4(esk_bone->skinning_matrix[0], esk_bone->skinning_matrix[1], esk_bone->skinning_matrix[2], esk_bone->skinning_matrix[3]);
-			rot_tmp = FbxQuaternion(esk_bone->skinning_matrix[4], esk_bone->skinning_matrix[5], esk_bone->skinning_matrix[6], esk_bone->skinning_matrix[7]);
-			scale_tmp = FbxVector4(esk_bone->skinning_matrix[8], esk_bone->skinning_matrix[9], esk_bone->skinning_matrix[10], esk_bone->skinning_matrix[11]);
+			pos_tmp = FbxVector4(esk_bone->relativeTransform[0], esk_bone->relativeTransform[1], esk_bone->relativeTransform[2], esk_bone->relativeTransform[3]);
+			rot_tmp = FbxQuaternion(esk_bone->relativeTransform[4], esk_bone->relativeTransform[5], esk_bone->relativeTransform[6], esk_bone->relativeTransform[7]);
+			scale_tmp = FbxVector4(esk_bone->relativeTransform[8], esk_bone->relativeTransform[9], esk_bone->relativeTransform[10], esk_bone->relativeTransform[11]);
 
 			bone_relative_matrix.SetTQS(pos_tmp, rot_tmp, scale_tmp);
 		}
@@ -518,7 +554,7 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 		fbx_animCurve_translation_y = fbx_node->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 		fbx_animCurve_translation_z = fbx_node->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 	}
-	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION))
+	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition))
 	{
 		if (!isCameraAnimation)
 		{
@@ -531,22 +567,22 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 			fbx_animCurve_Target_translation_z = fbx_node_CameraTarget->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 		}
 	}
-	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE))
+	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA))
 	{
-		fbx_animCurve_scale_x = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
-		fbx_animCurve_scale_y = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
-		fbx_animCurve_scale_z = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
-	}
-	if (anim_node->haveKeyFrameAnimation(LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA))
-	{
-		FbxCamera* camera = fbx_node->GetCamera();
-		if (camera)
+		if (!isCameraAnimation)
 		{
-			fbx_animCurve_roll = camera->Roll.GetCurve(lAnimLayer, true);
-			fbx_animCurve_focale = camera->FieldOfView.GetCurve(lAnimLayer, true);
+			fbx_animCurve_scale_x = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
+			fbx_animCurve_scale_y = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+			fbx_animCurve_scale_z = fbx_node->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+		}else {
+			FbxCamera* camera = fbx_node->GetCamera();
+			if (camera)
+			{
+				fbx_animCurve_roll = camera->Roll.GetCurve(lAnimLayer, true);
+				fbx_animCurve_focale = camera->FieldOfView.GetCurve(lAnimLayer, true);
+			}
 		}
 	}
-
 	
 
 	if (fbx_animCurve_translation_x)
@@ -580,19 +616,23 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 
 	
 
-	float px, py, pz, pw, rx, ry, rz, rw, sx, sy, sz, sw, cx, cy, cz, cw;
+	float px, py, pz, pw, rx, ry, rz, rw, sx, sy, sz, sw;
 	float frame;
 	FbxTime lTime;
 	FbxMatrix anim_matrix;
 	int lKeyIndex = 0;
 
-	size_t frame_count = animation->getFrameCount();
+	size_t frame_count = animation->getDuration();
 	for (size_t i = 0; i < frame_count; i++)
 	{
 		frame = (float)i / fps;
-		px = py = pz = rx = ry = rz = cx = cz = cw = 0.0f;
+		px = py = pz = rx = ry = rz = 0.0f;
 		pw = rw = sx = sy = sz = sw = 1.0f;
-		cy = 0.6981311f;				//40.0 deg in radians.
+		if (isCameraAnimation)
+		{
+			sx = sz = sw = 0;
+			sy = 0.6981311f;				//40.0 deg in radians.
+		}
 		 
 
 		FbxVector4 translate = pos_tmp;
@@ -604,17 +644,21 @@ FbxAnimCurveNode *EAN::createFBXAnimationCurveNode(FbxNode *fbx_node, EANAnimati
 		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION, px, py, pz, pw))
 			translate = FbxVector4(px, py, pz, pw);
 
-		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION, rx, ry, rz, rw))
+		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition, rx, ry, rz, rw))
 		{
 			rotation = FbxQuaternion(rx, ry, rz, rw);
 			target_translate = FbxVector4(rx, ry, rz, rw);
 		}
 
-		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE, sx, sy, sz, sw))
-			scale = FbxVector4(sx, sy, sz, sw);
-
-		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA, cx, cy, cz, cw))
-			cameraProp = FbxVector4(cx * 180.0f / 3.14159265358979f, cy * 180.0f / 3.14159265358979f, cz, cw);
+		if (anim_node->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA, sx, sy, sz, sw))
+		{
+			if (!isCameraAnimation)
+				scale = FbxVector4(sx, sy, sz, sw);
+			else
+				cameraProp = FbxVector4(sx * 180.0f / 3.14159265358979f, sy * 180.0f / 3.14159265358979f, sz, sw);
+		}
+			
+			
 
 
 		if ((pw != 1.0f) && (pw != 0.0f))

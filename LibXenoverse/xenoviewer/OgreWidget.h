@@ -9,6 +9,7 @@ class EANOgre;
 class FBXOgre;
 class SkeletonDebug;
 class SkeletonDebug2;
+class CollisionMaker;
 class EMDRenderObjectListener;
 class OgreWidget;
 
@@ -158,6 +159,7 @@ namespace QtOgre
 		int current_animation_index;
 		SkeletonDebug *skeleton_debug;
 		SkeletonDebug2 *skeleton_debug2;
+		CollisionMaker* mCollisionMaker;
 		Ogre::AnimationState *current_animation_state;
 		EANOgre *animation;
 		Ogre::Entity *entity;

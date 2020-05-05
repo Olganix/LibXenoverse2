@@ -472,3 +472,49 @@ material Test
   }
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+material Voxel
+{
+	technique
+	{
+		pass
+		{
+            texture_unit ImageSampler0
+			{
+				texture dbxvVoxel.png
+			}
+		}
+	}
+}
+
+material Voxel_Tranparent
+{
+	technique
+	{
+        //Z early pass (Fade vs Transparence)
+        pass
+		{
+            lighting off
+			colour_write off
+			scene_blend alpha_blend
+		}
+    
+		pass
+		{
+            separate_scene_blend one one_minus_src_alpha one one_minus_src_alpha
+            
+            //ambient 1.0 1.0 0.0 1.0
+			diffuse 0.5 0.5 0.5 0.5
+			//specular 0.0 0.0 0.0 0.0
+			//emissive 0.0 0.0 0.0 0.0
+            
+            texture_unit ImageSampler0
+			{
+				texture dbxvVoxel.png
+			}
+		}
+	}
+}

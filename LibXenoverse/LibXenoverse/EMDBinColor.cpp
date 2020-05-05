@@ -78,7 +78,7 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 	binCt.write_Coloration_Tag("endian", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 	binCt.write_Coloration_Tag("header_size", "uint16_t", "", offset, sizeof(uint16_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 	binCt.write_Coloration_Tag("version", "4 * uint8_t", "", offset, 4 * sizeof(uint8_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 4 * sizeof(uint8_t);
-	binCt.write_Coloration_Tag("unknown_0", "uint32_t", "", offset, sizeof(uint32_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
+	binCt.write_Coloration_Tag("unknow_0", "uint32_t", "", offset, sizeof(uint32_t), "EMD_Header", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 
 	
 	size_t offset_EMD_Section = offset;
@@ -114,7 +114,7 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 		EMDModel_Section* emdModel_Section = (EMDModel_Section*)(EMO_BaseFile::GetOffsetPtr_native(buf, offset));
 		incParam = 0;
 
-		binCt.write_Coloration_Tag("unknown_0", "uint16_t", "", offset, sizeof(uint16_t), "EMDModel_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+		binCt.write_Coloration_Tag("unknow_0", "uint16_t", "", offset, sizeof(uint16_t), "EMDModel_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 		binCt.write_Coloration_Tag("number_meshs", "uint16_t", "", offset, sizeof(uint16_t), "EMDModel_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 		binCt.write_Coloration_Tag("offset_meshs", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMD_Section + emdModel_Section->offset_meshs, true) + " Ref to list adress to EMDMesh_Section", offset, sizeof(uint32_t), "EMDModel_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 
@@ -155,7 +155,7 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 			binCt.write_Coloration_Tag("aabb_max_z", "float", "", offset, sizeof(float), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
 			binCt.write_Coloration_Tag("aabb_max_w", "float", "", offset, sizeof(float), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
 			binCt.write_Coloration_Tag("offset_mesh_name", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMDMesh_Section + emdMesh_Section->offset_mesh_name, true) + " Ref to a name", offset, sizeof(uint32_t), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-			binCt.write_Coloration_Tag("unknown_0", "uint16_t", "", offset, sizeof(uint16_t), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
+			binCt.write_Coloration_Tag("unknow_0", "uint16_t", "", offset, sizeof(uint16_t), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 			binCt.write_Coloration_Tag("number_submeshs", "uint16_t", "", offset, sizeof(uint16_t), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 			binCt.write_Coloration_Tag("offset_submeshs", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMDMesh_Section + emdMesh_Section->offset_submeshs, true) + " Ref to list adress to EMDSubmesh_Section", offset, sizeof(uint32_t), "EMDMesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 
@@ -208,7 +208,7 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 				binCt.write_Coloration_Tag("number_vertex", "uint32_t", "", offset, sizeof(uint32_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 				binCt.write_Coloration_Tag("offset_vertex", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMDSubmesh_Section + emdSubmesh_Section->offset_vertex, true) + " Ref to list adress to vertex structures (depend of flag) ", offset, sizeof(uint32_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
 				binCt.write_Coloration_Tag("offset_submesh_name", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMDSubmesh_Section + emdSubmesh_Section->offset_submesh_name, true) + " Ref to a name", offset, sizeof(uint32_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-				binCt.write_Coloration_Tag("unknown_0", "uint8_t", "", offset, sizeof(uint8_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+				binCt.write_Coloration_Tag("unknow_0", "uint8_t", "", offset, sizeof(uint8_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
 				binCt.write_Coloration_Tag("number_textureDef", "uint8_t", "", offset, sizeof(uint8_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
 				binCt.write_Coloration_Tag("number_triangles", "uint16_t", "", offset, sizeof(uint16_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
 				binCt.write_Coloration_Tag("offset_textureDef", "uint32_t", " => " + EMO_BaseFile::UnsignedToString(offset_EMDSubmesh_Section + emdSubmesh_Section->offset_textureDef, true) + " Ref to list adress to EMDTextureDef_Section", offset, sizeof(uint32_t), "EMDSubmesh_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
@@ -234,10 +234,10 @@ void EMD::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 					incSection = 6;
 					incParam = 0;
 
-					binCt.write_Coloration_Tag("unknown_0", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+					binCt.write_Coloration_Tag("flag0", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
 					binCt.write_Coloration_Tag("textureIndex", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-					binCt.write_Coloration_Tag("unknown_1", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-					binCt.write_Coloration_Tag("unknown_2", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+					binCt.write_Coloration_Tag("adressMode_uv", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
+					binCt.write_Coloration_Tag("filtering_minMag", "uint8_t", "", offset, sizeof(uint8_t), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
 					binCt.write_Coloration_Tag("texture_scale_u", "float", "", offset, sizeof(float), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
 					binCt.write_Coloration_Tag("texture_scale_v", "float", "", offset, sizeof(float), "EMDTextureDef_Section", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
 				}

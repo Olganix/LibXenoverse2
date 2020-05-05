@@ -11,9 +11,11 @@ namespace LibXenoverse
 ESK::ESK(ESK* esk)
 {
 	name = "";
+	version = "192.146.0.0";
+	unknow_0 = unknow_1 = unknow_2 = unknow_3 = 0;
 	flag = 0;
-	unknown_offset_2 = 0;
-	unknown_offset_3 = 0;
+	skeletonUniqueId = 0;
+
 	mHaveExtraBytesOnEachBone = true;
 
 	if (esk)
@@ -57,10 +59,31 @@ bool ESK::load(File *file, std::string s_name)
 	if (!file->readHeader(LIBXENOVERSE_ESK_SIGNATURE))
 		return false;
 
-	file->goToAddress(startAdress + 0x10);
+	file->goToAddress(startAdress + 0x6);
 
+	uint16_t header_size;
+	file->readInt16E(&header_size);
+
+	version = "";
+	uint8_t tmp = 0;
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp) + ".";
+	file->readUChar(&tmp);
+	version += ToString((uint32_t)tmp);
+
+
+	file->readInt32E(&unknow_0);
+	
 	unsigned int address = 0;
 	file->readInt32E(&address);
+
+	file->readInt32E(&unknow_1);
+	file->readInt32E(&unknow_2);
+	file->readInt32E(&unknow_3);
 
 	file->goToAddress(startAdress + address);
 	read(file);
@@ -91,20 +114,35 @@ void ESK::save(File *file, bool big_endian)
 	size_t startAdress = file->getCurrentAddress();
 	file->writeHeader(LIBXENOVERSE_ESK_SIGNATURE, big_endian);
 
-	//fileId
-	file->goToAddress(startAdress + 4);
-	unsigned int idfile = 0x001CFFFE;
-	file->writeInt32(&idfile);
+	file->goToAddress(startAdress + 6);
+	
+	uint16_t header_size = 0x1C;
+	file->writeInt16E(&header_size);
 
-	//unkwon bit in all esk file, may be a file's version 1.1  
-	unsigned int unkown_1 = 0x00010001;
-	file->writeInt32(&unkown_1);
+	if (version.length() == 0)
+		version = "0";
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+		{
+			uint8_t tmp = std::stoi(sv.at(i));
+			file->writeUChar(&tmp);
+		}
+		else {
+			file->writeNull(1);
+		}
+	}
 
-	file->writeNull(32 - 12);
+	file->writeInt32E(&unknow_0);
 
-	file->goToAddress(startAdress + 0x10);
-	unsigned int address = 32;
+	unsigned int address = 0x20;
 	file->writeInt32E(&address);
+
+	file->writeInt32E(&unknow_1);
+	file->writeInt32E(&unknow_2);
+	file->writeInt32E(&unknow_3);
+
 	file->goToAddress(startAdress + address);
 
 	write(file);
@@ -115,18 +153,48 @@ void ESK::save(File *file, bool big_endian)
 unsigned int ESK::getWriteSize(bool withTransformMatrix)
 {
 	size_t bone_count = bones.size();
-	unsigned int size = 36 + bone_count * (8 + 4 + 48 + ((withTransformMatrix) ? 64 : 0));	//bone_count + flag + nbBone * (Indices + adresseOfName + SkinningMatrice + BoneMatrice)
-		
-	//need to know the size of names.
+	unsigned int size = sizeof(ESK_Skeleton_Section) + bone_count * (sizeof(ESK_Bone_Hierarchy) + sizeof(uint32_t));
+	
 	for (size_t i = 0; i < bone_count; i++)
 		size += bones.at(i)->getName().length() + 1;				//name + \0
 
-	if (withTransformMatrix)
-		size += 4;								//TODO search why need 4 octets after names. and not for EAN version
+	if (size % 16 !=0)												//padding.
+		size += (16 - (size % 16) );
 
-	size += calculIksize() + ((mHaveExtraBytesOnEachBone) ? (bone_count * 8) : 0);			//unkown3 et 4.
+	size += bone_count * (sizeof(ESK_Bone_Relative_Transform) + ((withTransformMatrix) ? sizeof(ESK_Bone_Absolute_Matrix) : 0));
+
+	size += calculIksize() + ((mHaveExtraBytesOnEachBone) ? (bone_count * sizeof(ESK_Bone_extraInfo)) : 0);
 
 	return size;
+}
+/*-------------------------------------------------------------------------------\
+|                             calculIksize			                             |
+\-------------------------------------------------------------------------------*/
+size_t ESK::calculIksize()
+{
+	size_t filesize = 0;
+	size_t nbGroup = listInverseKinematic.size();
+	if (nbGroup == 0)
+		return filesize;
+
+	filesize += sizeof(uint32_t);
+	for (size_t i = 0; i < nbGroup; i++)
+	{
+		Esk_IK_Group &group = listInverseKinematic.at(i);
+		size_t nbIk = group.mListIK.size();
+		filesize += sizeof(ESK_IK_Group);
+
+		size_t size_tmp = 0;
+		for (size_t j = 0; j < nbIk; j++)
+		{
+			size_t nbBones = group.mListIK.at(j).mListBones.size();
+			size_tmp += sizeof(ESK_IK) + nbBones * (sizeof(uint16_t) + sizeof(float));
+			if (nbBones % 2 == 0)
+				size_tmp += sizeof(uint16_t) + sizeof(float);
+		}
+		filesize += size_tmp;
+	}
+	return filesize;
 }
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
@@ -150,8 +218,7 @@ void ESK::read(File *file)
 	file->readInt32E(&transform_matrix_offset);
 	file->readInt32E(&ik_offset);
 	file->readInt32E(&bone_extraInfo_offset);
-	file->readInt32E(&unknown_offset_2);
-	file->readInt32E(&unknown_offset_3);
+	file->readInt64E(&skeletonUniqueId);
 
 	LOG_DEBUG("--------------- read ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
 
@@ -168,7 +235,7 @@ void ESK::read(File *file)
 
 		bones[i]->readIndices(file);
 
-		LOG_DEBUG("bone %i : Indices - parent: %d, child: %d, sibling(next): %d, index4: %d\n", i, bones[i]->parent_index, bones[i]->child_index, bones[i]->sibling_index, bones[i]->index_4);
+		LOG_DEBUG("bone %i : Indices - parent: %d, child: %d, sibling(next): %d, index4: %d\n", i, bones[i]->parent_index, bones[i]->child_index, bones[i]->sibling_index, bones[i]->ik_flag);
 	}
 
 	// Read Bone Names
@@ -209,6 +276,31 @@ void ESK::read(File *file)
 	}
 
 
+	//some files have double hierarchy. we have to check if it's the case to tag bones with hierarchyIndex for other conversion.
+	if(bone_count>1)
+	{
+		string name = bones.at(0)->getName();
+		size_t isDuplicateFirstBoneName = (size_t)-1;
+		for (size_t i = 1; i < bone_count; i++)
+		{
+			if (bones.at(i)->getName() == name)
+			{
+				isDuplicateFirstBoneName = i;
+				break;
+			}
+		}
+
+		if (isDuplicateFirstBoneName != (size_t)-1)
+		{
+			bones.at(0)->hierarchyIndex = LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST | LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND;
+
+			for (size_t i = 1; i < bone_count; i++)
+			{
+				if ((bones.at(i)->parent_index == 0) && (i != isDuplicateFirstBoneName))
+					bones.at(i)->hierarchyIndex = (i < isDuplicateFirstBoneName) ? LIBXENOVERSE_ESK_BONE_HIERARCHY_FIRST : LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND;
+			}
+		}
+	}
 
 	listInverseKinematic.clear();
 	if (ik_offset)
@@ -222,12 +314,13 @@ void ESK::read(File *file)
 
 		bool wrongOldCaseDetected = false;
 
-		uint8_t val_u8;
 		uint16_t val_u16;
 		float val_f;
 		for (size_t i = 0; i < nbIkGroup; i++)
 		{
 			listInverseKinematic.push_back(Esk_IK_Group());
+
+			size_t start_group_adress = file->getCurrentAddress();
 
 			uint16_t nbIk = 0;
 			file->readInt16E(&nbIk);
@@ -240,11 +333,12 @@ void ESK::read(File *file)
 
 				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
 
-				file->readUChar(&val_u8);
-				uint8_t nbRelations = 0;
+				uint8_t unknow_0 = 0, nbRelations = 0;
+				file->readUChar(&unknow_0);
 				file->readUChar(&nbRelations);
-				
-				for (size_t k = 0; k <= nbRelations; k++)
+				ik.unknow_0 = unknow_0;
+
+				for (size_t k = 0; k <= nbRelations; k++)		// >= because of +1 of bone influenced (the first)
 				{
 					file->readInt16E(&val_u16);
 					if (val_u16 < nbBones)
@@ -270,10 +364,17 @@ void ESK::read(File *file)
 
 			if (wrongOldCaseDetected)
 				break;
+
+			file->goToAddress(start_group_adress + size_tmp);
 		}
 
-		if(wrongOldCaseDetected)
+		if (wrongOldCaseDetected)
+		{
 			listInverseKinematic.clear();
+			
+			printf("Error on reading IK parts. Did you use a file created with old version of Olganix's Tools ? if yes, try to add IK part from original game's file, or you will not have full functionnalities. Skipped.\n");
+			LibXenoverse::notifyError();
+		}
 	}
 
 
@@ -300,40 +401,37 @@ void ESK::read(File *file)
 	}
 }
 /*-------------------------------------------------------------------------------\
-|                             calculIksize			                             |
+|                             setupBoneIkLinks			                         |
 \-------------------------------------------------------------------------------*/
-size_t ESK::calculIksize()
+void ESK::setupBoneIkLinks()											//to update Ik_flag on each bone concerned (first of IK)
 {
-	size_t filesize = 0;
-	size_t nbGroup = listInverseKinematic.size();
-	if (nbGroup == 0)
-		return filesize;
+	return;													//To test, for ean, there is not only 0 or 4 (for bone influenced in Ik), there is also 1. Todo remove afeter found what is 0x1. (also for emo and ema)
+	
+	for (size_t i = 0, nb = bones.size(); i < nb; i++)
+		bones.at(i)->ik_flag = 0;
 
-	filesize = sizeof(uint32_t);
-	for (size_t i = 0; i < nbGroup; i++)
+	if (listInverseKinematic.size() == 0)
+		return;
+
+	for (size_t j = 0, nb2 = listInverseKinematic.size(); j < nb2; j++)
 	{
-		Esk_IK_Group &group = listInverseKinematic.at(i);
-		size_t nbIk = group.mListIK.size();
-		filesize += 2 * sizeof(uint16_t);
-
-		size_t size_tmp = 0;
-		for (size_t j = 0; j < nbIk; j++)
+		Esk_IK_Group &group = listInverseKinematic.at(j);
+		for (size_t k = 0, nb3 = group.mListIK.size(); k < nb3; k++)
 		{
-			size_t nbrelations = group.mListIK.at(j).mListBones.size();
-			size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
-			if ((nbrelations+1) % 2 != 0)
-				size_tmp += sizeof(uint16_t);
+			Esk_IK_Relation &ik = group.mListIK.at(k);
+			if (ik.mListBones.size())
+				ik.mListBones.at(0).bone->ik_flag = LIBXENOVERSE_ESK_BONE_HAVE_IK;
 		}
-		filesize += size_tmp;
 	}
-
-	return filesize;
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
 void ESK::write(File *file, bool withTransformMatrix)
-{	
+{
+	setupBoneIkLinks();							//to update Ik_flag on each bone concerned (first of IK)
+
+
 	unsigned int base_skeleton_address = file->getCurrentAddress();
 	unsigned short bone_count = bones.size();
 		
@@ -344,23 +442,23 @@ void ESK::write(File *file, bool withTransformMatrix)
 		withTransformMatrix = withTransformMatrix && (bones.at(i)->haveTransformMatrix);
 	}
 
-	//LOG_DEBUG("name_size : %i => skinning_matrix_offset (Theoric) : [%i] => casted [%i]\n", name_size, 36 + bone_count * 8 + bone_count * 4 + name_size, ((int)ceil((36 + bone_count * 8 + bone_count * 4 + name_size)/16.0) * 16));
-
-	unsigned int bone_indices_offset = 36;			//this header size (TODO voir pourquoi ce n'est pas 28, il y a quoi dans ces 8 octect ?)
-	unsigned int bone_names_offset = bone_indices_offset + bone_count * 8;
-	unsigned int skinning_matrix_offset = (unsigned int)ceil((bone_names_offset + bone_count * 4 + name_size) / 16.0) * 16;
-	size_t offset = (skinning_matrix_offset + bone_count * 48);
+	unsigned int bone_indices_offset = sizeof(ESK_Skeleton_Section);
+	unsigned int bone_names_offset = bone_indices_offset + bone_count * sizeof(ESK_Bone_Hierarchy);
+	unsigned int skinning_matrix_offset = (unsigned int)ceil((bone_names_offset + bone_count * sizeof(uint32_t) + name_size) / 16.0) * 16;
+	size_t offset = (skinning_matrix_offset + bone_count * sizeof(ESK_Bone_Relative_Transform));
 
 	unsigned int transform_matrix_offset = ((withTransformMatrix) ? offset : 0);
-	offset += (withTransformMatrix) ? (transform_matrix_offset + bone_count * 64) : 0;
+	offset += (withTransformMatrix) ? (bone_count * sizeof(ESK_Bone_Absolute_Matrix)) : 0;
 
 	size_t ikSize = calculIksize();
-	unsigned int ik_offset =  (ikSize!=0) ? offset : 0;
+	unsigned int ik_offset = (ikSize!=0) ? offset : 0;
 	offset += ikSize;
 
 	unsigned int bone_extraInfo_offset = (mHaveExtraBytesOnEachBone) ? offset : 0;
-
+	offset += bone_count * sizeof(ESK_Bone_extraInfo);
 	
+
+
 	file->writeInt16E(&bone_count);
 	file->writeInt16E(&flag);
 	file->writeInt32E(&bone_indices_offset);
@@ -369,8 +467,7 @@ void ESK::write(File *file, bool withTransformMatrix)
 	file->writeInt32E(&transform_matrix_offset);
 	file->writeInt32E(&ik_offset);
 	file->writeInt32E(&bone_extraInfo_offset);
-	file->writeInt32E(&unknown_offset_2);
-	file->writeInt32E(&unknown_offset_3);
+	file->writeInt64E(&skeletonUniqueId);
 
 	LOG_DEBUG("--------------- write ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
 
@@ -429,11 +526,13 @@ void ESK::write(File *file, bool withTransformMatrix)
 			size_t nbIk = group.mListIK.size();
 			file->writeInt16E((unsigned short*)&nbIk);
 
-			size_t size_tmp = 2 * sizeof(uint16_t);
+			size_t size_tmp = sizeof(ESK_IK_Group);
 			for (size_t j = 0; j < nbIk; j++)
 			{
-				size_t nbrelations = group.mListIK.at(j).mListBones.size();
-				size_tmp += 2 * sizeof(uint8_t) + nbrelations * (sizeof(uint16_t) + sizeof(float));
+				size_t nbBones = group.mListIK.at(j).mListBones.size();
+				size_tmp += sizeof(ESK_IK) + nbBones * (sizeof(uint16_t) + sizeof(float));
+				if (nbBones % 2 == 0)
+					size_tmp += sizeof(uint16_t) + sizeof(float);
 			}
 			file->writeInt16E((unsigned short*)&size_tmp);
 
@@ -470,6 +569,9 @@ void ESK::write(File *file, bool withTransformMatrix)
 
 				for (size_t k = 0; k <= nbrelations; k++)
 					file->writeFloat32E(&ik.mListBones.at(k).value);
+
+				if (nbrelations % 2 != 0)				//padding
+					file->writeNull(4);
 			}
 		}
 	}
@@ -695,9 +797,13 @@ void ESK::clone(ESK *esk)
 	for (size_t i = 0; i < nbBones; i++)
 		bones.push_back( new ESKBone(src_bones.at(i)) );
 
+	this->version = esk->version;
+	this->unknow_0 = esk->unknow_0;
+	this->unknow_1 = esk->unknow_1;
+	this->unknow_2 = esk->unknow_2;
+	this->unknow_3 = esk->unknow_3;
 	this->flag = esk->flag;
-	this->unknown_offset_2 = esk->unknown_offset_2;
-	this->unknown_offset_3 = esk->unknown_offset_3;
+	this->skeletonUniqueId = esk->skeletonUniqueId;
 	this->mHaveExtraBytesOnEachBone = esk->mHaveExtraBytesOnEachBone;
 	this->listInverseKinematic = esk->listInverseKinematic;
 }
@@ -746,16 +852,20 @@ EskTreeNode* ESK::getTreeOrganisation(size_t index, EskTreeNode* parent, std::ve
 		haveToClean = true;
 		listAllReadyUsed = new std::vector<bool>();
 		listAllReadyUsed->resize(bones.size(), false);
+	}else {
+
+		if ((index != 0) && (index < bones.size()) && (bones.at(index)->getName() == bones.at(0)->getName()))
+			return 0;
 	}
 
 	//this recursive fonction will make a tree of pointer to easelly see heirarchy, and after doing some opeartion on that, and use the setTreeOrganisation() to reOrganize correctly
 	EskTreeNode* tree = new EskTreeNode((index < bones.size()) ? bones.at(index) : nullptr, (index < bones.size()) ? index : (size_t)-1, parent);
-
 	if (index >= bones.size())
-		index = 65535;							//root node
+		index = 0xFFFF;							//root node
 
 
 	std::vector<EskTreeNode*> children;
+	EskTreeNode* tree_tmp;
 	for (size_t i = 0; i < bones.size(); i++)
 	{
 		if (bones.at(i)->parent_index == index)
@@ -763,20 +873,22 @@ EskTreeNode* ESK::getTreeOrganisation(size_t index, EskTreeNode* parent, std::ve
 			if (listAllReadyUsed->at(i) == false)
 			{
 				listAllReadyUsed->at(i) = true;
-				children.push_back(getTreeOrganisation(i, tree, listAllReadyUsed));
+				tree_tmp = getTreeOrganisation(i, tree, listAllReadyUsed);
+				if(tree_tmp)
+					children.push_back(tree_tmp);
 			}
 		}
 	}
-	
+
 	//now order the children by sibling.
-	
+
 	//first case, we have a correct child_index, so we try to do as before.
 	bool isfound = false;
 	ESKBone* bone = 0;
-	if ((index != 65535)&&(tree->mBone->child_index != 65535))
+	if ((index != 65535) && (tree->mBone->child_index != 65535))
 	{
 		bone = bones.at(tree->mBone->child_index);
-		
+
 		size_t nbChild = children.size();
 		for (size_t i = 0; i < nbChild; i++)
 		{
@@ -856,7 +968,7 @@ EskTreeNode* ESK::getTreeOrganisation(size_t index, EskTreeNode* parent, std::ve
 			tree->mChildren.push_back(children.at(i));
 		children.clear();
 	}
-	
+
 	if (haveToClean)
 	{
 		delete listAllReadyUsed;
@@ -873,9 +985,84 @@ std::vector<std::vector<size_t>> ESK::setTreeOrganisation(EskTreeNode* treeBone)
 	//the first thing to do is to make the new list bone and refresh index of each bone.
 	vector<ESKBone*> newListBones;
 	treeBone->setupBones_list(newListBones);
-		
+
 	//the second thing is to refresh parent , child and sibling index for each bone.
 	treeBone->setupBones(newListBones);
+
+
+
+
+
+
+
+
+
+
+
+	if ((newListBones.size()) && (newListBones.at(0)->hierarchyIndex != 0))			//special case with 2 hierarchy. have to insert the first node again, and adapt indexes
+	{
+		size_t bone_count = newListBones.size();
+		size_t startHierarchy2 = (size_t)-1;
+		for (size_t i = 0; i < bone_count; i++)
+		{
+			if (newListBones.at(i)->hierarchyIndex == LIBXENOVERSE_ESK_BONE_HIERARCHY_SECOND)
+			{
+				startHierarchy2 = i;
+				break;
+			}
+		}
+
+
+		if (startHierarchy2 != (size_t)-1)
+		{
+			newListBones.insert(newListBones.begin() + startHierarchy2, new ESKBone(treeBone->mChildren.at(0)->mBone));
+			bone_count++;
+
+			if ((newListBones.at(startHierarchy2 + 1)->sibling_index != 0xFFFF) && 
+				(newListBones.at(newListBones.at(startHierarchy2 + 1)->sibling_index + 1)->child_index == 0xFFFF) )				//one of only differences between sdbh bckalb00.esk and SCT00_MJEB40.esk 
+			{
+				newListBones.at(startHierarchy2)->sibling_index = newListBones.at(startHierarchy2 + 1)->sibling_index;
+				newListBones.at(startHierarchy2 + 1)->sibling_index = 0xFFFF;
+			}
+		}else {										//case SFxTk MAD_MAN03.emo, the duplicate is at the end.
+			startHierarchy2 = bone_count;
+			newListBones.push_back(new ESKBone(treeBone->mChildren.at(0)->mBone));
+			bone_count++;
+		}
+
+		newListBones.at(startHierarchy2)->parent_index = 0;
+		newListBones.at(startHierarchy2)->child_index = (startHierarchy2 + 1 != bone_count) ? startHierarchy2 : 0xFFFF;		// it should be startHierarchy2 + 1, but the +1 come after.
+
+		if (newListBones.at(0)->child_index == startHierarchy2)
+			newListBones.at(0)->child_index = 0;
+
+
+		for (size_t i = 0; i < bone_count; i++)
+		{
+			ESKBone *bone = newListBones.at(i);
+			if ((bone->parent_index != 0xFFFF) && (bone->parent_index >= startHierarchy2))
+				bone->parent_index++;
+
+			if ((bone->child_index != 0xFFFF) && (bone->child_index >= startHierarchy2))
+				bone->child_index++;
+
+			if (bone->sibling_index != 0xFFFF)
+			{
+				if (bone->sibling_index == startHierarchy2)
+					bone->sibling_index = 0;
+				else if (bone->sibling_index > startHierarchy2)
+					bone->sibling_index++;
+			}
+		}	
+	}
+
+
+
+
+
+
+
+
 
 	//the last thing : compare the two list to delete bones witch are not in tree.
 	std::vector<std::vector<size_t>> listMovingindex;								//we also try to give the list of modified index (for animation part by example)
@@ -911,6 +1098,8 @@ std::vector<std::vector<size_t>> ESK::setTreeOrganisation(EskTreeNode* treeBone)
 			listMovingindex.back().push_back(65535);		//notify it is destroyed
 		}
 	}
+
+
 
 
 	bones = newListBones;									//replace the old list.
@@ -1091,8 +1280,7 @@ void EskTreeNode::setupBones_list(vector<ESKBone*> &newListBones)						//the fir
 	{
 		mIndex = newListBones.size();
 		newListBones.push_back(mBone);
-	}
-	else {
+	}else {
 		mIndex = 65535;
 	}
 
@@ -1119,8 +1307,7 @@ void EskTreeNode::setupBones(vector<ESKBone*> &newListBones)						//the second t
 		{
 			if (this->mBone)
 				this->mBone->child_index = mChildren.at(i)->mIndex;
-		}
-		else {
+		} else {
 			lastChild->sibling_index = mChildren.at(i)->mIndex;
 		}
 

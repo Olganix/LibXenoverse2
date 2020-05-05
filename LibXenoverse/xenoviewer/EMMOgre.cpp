@@ -670,51 +670,44 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					skinningEnable = false;		//softwareSkinning
 					//skinningEnable = true;	//hardwareSkinning
 
-					fp_parameters->setConstant(reg, skinningEnable ? 1.0f : 0.0f);
+					defaultValue = Ogre::Vector4(skinningEnable ? 1.0f : 0.0f, 0, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue.x);
 					
 					//if (skinningEnable)
 					//	program->setSkeletalAnimationIncluded(skinningEnable);				//it's sound good to do , but it's crash xenoviewer. todo find why (may be because of shared skeleton instance)
 
-					defaultValue = Ogre::Vector4(skinningEnable ? 1.0f : 0.0f, 0, 0, 0);
 					isUsed = "bool";
 				}
 				
 				//case givent by material
 				if (paramName == "g_bOutputGlareMRT_PS")
 				{
-					fp_parameters->setConstant(reg, 0.0f);								//for not crahsing
-
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue.x);								//for not crahsing
 					isUsed = "bool";
 				}
 				if (paramName.substr(0,12) == "g_bVersatile")		//g_bVersatile0_VS, g_bVersatile0_VS
 				{
-					
 					params = emm_material->getParameter("VsFlag"+ paramName.substr(12, 1));
-					bool test = (params) ? (params->uint_value != 0) : false;
-
-					fp_parameters->setConstant(reg, test ? 1.0f : 0.0f);
-
-					defaultValue = Ogre::Vector4(test ? 1.0f : 0.0f, 0, 0, 0);
+					defaultValue = Ogre::Vector4(((params) && (params->uint_value != 0)) ? 1.0f : 0.0f, 0, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue.x);
 					isUsed = "bool";
 				}
 
 				if (paramName == "g_bFog_PS")
 				{
-
 					params = emm_material->getParameter("Fog");
-					fp_parameters->setConstant(reg, ((params) && (params->uint_value != 0)) ? 1.0f : 0.0f);
-
 					defaultValue = Ogre::Vector4(((params) && (params->uint_value != 0)) ? 1.0f : 0.0f, 0, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue.x);
 					isUsed = "bool";
 				}
 
 				if (paramName == "g_bOutputDepthMRT_PS")
 				{
-
 					params = emm_material->getParameter("OutputDept");
-					fp_parameters->setConstant(reg, ((params) && (params->uint_value != 0)) ? 1.0f : 0.0f);
 
 					defaultValue = Ogre::Vector4(((params) && (params->uint_value != 0)) ? 1.0f : 0.0f, 0, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue.x);
 					isUsed = "bool";
 				}
 				
@@ -1320,13 +1313,15 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 					//xy: height_face and add to have max fog on 200 and start at 100 :
 					//	([100, 200] - 100) / 100 <=> ([100, 200] / 100) - 1 <=> ([100, 200] * y) + x => [0, 1]
 					//zw: same for distance (pos.w) : from 2000 to 3000: ([2000, 3000] / 1000) - 2 => [0, 1]
-					fp_parameters->setConstant(reg, Ogre::Vector4(-1.0, 1.0/100.0, -2.0, 1.0/1000.0));
+					defaultValue = Ogre::Vector4(-1.0, 1.0 / 100.0, -2.0, 1.0 / 1000.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vFog_VS")
 				{
 					//same as g_vHeightFog_VS.zw, but for multiply 
-					fp_parameters->setConstant(reg, Ogre::Vector4(-2.0, 1.0 / 1000.0, -2.0, 1.0 / 1000.0));
+					defaultValue = Ogre::Vector4(-2.0, 1.0 / 1000.0, -2.0, 1.0 / 1000.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vFogMultiColor_PS")
@@ -1336,7 +1331,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				}
 				if (paramName == "g_vFogAddColor_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0,0,0,0));
+					defaultValue = Ogre::Vector4(0, 0, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 
@@ -1371,138 +1367,160 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				//TODO understand where come from this parameters
 				if (paramName == "g_vColor0_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor1_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
-					//fp_parameters->setConstant(reg, Ogre::Vector4(1.0, 1.0, 1.0, 1.0));
+					defaultValue = Ogre::Vector4(0.0);
+					//defaultValue = Ogre::Vector4(1.0, 1.0, 1.0, 1.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor2_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor3_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor4_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor5_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor12_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vColor13_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0, 0, 0, 1));
+					defaultValue = Ogre::Vector4(0, 0, 0, 1);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 
 
 				if (paramName == "g_vShadowMap_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vShadowColor_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vShadowParam_PS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				
 
 				if (paramName == "g_vUserFlag0_VS")							//DBXv2 CustomFlag
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));			//test Todo remttre a 0
+					defaultValue = Ogre::Vector4(1, 0, 0, 1); 			//test Todo remttre a 0
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vUserFlag1_VS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
+					defaultValue = Ogre::Vector4(1, 0, 0, 1);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vUserFlag2_VS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
+					defaultValue = Ogre::Vector4(1, 0, 0, 1);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vUserFlag3_VS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1,0,0,1));
+					defaultValue = Ogre::Vector4(1, 0, 0, 1);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				
 				if (paramName == "g_vHemiA_VS")								//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
 					defaultValue = Ogre::Vector4(0.2);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vHemiB_VS")								//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
 					defaultValue = Ogre::Vector4(0.2);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vHemiC_VS")								//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.2));
 					defaultValue = Ogre::Vector4(0.2);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if ((paramName == "g_vSubSurface_VS") || (paramName == "g_vSubSurface_PS"))			//DBXv2  => subSurfaceScaterring ?
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				
 				
 				if (paramName == "g_vFadeAdd_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vFadeMulti_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
+					defaultValue = Ogre::Vector4(1.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vFadeRim_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vRimColor_VS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vAltFadeAdd_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vAltFadeMulti_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
+					defaultValue = Ogre::Vector4(1.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 
@@ -1511,9 +1529,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				// Color Multiplier
 				if (paramName == "g_vParam0_VS")							//DBXv2
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));
-
 					defaultValue = Ogre::Vector4(1.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vParam0_PS")							//DBXv2
@@ -1525,29 +1542,28 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vParam3_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(1.0));		//x: for dyt color, y : for color from samlpe14 (second dyt) , so test normal RAD for unbreak shaders.
-																				// and est with dyt.emb.data001.dds on samlper14.
 					defaultValue = Ogre::Vector4(1.0);
+					fp_parameters->setConstant(reg, defaultValue);		//x: for dyt color, y : for color from samlpe14 (second dyt) , so test normal RAD for unbreak shaders.
+																		// and est with dyt.emb.data001.dds on samlper14.
 					isUsed = "float4";
 				}
 				if (paramName == "g_vParam4_PS")
 				{
-					//fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.25, 0.75,0 ,0 ));
-
+					//defaultValue = Ogre::Vector4(0.0);
 					defaultValue = Ogre::Vector4(0.25, 0.75, 0, 0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vParam5_PS")
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 				if (paramName == "g_vParam7_PS")								//Toon Detail Parameter 
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0, 23.2558f, 0.04587f, 0.0));
-
 					defaultValue = Ogre::Vector4(0.0, 23.2558f, 0.04587f, 0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 
@@ -1598,7 +1614,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 
 				if (paramName == "g_vLerp_PS")								//DBXv2. may be lerp between WVP and WVP_prev
 				{
-					fp_parameters->setConstant(reg, Ogre::Vector4(0.0));
+					defaultValue = Ogre::Vector4(0.0);
+					fp_parameters->setConstant(reg, defaultValue);
 					isUsed = "float4";
 				}
 
@@ -1770,6 +1787,8 @@ std::vector<size_t> EMMOgre::setUpMaterialParameters(string shader_name, Ogre::G
 				//assert(false);	//if pass here, complete by reading shaders
 			}else {
 				materialParameters.push_back(EmmMaterialParameter(paramName, isUsed, reg, shaderType));
+				if ((isUsed == "bool") || (isUsed == "float4"))
+					materialParameters.back().defaultValue = defaultValue;
 			}
 		}
 
@@ -2093,7 +2112,7 @@ void EMMOgre::changeAnimation()
 	stopAnimation_1();
 
 	if (animation_to_change)
-		ema_Material_Anim = animation_to_change->getEmaMaterialAnimation();
+		ema_Material_Anim = animation_to_change->getEmaAnimation();
 	
 	animation_to_change = 0;
 }
@@ -2102,7 +2121,7 @@ void EMMOgre::changeAnimation2()
 	stopAnimation_2();
 
 	if (animation_to_change2)
-		ema_Material_Anim2 = animation_to_change2->getEmaMaterialAnimation();
+		ema_Material_Anim2 = animation_to_change2->getEmaAnimation();
 
 	animation_to_change2 = 0;
 }
@@ -2118,9 +2137,6 @@ string EMMOgre::getShaderParamNameFromEmmParamName(string paramName)
 	}else if ((paramName.length() > 7) && (paramName.substr(0, 7) == "TexScrl")){
 		return "g_TexScroll" + paramName.substr(7, 1);
 	}
-
-
-	//todo complete
 
 	return "";
 }
@@ -2139,19 +2155,47 @@ void EMMOgre::stopAnimation_1()
 	if (!ema_Material_Anim)
 		return;
 
-	vector<EMA_Material_Material> &materials = ema_Material_Anim->getMaterials();
-	for (size_t i = 0, nb = materials.size(); i < nb; i++)
+	vector<EMAAnimation_ByNode> &nodes = ema_Material_Anim->getOrganizedNodes();
+	for (size_t i = 0, nb = nodes.size(); i < nb; i++)
 	{
-		EMA_Material_Material& material = materials.at(i);
-		string ogreMatName = name + "_" + material.getName();
+		EMAAnimation_ByNode& node = nodes.at(i);
+
+		//Here, saddly, there is 2 posisblities:
+		string name_tmp = "";
+		if (node.GetBone())
+		{
+			name_tmp = node.GetBone()->GetName();			//get concerned EmmMaterial by name
+			
+			bool isfound = false;
+			for (size_t j = 0, nb2 = created_materials.size(); j < nb2; j++)	//search in emm the same name.			
+			{
+				if (created_materials.at(j).emmMaterialOrigine->getName() == name_tmp)
+				{
+					isfound = true;
+					break;
+				}
+			}
+
+			if (!isfound)
+				name_tmp = "";
+		}else {														//but some file just don't have the same name , so , use the index instead.
+			if (node.getBoneIndex() < created_materials.size())
+				name_tmp = created_materials.at(node.getBoneIndex()).emmMaterialOrigine->getName();
+		}
+		if (name_tmp.length() == 0)
+			continue;
+
+		string ogreMatName = name + "_" + name_tmp;
 		Ogre::StringUtil::toLowerCase(ogreMatName);
 
-		vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
-		for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
-		{
-			EMA_Material_MaterialParameter matParam = matParamlist.at(j);
 
-			string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+
+		std::vector<EMAAnimation_ByNode_ByTransform> &transforms = node.GetTransforms();		//equivalent of MaterialParameters
+		for (size_t j = 0, nb2 = transforms.size(); j < nb2; j++)
+		{
+			EMAAnimation_ByNode_ByTransform &transform = transforms.at(j);		//equivalent of MaterialParameter
+
+			string shadeParamName = getShaderParamNameFromEmmParamName(transform.GetComponents().at(0)->transformNameForMaterialAnim());
 			if (shadeParamName.length() == 0)
 				continue;
 
@@ -2171,19 +2215,47 @@ void EMMOgre::stopAnimation_2()
 	if (!ema_Material_Anim2)
 		return;
 
-	vector<EMA_Material_Material> &materials = ema_Material_Anim2->getMaterials();
-	for (size_t i = 0, nb = materials.size(); i < nb; i++)
+	vector<EMAAnimation_ByNode> &nodes = ema_Material_Anim2->getOrganizedNodes();
+	for (size_t i = 0, nb = nodes.size(); i < nb; i++)
 	{
-		EMA_Material_Material& material = materials.at(i);
-		string ogreMatName = name + "_" + material.getName();
+		EMAAnimation_ByNode& node = nodes.at(i);
+
+		//Here, saddly, there is 2 posisblities:
+		string name_tmp = "";
+		if (node.GetBone())
+		{
+			name_tmp = node.GetBone()->GetName();			//get concerned EmmMaterial by name
+
+			bool isfound = false;
+			for (size_t j = 0, nb2 = created_materials.size(); j < nb2; j++)	//search in emm the same name.			
+			{
+				if (created_materials.at(j).emmMaterialOrigine->getName() == name_tmp)
+				{
+					isfound = true;
+					break;
+				}
+			}
+
+			if (!isfound)
+				name_tmp = "";
+		}else {														//but some file just don't have the same name , so , use the index instead.
+			if (node.getBoneIndex() < created_materials.size())
+				name_tmp = created_materials.at(node.getBoneIndex()).emmMaterialOrigine->getName();
+		}
+		if (name_tmp.length() == 0)
+			continue;
+
+		string ogreMatName = name + "_" + name_tmp;
 		Ogre::StringUtil::toLowerCase(ogreMatName);
 
-		vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
-		for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
-		{
-			EMA_Material_MaterialParameter matParam = matParamlist.at(j);
 
-			string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+
+		std::vector<EMAAnimation_ByNode_ByTransform> &transforms = node.GetTransforms();		//equivalent of MaterialParameters
+		for (size_t j = 0, nb2 = transforms.size(); j < nb2; j++)
+		{
+			EMAAnimation_ByNode_ByTransform &transform = transforms.at(j);		//equivalent of MaterialParameter
+
+			string shadeParamName = getShaderParamNameFromEmmParamName(transform.GetComponents().at(0)->transformNameForMaterialAnim());
 			if (shadeParamName.length() == 0)
 				continue;
 
@@ -2205,79 +2277,121 @@ void EMMOgre::updateAnimations(Ogre::Real time)
 	if (ema_Material_Anim)
 	{
 		Ogre::Real time_tmp = (time * 60.0);
-		if (time_tmp > ema_Material_Anim->getFrameCount())
+		if (time_tmp > ema_Material_Anim->GetDuration())
 		{
-			Ogre::Real nbFrames = ema_Material_Anim->getFrameCount();
+			Ogre::Real nbFrames = ema_Material_Anim->GetDuration();
 			time_tmp = (animationLoopEnable) ? (time_tmp - Ogre::Math::Floor(time_tmp/ nbFrames) * nbFrames) : (nbFrames - 1);
 		}
 
-		vector<EMA_Material_Material> &materials = ema_Material_Anim->getMaterials();
-		for (size_t i = 0, nb = materials.size(); i < nb; i++)
+		vector<EMAAnimation_ByNode> &nodes = ema_Material_Anim->getOrganizedNodes();
+		for (size_t i = 0, nb = nodes.size(); i < nb; i++)
 		{
-			EMA_Material_Material& material = materials.at(i);
-			string ogreMatName = name + "_" + material.getName();
+			EMAAnimation_ByNode& node = nodes.at(i);
+
+			if (node.getBoneIndex() >= created_materials.size())
+				continue;
+			
+			string ogreMatName = name + "_" + created_materials.at(node.getBoneIndex()).emmMaterialOrigine->getName();
 			Ogre::StringUtil::toLowerCase(ogreMatName);
 
-			vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
-			for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
-			{
-				EMA_Material_MaterialParameter matParam = matParamlist.at(j);
 
-				string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+			std::vector<EMAAnimation_ByNode_ByTransform> &transforms = node.GetTransforms();		//equivalent of MaterialParameters
+			for (size_t j = 0, nb2 = transforms.size(); j < nb2; j++)
+			{
+				EMAAnimation_ByNode_ByTransform &transform = transforms.at(j);		//equivalent of MaterialParameter
+
+				string shadeParamName = getShaderParamNameFromEmmParamName(transform.GetComponents().at(0)->transformNameForMaterialAnim());
 				if (shadeParamName.length() == 0)
 					continue;
 
-				EMA_Material_KeyFrame interpolKf = matParam.getInterpolatedKeyframe(time_tmp);
-
-				Ogre::Vector4 value(interpolKf.x, interpolKf.y, interpolKf.z, interpolKf.w);
-
 				EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
 				if (emmMatParam.name.length())
+				{
+					EANKeyframe kf = transform.getInterpolatedKeyframe((float)time_tmp, ema_Material_Anim->getValues(), emmMatParam.defaultValue.x, emmMatParam.defaultValue.y, emmMatParam.defaultValue.z, emmMatParam.defaultValue.w);
+					Ogre::Vector4 value(kf.x, kf.y, kf.z, kf.w);
 					setShaderParameter(ogreMatName, emmMatParam.name, value);
+				}
 
 				emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
 				if (emmMatParam.name.length())
+				{
+					EANKeyframe kf = transform.getInterpolatedKeyframe((float)time_tmp, ema_Material_Anim->getValues(), emmMatParam.defaultValue.x, emmMatParam.defaultValue.y, emmMatParam.defaultValue.z, emmMatParam.defaultValue.w);
+					Ogre::Vector4 value(kf.x, kf.y, kf.z, kf.w);
 					setShaderParameter(ogreMatName, emmMatParam.name, value);
+				}
 			}
 		}
 	}
 
+
 	if (ema_Material_Anim2)
 	{
 		Ogre::Real time_tmp = (time * 60.0);
-		if (time_tmp > ema_Material_Anim2->getFrameCount())
+		if (time_tmp > ema_Material_Anim2->GetDuration())
 		{
-			Ogre::Real nbFrames = ema_Material_Anim2->getFrameCount();
+			Ogre::Real nbFrames = ema_Material_Anim2->GetDuration();
 			time_tmp = (animationLoopEnable) ? (time_tmp - Ogre::Math::Floor(time_tmp / nbFrames) * nbFrames) : (nbFrames - 1);
 		}
 
-		vector<EMA_Material_Material> &materials = ema_Material_Anim2->getMaterials();
-		for (size_t i = 0, nb = materials.size(); i < nb; i++)
+		vector<EMAAnimation_ByNode> &nodes = ema_Material_Anim2->getOrganizedNodes();
+		for (size_t i = 0, nb = nodes.size(); i < nb; i++)
 		{
-			EMA_Material_Material& material = materials.at(i);
-			string ogreMatName = name + "_" + material.getName();
+			EMAAnimation_ByNode& node = nodes.at(i);
+
+			//Here, saddly, there is 2 posisblities:
+			string name_tmp = "";
+			if (node.GetBone())
+			{
+				name_tmp = node.GetBone()->GetName();			//get concerned EmmMaterial by name
+
+				bool isfound = false;
+				for (size_t j = 0, nb2 = created_materials.size(); j < nb2; j++)	//search in emm the same name.			
+				{
+					if (created_materials.at(j).emmMaterialOrigine->getName() == name_tmp)
+					{
+						isfound = true;
+						break;
+					}
+				}
+
+				if (!isfound)
+					name_tmp = "";
+			}
+			else {														//but some file just don't have the same name , so , use the index instead.
+				if (node.getBoneIndex() < created_materials.size())
+					name_tmp = created_materials.at(node.getBoneIndex()).emmMaterialOrigine->getName();
+			}
+			if (name_tmp.length() == 0)
+				continue;
+
+			string ogreMatName = name + "_" + name_tmp;
 			Ogre::StringUtil::toLowerCase(ogreMatName);
 
-			vector<EMA_Material_MaterialParameter> &matParamlist = material.getMaterialParamters();
-			for (size_t j = 0, nb2 = matParamlist.size(); j < nb2; j++)
-			{
-				EMA_Material_MaterialParameter matParam = matParamlist.at(j);
 
-				string shadeParamName = getShaderParamNameFromEmmParamName(matParam.getName());
+			std::vector<EMAAnimation_ByNode_ByTransform> &transforms = node.GetTransforms();		//equivalent of MaterialParameters
+			for (size_t j = 0, nb2 = transforms.size(); j < nb2; j++)
+			{
+				EMAAnimation_ByNode_ByTransform &transform = transforms.at(j);		//equivalent of MaterialParameter
+
+				string shadeParamName = getShaderParamNameFromEmmParamName(transform.GetComponents().at(0)->transformNameForMaterialAnim());
 				if (shadeParamName.length() == 0)
 					continue;
 
-				EMA_Material_KeyFrame interpolKf = matParam.getInterpolatedKeyframe(time_tmp);
-
-				Ogre::Vector4 value(interpolKf.x, interpolKf.y, interpolKf.z, interpolKf.w);
-
 				EmmMaterialParameter emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_VS");
 				if (emmMatParam.name.length())
+				{
+					EANKeyframe kf = transform.getInterpolatedKeyframe((float)time_tmp, ema_Material_Anim2->getValues(), emmMatParam.defaultValue.x, emmMatParam.defaultValue.y, emmMatParam.defaultValue.z, emmMatParam.defaultValue.w);
+					Ogre::Vector4 value(kf.x, kf.y, kf.z, kf.w);
 					setShaderParameter(ogreMatName, emmMatParam.name, value);
+				}
 
 				emmMatParam = getShaderParameter(ogreMatName, shadeParamName + "_PS");
 				if (emmMatParam.name.length())
+				{
+					EANKeyframe kf = transform.getInterpolatedKeyframe((float)time_tmp, ema_Material_Anim2->getValues(), emmMatParam.defaultValue.x, emmMatParam.defaultValue.y, emmMatParam.defaultValue.z, emmMatParam.defaultValue.w);
+					Ogre::Vector4 value(kf.x, kf.y, kf.z, kf.w);
 					setShaderParameter(ogreMatName, emmMatParam.name, value);
+				}
 			}
 		}
 	}

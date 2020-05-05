@@ -14,7 +14,7 @@ bool ESK::loadXml(string filename)
 	TiXmlDocument doc(filename);
 	if(!doc.LoadFile())
 	{
-		printf("Loading xml %s fail. skip.'\n", filename);
+		printf("Loading xml %s fail. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -24,7 +24,7 @@ bool ESK::loadXml(string filename)
 	TiXmlElement* rootNode = hDoc.FirstChildElement("ESK").Element();
 	if (!rootNode)
 	{
-		printf("%s don't have 'ESK' tags. skip.'\n", filename);
+		printf("%s don't have 'ESK' tags. skip.'\n", filename.c_str());
 		getchar();
 		return false;
 	}
@@ -66,12 +66,12 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	string str = "";
 	
 	xmlCurrentNode->QueryStringAttribute("flag", &str); flag = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknown_offset_2", &str); unknown_offset_2 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknown_offset_3", &str); unknown_offset_3 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_offset_2", &str); unknow_offset_2 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unknow_offset_3", &str); unknow_offset_3 = EMO_BaseFile::GetUnsigned(str);
 	xmlCurrentNode->QueryBoolAttribute("haveExtraBytesOnEachBone", &mHaveExtraBytesOnEachBone);
 
 
-	TiXmlElement* bonesNode = xmlCurrentNode->FirstChildElement("ESKBones");
+	TiXmlElement* bonesNode = xmlCurrentNode->FirstChildElement("Bones");
 	if (!bonesNode)
 	{
 		printf("No 'ESKBones' tags find. skip.'\n");
@@ -83,7 +83,7 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	EskTreeNode* treeRootNode = new EskTreeNode(nullptr, (size_t)-1, nullptr);
 
 	
-	for (TiXmlElement* xmlNode = bonesNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
+	for (TiXmlElement* xmlNode = bonesNode->FirstChildElement("Bone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Bone"))
 	{
 		ESKBone* eskBone = new ESKBone();
 		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeRootNode, mHaveExtraBytesOnEachBone);
@@ -152,7 +152,7 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
 	size_t tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknown_index_4", &tmp);
+	xmlCurrentNode->QueryUnsignedAttribute("unknow_index_4", &tmp);
 	index_4 = (unsigned short)tmp;
 
 	if (haveExtraBytesOnEachBone)
@@ -236,7 +236,7 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 
 
 	// Same for children
-	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("ESKBone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("ESKBone"))
+	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("Bone"); xmlNode; xmlNode = xmlNode->NextSiblingElement("Bone"))
 	{
 		ESKBone* eskBone = new ESKBone();
 		EskTreeNode* treeNode = eskBone->importXml(xmlNode, bones, treeCurrentNode, haveExtraBytesOnEachBone);

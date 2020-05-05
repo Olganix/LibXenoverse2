@@ -19,6 +19,7 @@ EMDOgre::EMDOgre(EMD* emd) : EMD(emd)
 	to_delete = false;
 	mVisible = true;
 	mAllVisible = true;
+	fullName = "";
 }
 /*-------------------------------------------------------------------------------\
 |                             EMDOgre				                             |
@@ -417,18 +418,35 @@ Ogre::SubMesh* EMDOgre::createOgreIndexBuffer_EmdSubMesh(EMDTriangles* triangles
 {
 	Ogre::SubMesh *sub = mesh->createSubMesh();
 
-	size_t ibufCount = triangles->faces.size();
-	unsigned short* faces = (unsigned short*)malloc(sizeof(unsigned short) * ibufCount);
-	for (size_t i = 0; i < ibufCount; i++)
-		faces[i] = triangles->faces.at(i);
-	
-	Ogre::HardwareIndexBufferSharedPtr ibuf = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT, ibufCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-	ibuf->writeData(0, ibuf->getSizeInBytes(), faces, true);
-	sub->useSharedVertices = true;
-	sub->indexData->indexBuffer = ibuf;
-	sub->indexData->indexCount = ibufCount;
-	sub->indexData->indexStart = 0;
-	::free(faces);
+	if (nVertices < 65535)
+	{
+		size_t ibufCount = triangles->faces.size();
+		unsigned short* faces = (unsigned short*)malloc(sizeof(unsigned short) * ibufCount);
+		for (size_t i = 0; i < ibufCount; i++)
+			faces[i] = triangles->faces.at(i);
+
+		Ogre::HardwareIndexBufferSharedPtr ibuf = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT, ibufCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+		ibuf->writeData(0, ibuf->getSizeInBytes(), faces, true);
+		sub->useSharedVertices = true;
+		sub->indexData->indexBuffer = ibuf;
+		sub->indexData->indexCount = ibufCount;
+		sub->indexData->indexStart = 0;
+		::free(faces);
+
+	}else {
+		size_t ibufCount = triangles->faces.size();
+		unsigned int* faces = (unsigned int*)malloc(sizeof(unsigned int) * ibufCount);
+		for (size_t i = 0; i < ibufCount; i++)
+			faces[i] = triangles->faces.at(i);
+
+		Ogre::HardwareIndexBufferSharedPtr ibuf = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(Ogre::HardwareIndexBuffer::IT_32BIT, ibufCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+		ibuf->writeData(0, ibuf->getSizeInBytes(), faces, true);
+		sub->useSharedVertices = true;
+		sub->indexData->indexBuffer = ibuf;
+		sub->indexData->indexCount = ibufCount;
+		sub->indexData->indexStart = 0;
+		::free(faces);
+	}
 	return sub;
 }
 /*-------------------------------------------------------------------------------\

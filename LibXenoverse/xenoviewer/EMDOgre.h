@@ -31,6 +31,9 @@ class EMDOgre : public EMD
 		list<Ogre::String> created_meshes;
 		std::vector<LinkBetweenBoneAndNode> mListLinkBones;
 		Ogre::String tag;
+public:
+		string fullName;
+
 
 	public:
 		EMDOgre(EMD* emd = 0);

@@ -13,17 +13,18 @@ protected:
 	string name;
 	EANOgre* parent;
 	EANAnimation* eanAnim;
-	EMA_Material_Animation* ema_Material_Animation;
+	EmaAnimation* emaAnim;
+	size_t index;
 
 public:
-	EANOgreAnimation(string name, EANOgre* parent, EANAnimation* eanAnim = 0, EMA_Material_Animation* ema_Material_Animation = 0) { this->name = name; this->parent = parent; this->eanAnim = eanAnim; this->ema_Material_Animation = ema_Material_Animation; };
+	EANOgreAnimation(string name, EANOgre* parent, size_t index = -1, EANAnimation* eanAnim = 0, EmaAnimation* emaAnim = 0) { this->name = name; this->parent = parent; this->index = index; this->eanAnim = eanAnim; this->emaAnim = emaAnim; };
 
+	size_t getIndex() { return index; }
 	string getName() { return name; }
 	EANOgre* getParent() { return parent; }
 
-	EANAnimation* getEANAnimation() { return eanAnim; };
-	EMA_Material_Animation* getEmaMaterialAnimation() { return ema_Material_Animation; };
-	
+	EANAnimation* getEanAnimation() { return eanAnim; };
+	EmaAnimation* getEmaAnimation() { return emaAnim; };
 };
 
 
@@ -32,8 +33,6 @@ class EANOgre
 protected:
 	EAN* ean;
 	EMA* ema;
-	EMA_Material* ema_material;
-	//todo Ema light
 
 	string name;
 	std::vector<EANOgreAnimation> mListEANOgreAnimation;

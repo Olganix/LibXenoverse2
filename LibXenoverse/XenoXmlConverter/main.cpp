@@ -147,22 +147,14 @@ int main(int argc, char** argv)
 
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
 			if (emd->load(filename))
-			{
-				//emd->save(filename + "_reasave.emd");		//test todo remove.
-
 				emd->saveXml(filename + ".xml");
-			}
 			delete emd;
 
 		}else if ((extension == "xml") && (extension2 == "emd")) {
 
 			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
 			if (emd->loadXml(filename))
-			{
-				emd->mergeTriangles();						//Test Todo remove.
-
 				emd->save(basefilename2 + ".emd");
-			}
 				
 			delete emd;
 
@@ -200,7 +192,7 @@ int main(int argc, char** argv)
 
 
 		/////////////////////////////////////////////////////////////
-		}else if (extension == "emo") {										//.emo
+		}else if (extension == "emo") {
 			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
 			if (emo->load(filename))
 				emo->DecompileToFile(filename + ".xml");
@@ -213,36 +205,21 @@ int main(int argc, char** argv)
 				emo->SaveToFile(basefilename2 + ".emo");
 			delete emo;
 
-			
 
-		/////////////////////////////////////////////////////////////
-		}else if ((extension == "ema") && (extension2 == "mat")) {		//mat.ema
-			LibXenoverse::EMA_Material* ema = new LibXenoverse::EMA_Material();
-			if (ema->load(filename))
-				ema->saveXml(filename + ".xml");
-			delete ema;
-
-			LibXenoverse::EMA* ema_tmp = new LibXenoverse::EMA();				//test Todo comment
-			if (ema_tmp->LoadFromFile(filename))
-				ema_tmp->DecompileToFile(basefilename +"_.test_ema.xml");		
-			delete ema_tmp;
-
-		}else if ((extension == "xml") && (extension2 == "ema") && (extension3 == "mat")) {
-
-			LibXenoverse::EMA_Material* ema = new LibXenoverse::EMA_Material();
-			if (ema->loadXml(filename))
-				ema->save(basefilename2 + ".ema");
-			delete ema;
-
-			
-
-		}else if ((extension == "ema") && (extension2 != "mat")) {		//ema
+		}else if (extension == "ema") {
 			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
-			if (ema->LoadFromFile(filename))
-				ema->DecompileToFile(filename + ".xml");		//test
+			if (ema->load(filename))
+				ema->DecompileToFile(filename + ".xml");
 			delete ema;
 
-			
+		}else if ((extension == "xml") && (extension2 == "ema")) {
+
+			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
+			if (ema->load(filename))
+				ema->SaveToFile(basefilename2 + ".ema");
+			delete ema;
+
+
 
 		/////////////////////////////////////////////////////////////
 		}else if (extension == "nsk") {
@@ -382,8 +359,45 @@ int main(int argc, char** argv)
 
 
 
+
+		/*
+		}else if (extension == "uasset") {
+			LibXenoverse::Uasset* uasset = new LibXenoverse::Uasset();
+			if (uasset->load(filename))
+				uasset->saveXml(filename + ".xml");
+			delete uasset;
+			
+		}else if ((extension == "xml") && (extension2 == "uasset")) {
+
+			LibXenoverse::Uasset* uasset = new LibXenoverse::Uasset();
+			if (uasset->load(filename))
+				uasset->save(basefilename2 + ".uasset");
+			delete uasset;
+		*/
+
+
+		}else if (extension == "uexp") {
+
+			LibXenoverse::Uexp* uexp = new LibXenoverse::Uexp();
+			if (uexp->load(filename))
+				uexp->saveXml(filename + ".xml");
+			delete uexp;
+
+		}else if ((extension == "xml") && (extension2 == "uexp")) {
+
+			LibXenoverse::Uexp* uexp = new LibXenoverse::Uexp();
+			if (uexp->load(filename))
+				uexp->save(basefilename2 + ".uexp");
+			delete uexp;
+
+
+
+
+
+
+
 		}else {
-			printf("Error on arguments.\n");
+			printf("Error on arguments or extension not recognized.\n");
 			LibXenoverse::notifyError();
 		}
 	}

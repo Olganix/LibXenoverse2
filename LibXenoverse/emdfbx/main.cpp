@@ -18,10 +18,14 @@ bool exportFbxCameraAnimation(std::vector<string> &arguments, bool exportAscii =
 		basefilename = filename.substr(0, filename.length() - (extension.size() + 1));
 		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
 		
-		if ((extension == "ean") && (extension2 == "cam"))
+		if (extension == "ean")
 		{
-			arguments.erase(arguments.begin() + i);
-			break;
+			LibXenoverse::EAN ean;
+			if((ean.load(filename))&&(ean.getType()==LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA))
+			{
+				arguments.erase(arguments.begin() + i);
+				break;
+			}
 		}
 		filename = "";
 	}

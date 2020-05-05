@@ -115,7 +115,7 @@ void EMM::read(File *file)
 
 
 	//reading about (may be) default values of each parameter ( (may be) for other material in emm). all I remark there is the same number of octets at 0  than unique parameters.
-	if (header_size>0x10)
+	if (header_size > 0x10)
 	{
 		listUnknowValues.clear();
 		
@@ -222,11 +222,16 @@ void EMM::save(string filename, bool big_endian)
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
 void EMM::write(File *file)
-{
+{	
+	if ((listUnknowValues.size() != 0) && (version == "0.0.0.0"))			//header size is 0x10 if version is 0.0.0.0. but if in xml people add unknowValues part, we force to have the 0x20, because the offset of unknowpart is in. so we force the version.
+		version = "0.147.0.0";
+
 	// Header
-	uint16_t header_size = 0x20;
+	uint16_t header_size = (version == "0.0.0.0") ? 0x10 : 0x20;
 	file->writeInt16E(&header_size);
 
+	if (version.length() == 0)
+		version = "0";
 	std::vector<string> sv = split(version, '.');
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -239,14 +244,18 @@ void EMM::write(File *file)
 		}
 	}
 	
-	unsigned int material_base_address = 0x20;
+	unsigned int material_base_address = header_size;
 	file->writeInt32E(&material_base_address);
-	file->writeNull(0x10);
+
+	if(header_size==0x20)
+		file->writeNull(0x10);
+
+
 
 	unsigned int material_count = materials.size();
 	file->writeInt32E(&material_count);
+	file->writeNull( ((material_count > 0) ? material_count : 1) * sizeof(uint32_t));								//case dbxv Ibm_Crg_light.emm there is a padding of 4 to be on % 8
 
-	file->writeNull(material_count * 4);
 	for (size_t i = 0; i < material_count; i++)
 	{
 		unsigned int material_address = file->getCurrentAddress() - material_base_address;
@@ -260,7 +269,7 @@ void EMM::write(File *file)
 
 
 	//writing about (may be) default values of each parameter ( (may be) for other material in emm). all I remark there is the same number of octets at 0  than unique parameters.
-	if (listUnknowValues.size() != 0)
+	if (listUnknowValues.size() != 0)							// notice header is extended to 0x20 in case of presence of unkowPart.
 	{
 		file->goToEnd();
 		size_t endAdress = file->getCurrentAddress();
@@ -362,6 +371,7 @@ bool EMM::loadXml(string filename)
 \-------------------------------------------------------------------------------*/
 void EMM::readXML(TiXmlElement* xmlCurrentNode)
 {
+	string str = "";
 	xmlCurrentNode->QueryStringAttribute("version", &version);
 	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);
 	xmlCurrentNode->QueryUnsignedAttribute("unknow_1", &unknow_1);
@@ -428,7 +438,8 @@ void EMMParameter::readXML(TiXmlElement *root)
 	if (str_tmp == "Float")
 	{
 		type = 0x0;
-		root->QueryFloatAttribute("value", &float_value);
+		root->QueryStringAttribute("value", &str_tmp);
+		float_value = StringToFloat(str_tmp);
 
 	}else if (str_tmp == "UInt") {
 		type = 0x1;
@@ -537,7 +548,7 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 	if (type == 0x0)
 	{
 		parameterRoot->SetAttribute("type", "Float");
-		parameterRoot->SetDoubleAttribute("value", float_value);
+		parameterRoot->SetAttribute("value", FloatToString(float_value) );
 
 	}else if (type == 0x1){
 		parameterRoot->SetAttribute("type", "UInt");

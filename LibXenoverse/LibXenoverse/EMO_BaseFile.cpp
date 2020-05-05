@@ -204,6 +204,8 @@ const char *EMO_BaseFile::FindString(const char *list, const char *str, unsigned
 
 bool EMO_BaseFile::LoadFromFile(const std::string &path, bool show_error)
 {
+	name = nameFromFilenameNoExtension(path, true);
+
 	uint8_t *buf;
 	size_t size;
 
@@ -565,13 +567,23 @@ std::string EMO_BaseFile::UnsignedToString(uint32_t value, bool hexadecimal)
 	std::string str;
 
 	if (hexadecimal)
-	{
 		sprintf(temp, "0x%x", value);
-	}
 	else
-	{
 		sprintf(temp, "%u", value);
-	}
+
+	str = temp;
+	return str;
+}
+
+std::string EMO_BaseFile::Unsigned64ToString(uint64_t value, bool hexadecimal)
+{
+	char temp[32];
+	std::string str;
+
+	if (hexadecimal)
+		sprintf(temp, "0x%llx", value);				//ll for size: long long, x for hexa  https://docs.microsoft.com/fr-fr/cpp/c-runtime-library/format-specification-syntax-printf-and-wprintf-functions?view=vs-2019#size
+	else
+		sprintf(temp, "%u", value);
 
 	str = temp;
 	return str;
@@ -895,9 +907,9 @@ uint32_t EMO_BaseFile::GetUnsigned(const std::string &str, uint32_t default_valu
 }
 
 
-long long EMO_BaseFile::GetUnsigned64(const std::string &str, long long default_value)
+uint64_t EMO_BaseFile::GetUnsigned64(const std::string &str, uint64_t default_value)
 {
-	long long ret = 0;
+	uint64_t ret = 0;
 	size_t len = str.length();
 
 	if (len == 0)
@@ -927,7 +939,7 @@ long long EMO_BaseFile::GetUnsigned64(const std::string &str, long long default_
 			return default_value;
 		}
 
-		if (sscanf(str.c_str() + 2, "%x", &ret) != 1)
+		if (sscanf(str.c_str() + 2, "%llx", &ret) != 1)
 		{
 			//LOG_DEBUG("sscanf failed on param \"%s\", offending string = \"%s\"\n. Setting value to 0.", param_name.c_str(), str.c_str());
 			return default_value;

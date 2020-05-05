@@ -1,16 +1,17 @@
 namespace LibXenoverse {
 	EMBFile::EMBFile(string filename) {
 		File file(filename, LIBXENOVERSE_FILE_READ_BINARY);
-		if (file.valid()) {
-			name = nameFromFilename(filename);
+		if (!file.valid())
+			return;
 
-			// Read entire file into data buffer
-			data_size = file.getFileSize();
-			data = (char *)malloc(data_size);
-			file.read(data, data_size);
+		name = nameFromFilename(filename);
 
-			file.close();
-		}
+		// Read entire file into data buffer
+		data_size = file.getFileSize();
+		data = (char *)malloc(data_size);
+		file.read(data, data_size);
+
+		file.close();
 	}
 
 	void EMBFile::write(File *file) {

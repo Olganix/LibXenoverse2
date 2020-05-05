@@ -73,6 +73,12 @@
     <Filter Include="OBL">
       <UniqueIdentifier>{a894a28b-7023-4bc1-a503-ddbbd4649208}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UassetUexp">
+      <UniqueIdentifier>{0dc05d54-9d4e-462a-9ab9-64e82957a3bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mdl">
+      <UniqueIdentifier>{a2f6e3d2-ea62-49e1-b4a1-401d3e53b74a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyxml\tinystr.h">
@@ -147,9 +153,6 @@
     <ClInclude Include="stdafx.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="EMA_Material.h">
-      <Filter>EMA</Filter>
-    </ClInclude>
     <ClInclude Include="Fmp.h">
       <Filter>FMP</Filter>
     </ClInclude>
@@ -173,6 +176,18 @@
     </ClInclude>
     <ClInclude Include="BinColorTag.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Uasset.h">
+      <Filter>UassetUexp</Filter>
+    </ClInclude>
+    <ClInclude Include="UassetUexp.h">
+      <Filter>UassetUexp</Filter>
+    </ClInclude>
+    <ClInclude Include="Uexp.h">
+      <Filter>UassetUexp</Filter>
+    </ClInclude>
+    <ClInclude Include="mdl_yo3.h">
+      <Filter>Mdl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -308,9 +323,6 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="EMA_Material.cpp">
-      <Filter>EMA</Filter>
-    </ClCompile>
     <ClCompile Include="Fmp.cpp">
       <Filter>FMP</Filter>
     </ClCompile>
@@ -343,6 +355,27 @@
     </ClCompile>
     <ClCompile Include="ESK_FpfXml.cpp">
       <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="ESKBinColor.cpp">
+      <Filter>ESK</Filter>
+    </ClCompile>
+    <ClCompile Include="EANBinColor.cpp">
+      <Filter>EAN</Filter>
+    </ClCompile>
+    <ClCompile Include="EMOBinColor.cpp">
+      <Filter>EMO</Filter>
+    </ClCompile>
+    <ClCompile Include="Uasset.cpp">
+      <Filter>UassetUexp</Filter>
+    </ClCompile>
+    <ClCompile Include="Uexp.cpp">
+      <Filter>UassetUexp</Filter>
+    </ClCompile>
+    <ClCompile Include="UassetUexp.cpp">
+      <Filter>UassetUexp</Filter>
+    </ClCompile>
+    <ClCompile Include="mdl_yo3.cpp">
+      <Filter>Mdl</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

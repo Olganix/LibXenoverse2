@@ -31,7 +31,7 @@ public:
 			mSceneMgr = sceneMgr;
 			mSceneNode = sceneMgr->getRootSceneNode()->createChildSceneNode();
 
-			mSceneNode->setScale(-1, 1, 1);				//dbvx symetry.
+			mSceneNode->setScale(-1, 1, 1);				//dbvx symetry. TODO REMETTRE
 
 
 			//Axes

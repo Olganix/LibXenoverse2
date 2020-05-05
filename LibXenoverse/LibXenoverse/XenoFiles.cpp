@@ -159,6 +159,23 @@ namespace LibXenoverse
 		#endif
 	}
 
+	void endianSwap(uint64_t& x)
+	{
+		//00   00     00    00		 00   00    00   00
+		// A	B	   C	D		  E	   F	 G   H
+		// =>
+		// H    G	   F    E         D    C     B	 A
+
+		x = (x >> 56) |
+		((x >> 40) & 0x00FF000000000000) |
+		((x >> 24) & 0x0000FF0000000000) |
+		((x << 8)  & 0x000000FF00000000) |
+		((x >> 8)  & 0x00000000FF000000) |
+		((x << 24) & 0x0000000000FF0000) |
+		((x << 40) & 0x000000000000FF00) |
+		(x << 56);
+	}
+
 	void endianSwap(unsigned int& x) {
 		x = (x>>24) |
         ((x<<8) & 0x00FF0000) |
@@ -241,10 +258,19 @@ namespace LibXenoverse
 		if (!readSafeCheck(dest)) return;
 		fread(dest, sizeof(int), 1, file_ptr);
 	}
+	void File::readInt64(uint64_t*dest) {
+		if (!readSafeCheck(dest)) return;
+		fread(dest, sizeof(uint64_t), 1, file_ptr);
+	}
 
 	void File::readInt32BE(unsigned int *dest) {
 		if (!readSafeCheck(dest)) return;
 		fread(dest, sizeof(int), 1, file_ptr);
+		endianSwap(*dest);
+	}
+	void File::readInt64BE(uint64_t*dest) {
+		if (!readSafeCheck(dest)) return;
+		fread(dest, sizeof(uint64_t), 1, file_ptr);
 		endianSwap(*dest);
 	}
 
@@ -345,6 +371,10 @@ namespace LibXenoverse
 		if (big_endian) readInt32BE(dest);
 		else readInt32(dest);
 	}
+	void File::readInt64E(uint64_t*dest) {
+		if (big_endian) readInt64BE(dest);
+		else readInt64(dest);
+	}
 
 	void File::readFloat16E(float *dest) {
 		if (big_endian) readFloat16BE(dest);
@@ -366,6 +396,19 @@ namespace LibXenoverse
 		if (big_endian) writeInt32BE(dest);
 		else writeInt32(dest);
 	}
+	void File::writeInt64E(uint64_t *dest) {
+		if (big_endian) writeInt64BE(dest);
+		else writeInt64(dest);
+	}
+
+	/*
+	void File::writeFloat8(float *dest) {
+		if (!readSafeCheck(dest)) return;
+
+		unsigned char v = half_from_float(*((uint32_t *)dest));		//Todo half_from_float => quart_from_float
+		writeUChar(&v);
+	}
+	*/
 
 	void File::writeFloat16E(float *dest) {
 		if (big_endian) writeFloat16BE(dest);
@@ -421,7 +464,13 @@ namespace LibXenoverse
 
 		fwrite(dest, sizeof(int), 1, file_ptr);
 	}
+	void File::writeInt64(uint64_t *dest) {
+		if (!readSafeCheck(dest)) return;
 
+		fwrite(dest, sizeof(uint64_t), 1, file_ptr);
+	}
+
+	
 	void File::writeInt32BE(unsigned int *dest) {
 		if (!readSafeCheck(dest)) return;
 
@@ -429,6 +478,14 @@ namespace LibXenoverse
 		endianSwap(target);
 		fwrite(&target, sizeof(int), 1, file_ptr);
 	}
+	void File::writeInt64BE(uint64_t *dest) {
+		if (!readSafeCheck(dest)) return;
+
+		uint64_t target = *dest;
+		endianSwap(target);
+		fwrite(&target, sizeof(uint64_t), 1, file_ptr);
+	}
+	
 
 	void File::writeFloat32(float *dest) {
 		if (!readSafeCheck(dest)) return;
@@ -686,14 +743,14 @@ namespace LibXenoverse
 
 	float StringToFloat(string value)
 	{
-		if (value == "+1.#INF")								//https://stackoverflow.com/questions/46694824/side-channel-resistant-math-functions-for-c
+		if ((value == "+1.#INF") || (value == "1.#INF"))								//https://stackoverflow.com/questions/46694824/side-channel-resistant-math-functions-for-c
 		{
 			uint32_t tmp = 0x7f800000;
 			return *((float*)((uint32_t*)&tmp));
 		}else if (value == "-1.#INF"){
 			uint32_t tmp = 0xff800000;
 			return *((float*)((uint32_t*)&tmp));
-		}else if (value == "+1.#QNAN"){
+		}else if ((value == "+1.#QNAN") || (value == "1.#QNAN")){
 			uint32_t tmp = 0x7fC00000;
 			return *((float*)((uint32_t*)&tmp));
 		}else if (value == "-1.#QNAN"){
@@ -911,6 +968,28 @@ namespace LibXenoverse
 			start = end + 1;
 		}
 		tokens.push_back(text.substr(start));
+		return tokens;
+	}
+	std::vector<std::string> multiSplit(const std::string &text, std::vector<char> sep)
+	{
+		std::vector<std::string> tokens;
+		tokens.push_back(text);
+
+		
+		for (size_t i = 0, nb = sep.size(); i < nb; i++)
+		{
+			std::vector<std::string> tokens_b;
+
+			for (size_t j = 0, nb2 = tokens.size(); j < nb2; j++)
+			{
+				std::vector<std::string> tokens_tmp = split(tokens.at(j), sep.at(i));
+
+				for (size_t k = 0, nb3 = tokens_tmp.size(); k < nb3; k++)
+					tokens_b.push_back(tokens_tmp.at(k));
+			}
+
+			tokens = tokens_b;
+		}
 		return tokens;
 	}
 

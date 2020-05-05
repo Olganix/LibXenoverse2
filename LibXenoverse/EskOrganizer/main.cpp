@@ -561,16 +561,16 @@ int main(int argc, char** argv)
 					if (!isSkinningMatrix)
 					{
 						//matrix4x4 iddentity
-						bone->transform_matrix[0] = 1; bone->transform_matrix[1] = 0; bone->transform_matrix[2] = 0; bone->transform_matrix[3] = 0;
-						bone->transform_matrix[4] = 0; bone->transform_matrix[5] = 1; bone->transform_matrix[6] = 0; bone->transform_matrix[7] = 0;
-						bone->transform_matrix[8] = 0; bone->transform_matrix[9] = 0; bone->transform_matrix[10] = 1; bone->transform_matrix[11] = 0;
-						bone->transform_matrix[12] = 0; bone->transform_matrix[13] = 0; bone->transform_matrix[14] = 0; bone->transform_matrix[15] = 1;
+						bone->absoluteMatrix[0] = 1; bone->absoluteMatrix[1] = 0; bone->absoluteMatrix[2] = 0; bone->absoluteMatrix[3] = 0;
+						bone->absoluteMatrix[4] = 0; bone->absoluteMatrix[5] = 1; bone->absoluteMatrix[6] = 0; bone->absoluteMatrix[7] = 0;
+						bone->absoluteMatrix[8] = 0; bone->absoluteMatrix[9] = 0; bone->absoluteMatrix[10] = 1; bone->absoluteMatrix[11] = 0;
+						bone->absoluteMatrix[12] = 0; bone->absoluteMatrix[13] = 0; bone->absoluteMatrix[14] = 0; bone->absoluteMatrix[15] = 1;
 						bone->haveTransformMatrix = false;
 					}else{
 						//matrix3x4 iddentity
-						bone->skinning_matrix[0] = 0; bone->skinning_matrix[1] = 0; bone->skinning_matrix[2] = 0; bone->skinning_matrix[3] = 1;
-						bone->skinning_matrix[4] = 1; bone->skinning_matrix[5] = 0; bone->skinning_matrix[6] = 0; bone->skinning_matrix[7] = 0;
-						bone->skinning_matrix[8] = 1; bone->skinning_matrix[9] = 1; bone->skinning_matrix[10] = 1; bone->skinning_matrix[11] = 1;
+						bone->relativeTransform[0] = 0; bone->relativeTransform[1] = 0; bone->relativeTransform[2] = 0; bone->relativeTransform[3] = 1;
+						bone->relativeTransform[4] = 1; bone->relativeTransform[5] = 0; bone->relativeTransform[6] = 0; bone->relativeTransform[7] = 0;
+						bone->relativeTransform[8] = 1; bone->relativeTransform[9] = 1; bone->relativeTransform[10] = 1; bone->relativeTransform[11] = 1;
 					}
 					if (boneIndex != (size_t)-1)
 						break;
@@ -690,56 +690,56 @@ int main(int argc, char** argv)
 
 						bone = bones.at(i);
 
-						float skinning_matrix[12];
+						float relativeTransform[12];
 						if (!absolute)
 						{
 							for (size_t i = 0; i < 12; i++)
-								skinning_matrix[i] = bone->skinning_matrix[i];
+								relativeTransform[i] = bone->relativeTransform[i];
 						}else{
 
 							double resultTransformMatrix[16];
 
 							for (size_t i = 0; i < 16; i++)
-								resultTransformMatrix[i] = bone->transform_matrix[i];
+								resultTransformMatrix[i] = bone->absoluteMatrix[i];
 
 							double tmpTransformMatrix[16];
 							LibXenoverse::ESKBone::inverse4x4(&resultTransformMatrix[0], &tmpTransformMatrix[0]);
 
 							LibXenoverse::ESKBone::transpose4x4(&tmpTransformMatrix[0]);		//come back to Ogre matrice way
-							double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-							LibXenoverse::ESKBone::decomposition4x4(&tmpTransformMatrix[0], &skinning_matrix_b[0]);
+							double relativeTransform_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
+							LibXenoverse::ESKBone::decomposition4x4(&tmpTransformMatrix[0], &relativeTransform_b[0]);
 
 							for (size_t i = 0; i < 12; i++)
-								skinning_matrix[i] = (float)skinning_matrix_b[i];
+								relativeTransform[i] = (float)relativeTransform_b[i];
 						}
 
 						bool isASet = false;
 						if (command == "GetBonePosition")
 						{
-							printf("Position : %f, %f, %f\n", skinning_matrix[0], skinning_matrix[1], skinning_matrix[2]);
+							printf("Position : %f, %f, %f\n", relativeTransform[0], relativeTransform[1], relativeTransform[2]);
 						}else if (command == "GetBoneOrientation"){
-							printf("Orientation (xyzw): %f, %f, %f, %f\n", skinning_matrix[4], skinning_matrix[5], skinning_matrix[6], skinning_matrix[7]);
+							printf("Orientation (xyzw): %f, %f, %f, %f\n", relativeTransform[4], relativeTransform[5], relativeTransform[6], relativeTransform[7]);
 						}else if (command == "GetBoneRotation"){
 							printf("TODO. sorry\n");
 						}else if (command == "GetBoneScale"){
-							printf("Scale : %f, %f, %f\n", skinning_matrix[8], skinning_matrix[9], skinning_matrix[10]);
+							printf("Scale : %f, %f, %f\n", relativeTransform[8], relativeTransform[9], relativeTransform[10]);
 						}else if (command == "SetBonePosition"){
-							skinning_matrix[0] = vector.at(0);
-							skinning_matrix[1] = vector.at(1);
-							skinning_matrix[2] = vector.at(2);
+							relativeTransform[0] = vector.at(0);
+							relativeTransform[1] = vector.at(1);
+							relativeTransform[2] = vector.at(2);
 							isASet = true;
 						}else if (command == "SetBoneOrientation"){
-							skinning_matrix[4] = vector.at(0);
-							skinning_matrix[5] = vector.at(1);
-							skinning_matrix[6] = vector.at(2);
-							skinning_matrix[7] = vector.at(3);
+							relativeTransform[4] = vector.at(0);
+							relativeTransform[5] = vector.at(1);
+							relativeTransform[6] = vector.at(2);
+							relativeTransform[7] = vector.at(3);
 							isASet = true;
 						}else if (command == "SetBoneRotation"){
 							printf("TODO. sorry\n");
 						}else if (command == "SetBoneScale"){
-							skinning_matrix[8] = vector.at(0);
-							skinning_matrix[9] = vector.at(1);
-							skinning_matrix[10] = vector.at(2);
+							relativeTransform[8] = vector.at(0);
+							relativeTransform[9] = vector.at(1);
+							relativeTransform[10] = vector.at(2);
 							isASet = true;
 						}
 
@@ -748,18 +748,18 @@ int main(int argc, char** argv)
 							if (!absolute)
 							{
 								for (size_t i = 0; i < 12; i++)
-									bone->skinning_matrix[i] = skinning_matrix[i];
+									bone->relativeTransform[i] = relativeTransform[i];
 
 								printf("Done. Please Considere to use 'CalculTransformMatrixFromSkinningMatrix %i -1' to update TransformMatrix.\n", indexFile);
 							}else{
 
-								double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
+								double relativeTransform_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
 								for (size_t i = 0; i < 12; i++)
-									skinning_matrix_b[i] = skinning_matrix[i];
+									relativeTransform_b[i] = relativeTransform[i];
 
 
 								double resultTransformMatrix[16];
-								LibXenoverse::ESKBone::makeTransform4x4(&skinning_matrix_b[0], &resultTransformMatrix[0]);
+								LibXenoverse::ESKBone::makeTransform4x4(&relativeTransform_b[0], &resultTransformMatrix[0]);
 
 								LibXenoverse::ESKBone::transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
 
@@ -767,7 +767,7 @@ int main(int argc, char** argv)
 								LibXenoverse::ESKBone::inverse4x4(&resultTransformMatrix[0], &tmpTransformMatrix[0]);
 
 								for (size_t i = 0; i < 16; i++)
-									bone->transform_matrix[i] = (float)tmpTransformMatrix[i];
+									bone->absoluteMatrix[i] = (float)tmpTransformMatrix[i];
 
 								printf("Done. Please Considere to use 'CalculSkinningMatrixFromTransformMatrix %i -1' to update SkinningMatrix.\n", indexFile);
 							}

@@ -40,7 +40,6 @@
 #include "EMD.h"
 #include "EMO.h"
 #include "EMA.h"
-#include "EMA_Material.h"
 #include "EMM.h"
 #include "SDS.h"
 #include "EMZ.h"
@@ -54,6 +53,11 @@
 #include "Spm.h"
 #include "Havok.h"
 #include "Obl.h"
+#include "Uasset.h"
+#include "Uexp.h"
+#include "UassetUexp.h"
+#include "mdl_yo3.h"
+
 
 
 using namespace std;

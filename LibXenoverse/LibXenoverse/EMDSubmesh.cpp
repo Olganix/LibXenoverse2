@@ -53,7 +53,7 @@ void EMDSubmesh::zero(void)
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
-void EMDSubmesh::read(File *file)
+void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 {
 	unsigned int address = 0;
 	unsigned int base_submesh_address = file->getCurrentAddress();
@@ -171,7 +171,7 @@ void EMDSubmesh::read(File *file)
 	for (size_t v = 0; v < vertex_count; v++)
 	{
 		file->goToAddress(base_submesh_address + vertex_address + v*vertex_size);
-		vertices[v].read(file, vertex_type_flag);
+		vertices[v].read(file, vertex_type_flag, paddingForCompressedVertex);
 		vertex_aabb.addPoint(vertices[v].pos_x, vertices[v].pos_y, vertices[v].pos_z);
 	}
 
@@ -181,7 +181,7 @@ void EMDSubmesh::read(File *file)
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDSubmesh::write(File *file)
+void EMDSubmesh::write(File *file, uint16_t paddingForCompressedVertex)
 {
 	unsigned int base_submesh_address = file->getCurrentAddress();
 
@@ -204,6 +204,7 @@ void EMDSubmesh::write(File *file)
 	file->writeString(&name);
 	file->fixPadding(0x4);
 
+
 	unsigned int submesh_offset_1 = file->getCurrentAddress() - base_submesh_address;
 	for (size_t k = 0; k < definitions.size(); k++)
 		definitions[k].write(file);
@@ -223,7 +224,7 @@ void EMDSubmesh::write(File *file)
 	// Write Vertices
 	unsigned int vertex_address = file->getCurrentAddress() - base_submesh_address;
 	for (size_t v = 0; v < vertices.size(); v++)
-		vertices[v].write(file, vertex_type_flag);
+		vertices[v].write(file, vertex_type_flag, paddingForCompressedVertex);
 
 	// Write Header
 	file->goToAddress(base_submesh_address + 0x30);
@@ -414,6 +415,18 @@ EMDTriangles* EMDSubmesh::getTriangleForBoneNameCombinaison(vector<string> bone_
 		return &triangles.back();
 	}
 	return NULL;
+}
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             useTextureDefTemplate								 |
+\-------------------------------------------------------------------------------*/
+void EMDSubmesh::useTextureDefTemplate(EMDSubmesh* other)
+{
+	definitions = other->definitions;
 }
 
 

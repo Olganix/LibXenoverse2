@@ -2149,7 +2149,7 @@ void EMP::replaceEmgFromEmd(string filename, EMD* emd)
 				if (file_size & 0xF)
 					file_size += (0x10 - (file_size & 0xF));
 
-				file_size += emg->CalculateVertexSize();
+				file_size += emg->CalculateVertexSize(file_size);
 				if (file_size & 0xF)
 					file_size += (0x10 - (file_size & 0xF));
 
@@ -2238,7 +2238,7 @@ void EMP::replaceEmgFromEmd(string filename, EMD* emd)
 				file_size += (0x10 - (file_size & 0xF));
 
 
-			file_size += emg->CalculateVertexSize();
+			file_size += emg->CalculateVertexSize(file_size);
 			if (file_size & 0xF)
 				file_size += (0x10 - (file_size & 0xF));
 		}
@@ -2387,7 +2387,7 @@ void EMP::replaceEmgFromEmd(string filename, EMD* emd)
 		uint32_t startOffset_Emg = newInfo.startOffset_Emg + newInfo.startOffset;
 		uint32_t tmp = 0;
 		
-		uint32_t offsetTmp = emg->CreatePart(newBuf + startOffset_Emg, 0, &tmp);
+		uint32_t offsetTmp = emg->CreatePart(newBuf + startOffset_Emg, 0, 0, startOffset_Emg, &tmp);			//TODO replace startOffset_Emg by startOffsetVertices , but for that ,we need to coclcul, see in emg how to do this.
 		if (offsetTmp & 0xf)
 			offsetTmp += (0x10 - (offsetTmp & 0xF));
 
@@ -2405,7 +2405,7 @@ void EMP::replaceEmgFromEmd(string filename, EMD* emd)
 
 		
 		*((uint32_t*)GetOffsetPtr(newBuf, startOffset_Emg + 0x24)) = offsetTmp - 0x10;			//not the totaly start of the header, the first entry.
-		offsetTmp  += emg->CreateVertex(newBuf + startOffset_Emg + offsetTmp);
+		offsetTmp  += emg->CreateVertex(newBuf + startOffset_Emg + offsetTmp, startOffset_Emg + offsetTmp);
 		if (offsetTmp & 0xF)
 			offsetTmp += (0x10 - (offsetTmp & 0xF));
 

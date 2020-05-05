@@ -1455,7 +1455,7 @@ bool Havok::import_Xml(TiXmlElement* rootNode)
 	//second time to have pointer references
 	size_t inc = 0;
 	for (TiXmlElement* node = node_Types->FirstChildElement("Type"); node; node = node->NextSiblingElement("Type"))
-		listType.at(inc++)->importXml_secondStep(node, listType);
+		listType.at(inc++)->importXml_secondkeyframe(node, listType);
 
 
 
@@ -1547,9 +1547,9 @@ void Havok_TagType::importXml(TiXmlElement* node)
 	return;
 }
 /*-------------------------------------------------------------------------------\
-|                             importXml_secondStep			                     |
+|                             importXml_secondkeyframe			                     |
 \-------------------------------------------------------------------------------*/
-void Havok_TagType::importXml_secondStep(TiXmlElement* node, std::vector<Havok_TagType*> &listType)
+void Havok_TagType::importXml_secondkeyframe(TiXmlElement* node, std::vector<Havok_TagType*> &listType)
 {
 	size_t nbTypes = listType.size();
 
@@ -3918,6 +3918,765 @@ bool Havok_TagObject::importFBX(FbxNode *fbxNode, std::vector<string> &xmlPath, 
 
 	return false;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+void Havok::simplifyHavokXml(string filename, string filenameOut)
+{
+
+	TiXmlDocument doc_src;
+
+	if (!doc_src.LoadFile(filename))
+	{
+
+		if (doc_src.ErrorId() == TiXmlBase::TIXML_ERROR_OPENING_FILE)
+			printf("Cannot open file \"%s\"\n", filename.c_str());
+		else
+			printf("Error parsing file \"%s\". This is what tinyxml has to say: %s. Row=%d, col=%d.\n", filename.c_str(), doc_src.ErrorDesc(), doc_src.ErrorRow(), doc_src.ErrorCol());
+		LibXenoverse::notifyError();
+		return;
+	}
+	TiXmlHandle handle_src(&doc_src);
+	TiXmlElement* rootNode_src = handle_src.FirstChildElement("Havok").Element();
+
+	TiXmlDocument doc;
+	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "", "");
+	doc.LinkEndChild(decl);
+
+
+
+	EMD* emd = new EMD();
+	emd->setName(filename + ".emd");
+
+	EMDModel* emdModel = new EMDModel();
+	emd->getModel().push_back(emdModel);
+	emdModel->setName("Havok");
+
+
+	size_t nbVertices = 0, nbTriangles = 0, nbStaticNodes = 0, nbAABB = 0;
+	TiXmlElement* rootNode = simplifyHavokXml_Node(rootNode_src, nbVertices, nbTriangles, nbStaticNodes, nbAABB, emdModel);
+	if (rootNode)
+	{
+		doc.LinkEndChild(rootNode);
+		doc.SaveFile(filenameOut);
+
+		emd->save(filenameOut + ".emd");
+
+		{
+			bool exportAscii = false;
+			string export_filename = filenameOut + ".fbx";
+
+			// Create FBX Manager
+			FbxManager *sdk_manager = FbxManager::Create();
+			FbxIOSettings *ios = FbxIOSettings::Create(sdk_manager, IOSROOT);
+			ios->SetBoolProp(EXP_FBX_EMBEDDED, true);
+			if (exportAscii)
+				ios->SetBoolProp(EXP_ASCIIFBX, true);										//test to have debug on fbx. Todo comment
+			sdk_manager->SetIOSettings(ios);
+
+			// Create Scene
+			FbxScene *scene = FbxScene::Create(sdk_manager, "EMDFBXScene");
+			scene->GetGlobalSettings().SetCustomFrameRate(60.0);				//specify the frameRate, the number of image by second. (not working well in blender fbx importer. so, I had to modify default value into blender fbx importer).
+			FbxTime::EProtocol protocol = FbxTime::GetGlobalTimeProtocol();
+			FbxTime::SetGlobalTimeProtocol(FbxTime::EProtocol::eDefaultProtocol);
+			protocol = FbxTime::GetGlobalTimeProtocol();
+			scene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eOpenGL);	//eOpenGL,			!< UpVector = YAxis, FrontVector =  ParityOdd, CoordSystem = RightHanded
+			scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
+			FbxNode *lRootNode = scene->GetRootNode();
+
+
+
+
+			std::vector<ESK::FbxBonesInstance_DBxv> global_fbx_bones;
+			std::vector<EMB*> mListEmb;
+			emd->exportFBX(scene, global_fbx_bones, mListEmb, 0, true);
+
+
+
+
+			int lFileFormat = sdk_manager->GetIOPluginRegistry()->GetNativeWriterFormat();
+			FbxExporter* lExporter = FbxExporter::Create(sdk_manager, "");
+			bool lExportStatus = lExporter->Initialize(export_filename.c_str(), lFileFormat, sdk_manager->GetIOSettings());
+			if (!lExportStatus)
+			{
+				printf("Call to FbxExporter::Initialize() failed.\n");
+				printf("Error returned: %s\n\n", lExporter->GetStatus().GetErrorString());
+				LibXenoverse::notifyError();
+				LibXenoverse::waitOnEnd();
+				delete emd;
+				return;
+			}
+			lExporter->Export(scene);												// Export scene
+			lExporter->Destroy();
+
+
+			if (exportAscii)												//test to have the Ascci version, that could help.
+			{
+				int lFileFormat_Ascii = sdk_manager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX ascii (*.fbx)");
+
+				FbxExporter* lExporter = FbxExporter::Create(sdk_manager, "");
+				bool lExportStatus = lExporter->Initialize((export_filename.substr(0, export_filename.length() - 4) + "_Ascii.fbx").c_str(), lFileFormat_Ascii, sdk_manager->GetIOSettings());
+				if (lExportStatus)
+				{
+					lExporter->Export(scene);												// Export scene
+					lExporter->Destroy();
+				}
+			}
+
+		}
+
+	}else {
+		LOG_DEBUG("Cannot find\"Havok\" in xml.\n");
+		LibXenoverse::notifyError();
+		return;
+	}
+
+	delete emd;
+}
+
+
+
+TiXmlElement* Havok::simplifyHavokXml_Node(TiXmlElement* currentNode_src, size_t &nbVertices, size_t &nbTriangles, size_t &nbStaticNodes, size_t &nbAABB, EMDModel* emdModel)		//recursive
+{
+	if (!currentNode_src)
+		return 0;
+
+
+	//parts we try to simplify
+	string str = "";
+	if ((string(currentNode_src->Value()) == "Object") && (currentNode_src->QueryStringAttribute("Name", &str) == TIXML_SUCCESS))
+	{
+		if (str == "vertices")
+			return simplifyHavokXml_Node_Vertices(currentNode_src, nbVertices, emdModel);
+
+		if (str == "triangles")
+			return simplifyHavokXml_Node_Faces(currentNode_src, nbTriangles, emdModel);
+
+		if (str == "aabbTree")
+			return simplifyHavokXml_Node_AabbTree(currentNode_src, nbTriangles, nbStaticNodes, emdModel);
+
+		if (str == "simdTree")
+			return simplifyHavokXml_Node_SimTree(currentNode_src, nbStaticNodes, nbAABB, emdModel);
+	}
+
+
+
+
+
+	//////////// case only simple copy
+	TiXmlElement* currentNode = new TiXmlElement(currentNode_src->Value());
+
+	// Arguments
+	for (TiXmlAttribute* node_src = currentNode_src->FirstAttribute(); node_src; node_src = node_src->Next())
+		currentNode->SetAttribute(node_src->Name(), node_src->ValueStr());
+
+
+	// Children
+	for (TiXmlElement* node_src = currentNode_src->FirstChildElement(); node_src; node_src = node_src->NextSiblingElement())
+	{
+		TiXmlElement* node = simplifyHavokXml_Node(node_src, nbVertices, nbTriangles, nbStaticNodes, nbAABB, emdModel);
+		currentNode->LinkEndChild(node);
+	}
+
+	return currentNode;
+}
+
+
+
+
+
+
+
+TiXmlElement* Havok::simplifyHavokXml_Node_Vertices(TiXmlElement* currentNode_src, size_t &nbVertices, EMDModel* emdModel)
+{
+	if (!currentNode_src)
+		return 0;
+
+	TiXmlElement* currentNode = new TiXmlElement("Vertices");
+
+
+	EMDMesh* emdMesh = new EMDMesh();
+	emdModel->getMeshes().push_back(emdMesh);
+	emdMesh->setName("Geometry");
+
+	EMDSubmesh* emdSubMesh = new EMDSubmesh();
+	emdMesh->getSubmeshes().push_back(emdSubMesh);
+	emdSubMesh->setMaterialName("Geometry");
+	emdSubMesh->setVertexTypeFlags(EMD_VTX_FLAG_POS | EMD_VTX_FLAG_COLOR );
+
+
+	nbVertices = 0;
+	size_t inc = 0;
+	string str = "";
+	float x, y, z, w;
+	for (TiXmlElement* node_src = currentNode_src->FirstChildElement("Object"); node_src; node_src = node_src->NextSiblingElement("Object"))
+	{
+		TiXmlElement* node = new TiXmlElement("position");
+		currentNode->LinkEndChild(node);
+		node->SetAttribute("index", nbVertices++);
+
+		inc = 0;
+		for (TiXmlElement* node_src_p = node_src->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+		{
+			str = "";
+			node_src_p->QueryStringAttribute("value", &str);
+
+			switch (inc)
+			{
+			case 0:	node->SetAttribute("x", str);	x = StringToFloat(str);  break;
+			case 1:	node->SetAttribute("y", str);	y = StringToFloat(str); break;
+			case 2:	node->SetAttribute("z", str);	z = StringToFloat(str);  break;
+			case 3:	node->SetAttribute("w", str);	w = StringToFloat(str);  break;
+			}
+
+			if (++inc >= 4)
+				break;
+		}
+
+		EMDVertex v;
+		v.flags = emdSubMesh->getVertexTypeFlags();
+		v.pos_x = x;	v.pos_y = y;	v.pos_z = z;	v.color = 0xFF0000FF;
+		emdSubMesh->getVertices().push_back(EMDVertex(&v));
+	}
+	currentNode->SetAttribute("nbVertices", nbVertices);
+
+	return currentNode;
+}
+
+
+TiXmlElement* Havok::simplifyHavokXml_Node_Faces(TiXmlElement* currentNode_src, size_t &nbTriangles, EMDModel* emdModel)
+{
+	if (!currentNode_src)
+		return 0;
+
+	TiXmlElement* currentNode = new TiXmlElement("TriangleList");
+	TiXmlElement* currentNode_Triangles = new TiXmlElement("Triangles");	currentNode->LinkEndChild(currentNode_Triangles);
+	TiXmlElement* currentNode_faces = new TiXmlElement("Faces");			currentNode_Triangles->LinkEndChild(currentNode_faces);
+
+	EMDSubmesh* emdSubMesh = emdModel->getMeshes().back()->getSubmeshes().back();
+	EMDTriangles triangle;
+
+	nbTriangles = 0;
+	size_t inc = 0;
+	string str = "";
+	for (TiXmlElement* node_src = currentNode_src->FirstChildElement("Object"); node_src; node_src = node_src->NextSiblingElement("Object"))
+	{
+		TiXmlElement* node = new TiXmlElement("face");
+		currentNode_faces->LinkEndChild(node);
+		node->SetAttribute("index", nbTriangles++);
+
+
+		inc = 0;
+		for (TiXmlElement* node_src_p = node_src->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+		{
+			str = "";
+			node_src_p->QueryStringAttribute("value", &str);
+
+			switch (inc)
+			{
+			case 0:	node->SetAttribute("v1", str);  triangle.faces.push_back(GetUnsigned(str));	break;
+			case 1:	node->SetAttribute("v2", str);  triangle.faces.push_back(GetUnsigned(str));  break;
+			case 2:	node->SetAttribute("v3", str);  triangle.faces.push_back(GetUnsigned(str));  break;
+			}
+
+			if (++inc >= 3)
+				break;
+		}
+
+	}
+
+	emdSubMesh->getTriangles().push_back(triangle);
+
+	currentNode_faces->SetAttribute("nbTriangles", nbTriangles);
+
+	return currentNode;
+}
+
+
+
+
+TiXmlElement* Havok::simplifyHavokXml_Node_AabbTree(TiXmlElement* currentNode_src, size_t nbTriangles, size_t &nbStaticNodes, EMDModel* emdModel)
+{
+	if (!currentNode_src)
+		return 0;
+
+	//Todo on hidata != 0 , follow making hierarchy https://en.wikipedia.org/wiki/AA_tree
+	//hyp_0_loData_indexFace
+
+	TiXmlElement* currentNode = new TiXmlElement("hkcdStaticTree");
+	TiXmlElement* currentNode_Nodes = new TiXmlElement("Nodes");	currentNode->LinkEndChild(currentNode_Nodes);
+	TiXmlElement* currentNode_Aabb = new TiXmlElement("AABB");		currentNode->LinkEndChild(currentNode_Aabb);
+
+	TiXmlElement* currentNode_Nodes_src = currentNode_src->FirstChildElement("Object");
+	TiXmlElement* currentNode_Aabb_src = currentNode_Nodes_src->NextSiblingElement("Object");
+
+
+
+	/////////////////////////////////////////// AABB
+
+	TiXmlElement* node_src_min = currentNode_Aabb_src->FirstChildElement("Object");
+	TiXmlElement* node = new TiXmlElement("Min");
+	currentNode_Aabb->LinkEndChild(node);
+
+	size_t inc = 0;
+	string str = "";
+	float minX, minY, minZ, maxX, maxY, maxZ;
+	for (TiXmlElement* node_src_p = node_src_min->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+	{
+		str = "";
+		node_src_p->QueryStringAttribute("value", &str);
+
+		switch (inc)
+		{
+		case 0:	node->SetAttribute("x", str);  minX = StringToFloat(str);	break;
+		case 1:	node->SetAttribute("y", str);  minY = StringToFloat(str);  break;
+		case 2:	node->SetAttribute("z", str);  minZ = StringToFloat(str);  break;
+		case 3:	node->SetAttribute("w", str);  break;
+		}
+
+		if (++inc >= 4)
+			break;
+	}
+
+
+	TiXmlElement* node_src_max = node_src_min->NextSiblingElement("Object");
+	node = new TiXmlElement("Max");
+	currentNode_Aabb->LinkEndChild(node);
+
+	inc = 0;
+	for (TiXmlElement* node_src_p = node_src_max->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+	{
+		str = "";
+		node_src_p->QueryStringAttribute("value", &str);
+
+		switch (inc)
+		{
+		case 0:	node->SetAttribute("x", str);  maxX = StringToFloat(str);  break;
+		case 1:	node->SetAttribute("y", str);  maxY = StringToFloat(str);  break;
+		case 2:	node->SetAttribute("z", str);  maxZ = StringToFloat(str);  break;
+		case 3:	node->SetAttribute("w", str);  break;
+		}
+
+		if (++inc >= 4)
+			break;
+	}
+	float aabbSizeX = maxX - minX, aabbSizeY = maxY - minY, aabbSizeZ = maxZ - minZ;
+	float aabbSizemax = max(max(aabbSizeX, aabbSizeY), aabbSizeZ);
+
+	////////////////////////////////  <Codec3Axis6 x="0"    y="0"   z="0"   hiData="128" loData="2"  /> 
+
+
+	EMDSubmesh* emdSubMesh_geometry = emdModel->getMeshes().at(0)->getSubmeshes().at(0);
+	EMDTriangles &triangle_geometry = emdSubMesh_geometry->getTriangles().back();
+	
+
+
+	bool hyp_0_loData_indexFace = true;
+	size_t maxLoData = 0;
+	size_t maxLoData_hidataNot0 = 0;
+
+	std::vector<string> listHiData;					//test todo remove
+	std::vector<bool> listFaceUsed;					//test todo remove
+	for (size_t i = 0; i < nbTriangles; i++)
+		listFaceUsed.push_back(false);
+
+	nbStaticNodes = 0;
+	inc = 0;
+	str = "";
+	int x, y, z;
+	for (TiXmlElement* node_src = currentNode_Nodes_src->FirstChildElement("Object"); node_src; node_src = node_src->NextSiblingElement("Object"))
+	{
+		TiXmlElement* node = new TiXmlElement("Codec3Axis6");
+		currentNode_Nodes->LinkEndChild(node);
+		node->SetAttribute("index", nbStaticNodes++);
+
+		TiXmlElement* node_src_xyz = node_src->FirstChildElement("Object");
+
+		inc = x = y = z = 0;
+		for (TiXmlElement* node_src_p = node_src_xyz->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+		{
+			str = "";
+			node_src_p->QueryStringAttribute("value", &str);
+
+			switch (inc)
+			{
+			case 0:	node->SetAttribute("x", str);	x = GetUnsigned(str);  break;
+			case 1:	node->SetAttribute("y", str);	y = GetUnsigned(str);  break;
+			case 2:	node->SetAttribute("z", str);	z = GetUnsigned(str);  break;
+			}
+			if (++inc >= 3)
+				break;
+		}
+		
+		float xf = (float)((x > 127) ? (x - 255) : x) / 127.0f;
+		float yf = (float)((y > 127) ? (y - 255) : y) / 127.0f;
+		float zf = (float)((z > 127) ? (z - 255) : z) / 127.0f;
+		/*
+		float xf = (float)(x - 127) / 127.0f;		if (xf > 1.0f) xf = 1.0f; if (xf < -1.0f) xf = -1.0f;
+		float yf = (float)(y - 127) / 127.0f;		if (yf > 1.0f) yf = 1.0f; if (yf < -1.0f) yf = -1.0f;
+		float zf = (float)(z - 127) / 127.0f;		if (zf > 1.0f) zf = 1.0f; if (zf < -1.0f) zf = -1.0f;
+		*/
+		node->SetAttribute("xyz", FloatToString(xf) +", "+ FloatToString(yf) +", "+ FloatToString(zf) );			// [0,255] cut in two -> [-127,127] -> [-1.0, 1.0]
+
+
+		TiXmlElement* node_src_p = node_src_xyz->NextSiblingElement("Object");
+		str = "";
+		node_src_p->QueryStringAttribute("value", &str);
+		//node->SetAttribute("hiData", str);							//no need because there is the two case of loData displayed different.
+		size_t hiData = EMO_BaseFile::GetUnsigned(str);
+
+		bool isfound = false;
+		for (size_t i = 0, nbHidAta = listHiData.size(); i < nbHidAta; i++)
+		{
+			if (listHiData.at(i) == str)
+			{
+				isfound = true;
+				break;
+			}
+		}
+		if (!isfound)
+			listHiData.push_back(str);
+
+		node_src_p = node_src_p->NextSiblingElement("Object");
+		str = "";
+		node_src_p->QueryStringAttribute("value", &str);
+		node->SetAttribute((hiData == 0) ? "face" : "loData", str);
+		size_t loData = EMO_BaseFile::GetUnsigned(str);
+
+		if (hiData == 0)										//it's a faceIndex
+		{
+			if (loData > maxLoData)
+				maxLoData = loData;
+
+			if(loData < nbTriangles)
+				listFaceUsed.at(loData) = true;
+		}else {													//it's 128, a node tree, may be ?
+			if (loData > maxLoData_hidataNot0)
+				maxLoData_hidataNot0 = loData;
+		}
+
+
+
+
+		//visual debug for emd - fbx
+		{
+			EMDMesh* emdMesh = new EMDMesh();
+			emdModel->getMeshes().push_back(emdMesh);
+			emdMesh->setName("codec3Axis6_" + ToString(nbStaticNodes - 1) + "__" + ((hiData == 0) ? "Face_" : "Node_") + ToString(loData));
+
+			EMDSubmesh* emdSubMesh = new EMDSubmesh();
+			emdMesh->getSubmeshes().push_back(emdSubMesh);
+			//emdSubMesh->setMaterialName("codec3Axis6");
+			emdSubMesh->setMaterialName("codec3Axis6_" + ToString(nbStaticNodes - 1) + "__" + ((hiData == 0) ? "Face_" : "Node_") + ToString(loData));
+			emdSubMesh->setVertexTypeFlags(EMD_VTX_FLAG_POS | EMD_VTX_FLAG_COLOR);
+			EMDTriangles triangle;
+
+			
+			EMDVertex v; v.flags = emdSubMesh->getVertexTypeFlags();
+			size_t offsetVertex = 0;
+			if (hiData == 0)							// first we copy the face
+			{
+				emdSubMesh->getVertices().push_back(EMDVertex(&emdSubMesh_geometry->getVertices().at(triangle_geometry.faces[loData * 3 + 0]))); emdSubMesh->getVertices().back().color = 0xFFFF00FF;
+				emdSubMesh->getVertices().push_back(EMDVertex(&emdSubMesh_geometry->getVertices().at(triangle_geometry.faces[loData * 3 + 1]))); emdSubMesh->getVertices().back().color = 0xFFFF00FF;
+				emdSubMesh->getVertices().push_back(EMDVertex(&emdSubMesh_geometry->getVertices().at(triangle_geometry.faces[loData * 3 + 2]))); emdSubMesh->getVertices().back().color = 0xFFFF00FF;
+				triangle.faces.push_back(0);
+				triangle.faces.push_back(1);
+				triangle.faces.push_back(2);
+				offsetVertex += 3;
+			}
+			
+			//second, representation of the XYZ
+			double length = sqrt(xf * xf + yf * yf + zf * zf);
+			double xf_n = ((length != 0) ? (xf / length) : 0), yf_n = ((length!=0) ? (yf / length) : 0), zf_n = ((length!=0) ? (zf / length) : 0);
+			
+			double start_x = -(1.0 + length * 10.0) * (aabbSizemax / 2.0) * xf_n, start_y = -(1.0 + length * 10.0) * (aabbSizemax / 2.0) * yf_n, start_z = -(1.0 + length * 10.0) * (aabbSizemax / 2.0) * zf_n;
+			double end_x = - (aabbSizemax / 2.0) * xf_n, end_y = -(aabbSizemax / 2.0) * yf_n, end_z = -(aabbSizemax / 2.0) * zf_n;	//vector to display , outside of AABB
+
+			double bnx = 0, bny = 1.0, bnz = 0.0;			//binormal
+			if ( (abs(xf_n) < 0.01) && (abs(zf_n) < 0.01))
+			{
+				bny = 0.0;
+				if (abs(yf_n) > 0.01)
+					bnz = 1.0;
+			}
+
+			double nx = bny * zf_n - bnz * yf_n;	// normal = cross(binormal, vctorDir)
+			double ny = bnz * xf_n - bnx * zf_n;
+			double nz = bnx * yf_n - bny * xf_n;
+
+			double width = 0.1;
+			nx *= width, ny *= width, nz *= width;
+
+			v.color = 0x00FF00FF;
+			
+			v.pos_x = (float)(start_x - nx); v.pos_y = (float)(start_y - ny); v.pos_z = (float)(start_z - nz); emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = (float)(start_x + nx); v.pos_y = (float)(start_y + ny); v.pos_z = (float)(start_z + nz); emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = (float)(end_x + nx); v.pos_y = (float)(end_y + ny); v.pos_z = (float)(end_z + nz); emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = (float)(end_x - nx); v.pos_y = (float)(end_y - ny); v.pos_z = (float)(end_z - nz); emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			triangle.faces.push_back(offsetVertex + 0); triangle.faces.push_back(offsetVertex + 1); triangle.faces.push_back(offsetVertex + 2);
+			triangle.faces.push_back(offsetVertex + 0); triangle.faces.push_back(offsetVertex + 2); triangle.faces.push_back(offsetVertex + 3);
+			triangle.faces.push_back(offsetVertex + 0); triangle.faces.push_back(offsetVertex + 2); triangle.faces.push_back(offsetVertex + 1);
+			triangle.faces.push_back(offsetVertex + 0); triangle.faces.push_back(offsetVertex + 3); triangle.faces.push_back(offsetVertex + 2);
+			offsetVertex += 4;
+
+			emdSubMesh->getTriangles().push_back(triangle);
+		}
+	}
+	hyp_0_loData_indexFace = (maxLoData + 1 <= nbTriangles);
+
+
+
+	currentNode->SetAttribute("nbStaticNodes", nbStaticNodes);
+	//currentNode->SetAttribute("maxLoData_hiData0", maxLoData);
+	currentNode->SetAttribute("maxLoData_hiDataNot0", maxLoData_hidataNot0);
+	//currentNode->SetAttribute("hyp_0_loData_indexFace", hyp_0_loData_indexFace ? "true" : "false");
+
+	/*
+	str = "";
+	for (size_t i = 0, nbHidAta = listHiData.size(); i < nbHidAta; i++)
+		str += listHiData.at(i) + ", ";
+	currentNode->SetAttribute("listHiData", str);
+	*/
+
+	str = "";
+	for (size_t i = 0; i < nbTriangles; i++)
+		if(listFaceUsed.at(i)==false)
+			str += ToString(listFaceUsed.at(i)) + ", ";
+	currentNode->SetAttribute("listFaceNOTUsed", str);
+
+
+
+
+	return currentNode;
+}
+
+
+
+
+
+
+
+
+TiXmlElement* Havok::simplifyHavokXml_Node_SimTree(TiXmlElement* currentNode_src, size_t nbStaticNodes, size_t &nbAABB, EMDModel* emdModel)
+{
+	if (!currentNode_src)
+		return 0;
+
+	TiXmlElement* currentNode = new TiXmlElement("SimdTree");
+
+	TiXmlElement* currentNode_Nodes_src = currentNode_src->FirstChildElement("Object");
+
+	//string name_ad = ""; currentNode_src->QueryStringAttribute("Name", &name_ad);				//todo remove
+	//string name_ae = ""; currentNode_Nodes_src->QueryStringAttribute("Name", &name_ae);				//todo remove
+
+	bool hyp_data_isStaticNodeIndex = true;
+	size_t maxData = 0;
+	nbAABB = 0;
+	size_t inc = 0;
+	size_t inc_b = 0;
+	string str = "";
+	for (TiXmlElement* node_src = currentNode_Nodes_src->FirstChildElement("Object"); node_src; node_src = node_src->NextSiblingElement("Object"))
+	{
+		//string name_aa = ""; node_src->QueryStringAttribute("TypeId", &name_aa);				//todo remove
+
+		TiXmlElement* node = new TiXmlElement("Node");
+		currentNode->LinkEndChild(node);
+
+		TiXmlElement* aabb_0 = new TiXmlElement("AABB");	node->LinkEndChild(aabb_0); TiXmlElement* aabb_0_min = new TiXmlElement("Min"); TiXmlElement* aabb_0_max = new TiXmlElement("Max"); aabb_0->LinkEndChild(aabb_0_min); aabb_0->LinkEndChild(aabb_0_max);
+		TiXmlElement* aabb_1 = new TiXmlElement("AABB");	node->LinkEndChild(aabb_1); TiXmlElement* aabb_1_min = new TiXmlElement("Min"); TiXmlElement* aabb_1_max = new TiXmlElement("Max"); aabb_1->LinkEndChild(aabb_1_min); aabb_1->LinkEndChild(aabb_1_max);
+		TiXmlElement* aabb_2 = new TiXmlElement("AABB");	node->LinkEndChild(aabb_2); TiXmlElement* aabb_2_min = new TiXmlElement("Min"); TiXmlElement* aabb_2_max = new TiXmlElement("Max"); aabb_2->LinkEndChild(aabb_2_min); aabb_2->LinkEndChild(aabb_2_max);
+		TiXmlElement* aabb_3 = new TiXmlElement("AABB");	node->LinkEndChild(aabb_3); TiXmlElement* aabb_3_min = new TiXmlElement("Min"); TiXmlElement* aabb_3_max = new TiXmlElement("Max"); aabb_3->LinkEndChild(aabb_3_min); aabb_3->LinkEndChild(aabb_3_max);
+		aabb_0->SetAttribute("index", nbAABB++); aabb_1->SetAttribute("index", nbAABB++); aabb_2->SetAttribute("index", nbAABB++); aabb_3->SetAttribute("index", nbAABB++);
+
+
+		std::vector<TiXmlElement*> listAABB; listAABB.push_back(aabb_0); listAABB.push_back(aabb_1);  listAABB.push_back(aabb_2);  listAABB.push_back(aabb_3);
+		std::vector<TiXmlElement*> listMin; listMin.push_back(aabb_0_min); listMin.push_back(aabb_1_min);  listMin.push_back(aabb_2_min);  listMin.push_back(aabb_3_min);
+		std::vector<TiXmlElement*> listMax; listMax.push_back(aabb_0_max); listMax.push_back(aabb_1_max);  listMax.push_back(aabb_2_max);  listMax.push_back(aabb_3_max);
+
+		inc = 0;
+		for (TiXmlElement* node_src_p = node_src->FirstChildElement("Object"); node_src_p; node_src_p = node_src_p->NextSiblingElement("Object"))
+		{
+			//string name_ab = ""; node_src_p->QueryStringAttribute("Name", &name_ab);				//todo remove
+
+			inc_b = 0;
+			for (TiXmlElement* node_src_p2 = node_src_p->FirstChildElement("Object"); node_src_p2; node_src_p2 = node_src_p2->NextSiblingElement("Object"))
+			{
+				//string name_ac = ""; node_src_p2->QueryStringAttribute("TypeId", &name_ac);				//todo remove
+
+				str = "";
+				node_src_p2->QueryStringAttribute("value", &str);
+
+				string attr = "";
+				std::vector<TiXmlElement*>* list = 0;
+				switch (inc)
+				{
+				case 0: list = &listMin; attr = "x"; break;			//lx
+				case 1: list = &listMax; attr = "x"; break;			//hx
+				case 2: list = &listMin; attr = "y"; break;			//ly
+				case 3: list = &listMax; attr = "y"; break;			//hy
+				case 4: list = &listMin; attr = "z"; break;			//lz
+				case 5: list = &listMax; attr = "z"; break;			//hz
+				case 6: list = &listAABB; attr = "data";
+					size_t data = EMO_BaseFile::GetUnsigned(str);
+					if (data > maxData)
+						maxData = data;
+					break;		//data
+				}
+
+				if (list)
+					list->at(inc_b)->SetAttribute(attr, str);
+
+				if (++inc_b >= 4)
+					break;
+			}
+			if (++inc >= 7)
+				break;
+		}
+
+
+
+
+		//visual
+		float minX, minY, minZ, maxX, maxY, maxZ, tmp;
+		for (size_t i=0;i<4;i++)
+		{
+			
+			str = "";
+			listAABB.at(i)->QueryStringAttribute("data", &str);
+			if (str == "0")							//no interested by infinite
+				continue;
+
+			EMDMesh* emdMesh = new EMDMesh();
+			emdModel->getMeshes().push_back(emdMesh);
+			emdMesh->setName("AABB_" + ToString(nbAABB - 4 + i) + "__" + str);
+
+			EMDSubmesh* emdSubMesh = new EMDSubmesh();
+			emdMesh->getSubmeshes().push_back(emdSubMesh);
+			//emdSubMesh->setMaterialName("AABB");
+			emdSubMesh->setMaterialName("AABB_" + ToString(nbAABB - 4 + i) + "__" + str);
+			emdSubMesh->setVertexTypeFlags(EMD_VTX_FLAG_POS | EMD_VTX_FLAG_COLOR);
+			EMDTriangles triangle;
+
+			
+			listMin.at(i)->QueryStringAttribute("x", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; minX = tmp;	//check infinit => 10 000
+			listMin.at(i)->QueryStringAttribute("y", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; minY = tmp;
+			listMin.at(i)->QueryStringAttribute("z", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; minZ = tmp;
+			listMax.at(i)->QueryStringAttribute("x", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; maxX = tmp;
+			listMax.at(i)->QueryStringAttribute("y", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; maxY = tmp;
+			listMax.at(i)->QueryStringAttribute("z", &str); tmp = StringToFloat(str); if (tmp < -10000) tmp = -10000; if (tmp > 10000) tmp = 10000; maxZ = tmp;
+			
+			
+
+			EMDVertex v; v.flags = emdSubMesh->getVertexTypeFlags(); v.color = 0x0000FFFF;
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			v.pos_x = maxX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = maxX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = minY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = maxZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+			v.pos_x = minX;	v.pos_y = maxY;	v.pos_z = minZ;	emdSubMesh->getVertices().push_back(EMDVertex(&v));
+
+			triangle.faces.push_back(0); triangle.faces.push_back(1); triangle.faces.push_back(2);
+			triangle.faces.push_back(2); triangle.faces.push_back(3); triangle.faces.push_back(0);
+			triangle.faces.push_back(4); triangle.faces.push_back(5); triangle.faces.push_back(6);
+			triangle.faces.push_back(6); triangle.faces.push_back(7); triangle.faces.push_back(4);
+			triangle.faces.push_back(8); triangle.faces.push_back(9); triangle.faces.push_back(10);
+			triangle.faces.push_back(10); triangle.faces.push_back(11); triangle.faces.push_back(8);
+			triangle.faces.push_back(12); triangle.faces.push_back(13); triangle.faces.push_back(14);
+			triangle.faces.push_back(14); triangle.faces.push_back(15); triangle.faces.push_back(12);
+			triangle.faces.push_back(16); triangle.faces.push_back(17); triangle.faces.push_back(18);
+			triangle.faces.push_back(18); triangle.faces.push_back(19); triangle.faces.push_back(16);
+			triangle.faces.push_back(20); triangle.faces.push_back(21); triangle.faces.push_back(22);
+			triangle.faces.push_back(22); triangle.faces.push_back(23); triangle.faces.push_back(20);
+
+			emdSubMesh->getTriangles().push_back(triangle);
+		}
+
+	}
+
+	hyp_data_isStaticNodeIndex = maxData <= nbStaticNodes;				//because is index+1, because of 0 for inf aabb
+
+	currentNode->SetAttribute("nbAABB", nbAABB);
+	currentNode->SetAttribute("maxData", maxData);
+	currentNode->SetAttribute("hyp_data_isStaticNodeIndex_plus1", hyp_data_isStaticNodeIndex ? "true" : "false");
+
+	return currentNode;
+}
+
+
+
+
+
+
 
 
 #endif

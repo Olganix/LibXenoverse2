@@ -13,6 +13,8 @@ namespace LibXenoverse
 EANKeyframedAnimation::EANKeyframedAnimation(EANKeyframedAnimation *source)
 {
 	this->flag = source->flag;
+	this->unknow_0 = source->unknow_0;
+	this->unknow_1 = source->unknow_1;
 	this->keyframes = source->keyframes;
 }
 /*-------------------------------------------------------------------------------\
@@ -25,7 +27,9 @@ void EANKeyframedAnimation::read(File *file, unsigned char index_size, unsigned 
 	unsigned int indices_offset = 0;
 	unsigned int keyframes_offset = 0;
 
-	file->readInt32E(&flag);
+	file->readUChar(&flag);
+	file->readUChar(&unknow_0);
+	file->readInt16E(&unknow_1);
 	file->readInt32E(&keyframes_count);
 	file->readInt32E(&indices_offset);
 	file->readInt32E(&keyframes_offset);
@@ -61,9 +65,16 @@ size_t EANKeyframedAnimation::write(File *file, unsigned char index_size, unsign
 	unsigned int base_keyframed_animation_address = file->getCurrentAddress();
 	unsigned int keyframes_count = keyframes.size();
 	unsigned int indices_offset = 16;			//this header size
-	unsigned int keyframes_offset = (int)ceil((base_keyframed_animation_address + indices_offset + keyframes_count * ((index_size == 0) ? 1 : 2)) / 16.0) * 16 - base_keyframed_animation_address;		//We cast on the next 16octets line.
+	
 
-	file->writeInt32E(&flag);
+	size_t aa = base_keyframed_animation_address + indices_offset + keyframes_count * ((index_size == 0) ? 1 : 2);
+	size_t pad = (int)ceil((aa) / 16.0) * 16;
+	unsigned int keyframes_offset = pad - base_keyframed_animation_address;		//We cast on the next 16octets line.
+
+	file->writeUChar(&flag);
+	file->writeUChar(&unknow_0);
+	file->writeInt16E(&unknow_1);
+
 	file->writeInt32E(&keyframes_count);
 	file->writeInt32E(&indices_offset);
 	file->writeInt32E(&keyframes_offset);
@@ -76,6 +87,14 @@ size_t EANKeyframedAnimation::write(File *file, unsigned char index_size, unsign
 		LOG_DEBUG("KF %i : [%i] : ", i, file->getCurrentAddress());
 		keyframes[i].writeFrame(file, index_size);
 	}
+
+	
+	//fill zero on end of 16 octets lines. that why we don't have the wright number.
+	size_t offset = file->getCurrentAddress();
+	size_t size_padding = (size_t)(ceil(offset / 16.0f) * 16) - offset;
+	if (size_padding)
+		file->writeNull(size_padding);
+	
 
 	file->goToAddress(base_keyframed_animation_address + keyframes_offset);
 	for (size_t i = 0; i < keyframes_count; i++)
@@ -427,7 +446,7 @@ bool EANKeyframedAnimation::importFBXPositionAnimCurve(FbxNode *fbx_node, size_t
 \-------------------------------------------------------------------------------*/
 bool EANKeyframedAnimation::importFBXRotationAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_rotation_x, FbxAnimCurve* fbx_animCurve_rotation_y, FbxAnimCurve* fbx_animCurve_rotation_z)
 {
-	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION;
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition;
 		
 	float fps = 60.0f;
 	float intervale_ms = 1000.0f / fps;
@@ -581,7 +600,7 @@ bool EANKeyframedAnimation::importFBXRotationAnimCurve(FbxNode *fbx_node, size_t
 \-------------------------------------------------------------------------------*/
 bool EANKeyframedAnimation::importFBXScalingAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_scale_x, FbxAnimCurve* fbx_animCurve_scale_y, FbxAnimCurve* fbx_animCurve_scale_z)
 {
-	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE;
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA;
 		
 
 	float fps = 60.0f;
@@ -664,7 +683,7 @@ bool EANKeyframedAnimation::importFBXScalingAnimCurve(FbxNode *fbx_node, size_t 
 \-------------------------------------------------------------------------------*/
 bool EANKeyframedAnimation::importFBXTargetCameraPositionAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_translation_x, FbxAnimCurve* fbx_animCurve_translation_y, FbxAnimCurve* fbx_animCurve_translation_z)
 {
-	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION;
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition;
 	float fps = 60.0f;			//TODO configure.
 	float intervale_ms = 1000.0f / fps;
 
@@ -758,7 +777,8 @@ bool EANKeyframedAnimation::importFBXTargetCameraPositionAnimCurve(FbxNode *fbx_
 \-------------------------------------------------------------------------------*/
 bool EANKeyframedAnimation::importFBXCameraAnimCurve(FbxNode *fbx_node, size_t nbframes, FbxAnimCurve* fbx_animCurve_roll, FbxAnimCurve* fbx_animCurve_focale)
 {
-	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_CAMERA;
+	this->flag = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA;
+	this->unknow_0 = 0x3;
 
 	float fps = 60.0f;
 	float intervale_ms = 1000.0f / fps;

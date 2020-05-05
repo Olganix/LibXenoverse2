@@ -9,9 +9,10 @@ namespace LibXenoverse
 EMD::EMD(EMD* emd)
 {
 	name = "";
-	version = "";
+	version = "192.146.0.0";										//default for dbxv2.
 	unknow_0 = 0;
 	unknow_1 = 0;
+	paddingForCompressedVertex = 0;
 
 	if (emd)
 	{
@@ -102,7 +103,7 @@ void EMD::read(File *file)
 	size_t startAdress = file->getCurrentAddress();
 	file->goToAddress(startAdress + 0x06);
 	
-	//uint16_t header_size;
+	uint16_t header_size;
 	file->readInt16E(&header_size);
 
 	version = "";
@@ -143,7 +144,7 @@ void EMD::read(File *file)
 		file->goToAddress(startAdress + address);
 
 		EMDModel *emd_model = new EMDModel();
-		emd_model->read(file);
+		emd_model->read(file, paddingForCompressedVertex);
 		models.push_back(emd_model);
 	}
 
@@ -169,7 +170,7 @@ void EMD::write(File *file)
 	size_t startAdress = file->getCurrentAddress();
 	file->goToAddress(startAdress + 6);
 
-	//uint16_t header_size = 0x001C;
+	uint16_t header_size = 0x001C;
 	file->writeInt16E(&header_size);
 	
 	std::vector<string> sv = split(version, '.');
@@ -208,7 +209,7 @@ void EMD::write(File *file)
 
 		// Write Model
 		file->goToAddress(model_address);
-		models.at(i)->write(file);
+		models.at(i)->write(file, paddingForCompressedVertex);
 	}
 
 
@@ -272,6 +273,30 @@ void EMD::mergeTriangles()
 {
 	for (size_t i = 0; i < models.size(); i++)
 		models[i]->mergeTriangles();
+}
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             useTextureDefTemplate								 |
+\-------------------------------------------------------------------------------*/
+void EMD::useTextureDefTemplate(EMD* other)
+{
+	string name = "";
+	for (size_t i = 0; i < models.size(); i++)
+	{
+		name = models.at(i)->getName();
+
+		for (size_t j = 0; j < other->models.size(); j++)
+		{
+			if (other->models.at(j) ->getName() == name)
+			{
+				models.at(i)->useTextureDefTemplate(other->models.at(j));
+				break;
+			}
+		}
+	}
 }
 
 

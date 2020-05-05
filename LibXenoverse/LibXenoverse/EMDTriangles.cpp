@@ -45,21 +45,8 @@ void EMDTriangles::read(File *file)
 	// Read Face Indices
 	faces.resize(face_count);
 
-	file->goToAddress(base_face_address + face_table_address);
-	unsigned short face0 = 0;
-	unsigned short face1 = 0;
-	unsigned short face2 = 0;
-	if (face_count > 5)
-	{
-		file->readInt16E(&face0);
-		file->readInt16E(&face0);
-		file->readInt16E(&face1);
-		file->readInt16E(&face1);
-		file->readInt16E(&face2);
-		file->readInt16E(&face2);
-	}
-	bool is32bits = ((face_count > 5)&&(face0==0)&&(face1==0) && (face2 == 0));			//find how to choose 16 or 32 bits. => number of vertex don't work (check on files), and tehre no other value hide in padding or else.
-
+	
+	bool is32bits = face_count > 0xFFFF;					//Not it's a bug from theirs tools, because normally , it's should be the number of vertices witch must be check.
 
 	for (size_t n = 0; n < face_count; n++)
 	{
@@ -109,7 +96,9 @@ void EMDTriangles::write(File *file, size_t numberVertex)
 
 	// Write Indices
 	unsigned int face_table_address = file->getCurrentAddress() - base_face_address;
-	bool is32bits = (numberVertex > 20000);				// natural limit of DBxv2, but it's average, because : <19080 -> 16 bits, 19080 -> 32 bits, 19900 -> 16 bits, >20000 -> 32 bits.
+	
+	bool is32bits = faces.size() > 0xFFFF;
+	
 
 	for (size_t i = 0; i < faces.size(); i++)
 	{

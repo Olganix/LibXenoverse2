@@ -10,12 +10,12 @@ namespace LibXenoverse
 EMDModel::EMDModel(EMDModel* emdModel)
 {
 	name = "";
-	unknown_total = 0;
+	unknow_total = 0;
 
 	if (emdModel)
 	{
 		name = emdModel->name;
-		unknown_total = emdModel->unknown_total;
+		unknow_total = emdModel->unknow_total;
 
 		for (size_t i = 0, nb = emdModel->meshes.size(); i < nb; i++)
 			meshes.push_back(new EMDMesh(emdModel->meshes.at(i)));
@@ -34,14 +34,14 @@ EMDModel::~EMDModel(void)
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
-void EMDModel::read(File *file)
+void EMDModel::read(File *file, uint16_t &paddingForCompressedVertex)
 {
 	unsigned int base_model_address = file->getCurrentAddress();
 	unsigned int address = 0;
 
 	unsigned short mesh_total = 0;
 	unsigned int mesh_table_address = 0;
-	file->readInt16E(&unknown_total);
+	file->readInt16E(&unknow_total);
 	file->readInt16E(&mesh_total);
 	file->readInt32E(&mesh_table_address);
 
@@ -56,19 +56,19 @@ void EMDModel::read(File *file)
 		file->goToAddress(base_mesh_address);
 
 		EMDMesh *emd_mesh = new EMDMesh();
-		emd_mesh->read(file);
+		emd_mesh->read(file, paddingForCompressedVertex);
 		meshes.push_back(emd_mesh);
 	}
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void EMDModel::write(File *file)
+void EMDModel::write(File *file, uint16_t paddingForCompressedVertex)
 {
 	unsigned int base_model_address = file->getCurrentAddress();
 	unsigned short mesh_total = meshes.size();
 	unsigned int mesh_table_address = 8;
-	file->writeInt16E(&unknown_total);
+	file->writeInt16E(&unknow_total);
 	file->writeInt16E(&mesh_total);
 	file->writeInt32E(&mesh_table_address);
 
@@ -81,7 +81,7 @@ void EMDModel::write(File *file)
 		file->goToAddress(base_model_address + mesh_table_address + j * 4);
 		file->writeInt32E(&mesh_address);
 		file->goToAddress(base_model_address + mesh_address);
-		meshes[j]->write(file);
+		meshes[j]->write(file, paddingForCompressedVertex);
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -125,6 +125,29 @@ void EMDModel::mergeTriangles()
 {
 	for (size_t i = 0; i < meshes.size(); i++)
 		meshes[i]->mergeTriangles();
+}
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             useTextureDefTemplate								 |
+\-------------------------------------------------------------------------------*/
+void EMDModel::useTextureDefTemplate(EMDModel* other)
+{
+	string name = "";
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		name = meshes.at(i)->getName();
+
+		for (size_t j = 0; j < other->meshes.size(); j++)
+		{
+			if (other->meshes.at(j)->getName() == name)
+			{
+				meshes.at(i)->useTextureDefTemplate(other->meshes.at(j));
+				break;
+			}
+		}
+	}
 }
 
 

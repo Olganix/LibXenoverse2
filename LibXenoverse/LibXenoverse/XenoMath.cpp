@@ -186,16 +186,27 @@ FbxDouble3 giveAngleOrientationForThisOrientationTaitBryan(FbxVector4 orient)
 
 	//2) calcul pitch
 	FbxVector4 rotationInv_Yrot = fromAngleAxis(-q[0], FbxDouble3(0, 1, 0));
-
 	FbxDouble3 dir_tmp = quatMulVec3(quatMulQuat(rotationInv_Yrot, orient), FbxDouble3(1, 0, 0));		//we cancel yaw rotation, the point must be into (O,x,y) plane
+	
+	//just in case (ex Tapion (TPO) sword)
+	double tmp = sqrt(dir_tmp[0] * dir_tmp[0] + dir_tmp[1] * dir_tmp[1] + dir_tmp[2] * dir_tmp[2]);
+	dir_tmp[0] /= tmp; dir_tmp[1] /= tmp; dir_tmp[2] /= tmp;
+
 	q[1] = FbxACos(dir_tmp[0]) * FBXSDK_180_DIV_PI;
 	if (dir_tmp[1] < 0)
 		q[1] = -q[1];
 
 
+
+
 	//3) calcul roll
 	FbxVector4 rotationInv_Zrot = fromAngleAxis(-q[1], FbxDouble3(0, 0, 1));
 	dir_tmp = quatMulVec3(quatMulQuat(rotationInv_Zrot, quatMulQuat(rotationInv_Yrot, orient)), FbxDouble3(0, 0, 1));		//we cancel the yaw and pitch rotations, the point Vector3::UNIT_Y, after rotation, must be into (O,x,z) plane.
+	
+	//just in case (ex Tapion (TPO) sword)
+	tmp = sqrt(dir_tmp[0] * dir_tmp[0] + dir_tmp[1] * dir_tmp[1] + dir_tmp[2] * dir_tmp[2]);
+	dir_tmp[0] /= tmp; dir_tmp[1] /= tmp; dir_tmp[2] /= tmp;
+
 	q[2] = FbxACos(dir_tmp[2]) * FBXSDK_180_DIV_PI;
 	if (dir_tmp[1] > 0)		// the direct direction is from Oy to Oz
 		q[2] = -q[2];

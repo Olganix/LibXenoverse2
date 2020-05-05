@@ -5,16 +5,979 @@ namespace LibXenoverse
 {
 
 
+
+
+bool EMA::Load(const uint8_t *buf, unsigned int size)
+{
+	while (name.find('.') != string::npos)
+		name = nameFromFilenameNoExtension(name, true);
+
+	Reset();
+
+	EMAHeader *hdr = (EMAHeader *)buf;
+	if (size < sizeof(EMAHeader) || hdr->signature != EMA_SIGNATURE)
+		return false;
+
+	this->big_endian = (buf[4] != 0xFE);
+
+	if (hdr->skeleton_offset == 0)
+	{
+		// No skeleton
+	}else {
+		if (!EMO_Skeleton::Load(GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset)))
+			return false;
+	}
+
+	version = ToString((uint32_t)hdr->version[0]) + "." + ToString((uint32_t)hdr->version[1]) + "." + ToString((uint32_t)hdr->version[2]) + "." + ToString((uint32_t)hdr->version[3]);
+	type = val16(hdr->type);
+	unknow_0 = val32(hdr->unknow_0);
+	unknow_1 = val32(hdr->unknow_1);
+	unknow_2 = val32(hdr->unknow_2);
+
+	context = (type == EMA_TYPE_ANIM_Material) ? ContextUse::MaterialAnimation : ContextUse::ObjectAnimation;
+	contextPtr = this;
+
+
+	uint32_t *anim_offsets = (uint32_t *)GetOffsetPtr(buf, val16(hdr->header_size), true);
+	animations.resize(val16(hdr->anim_count));
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		EmaAnimation &animation = animations[i];
+		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
+		
+		//printf(("startAnimOffset : " + UnsignedToString(anim_offsets[i], true) + "\n").c_str());		//todo test remove
+
+		animation.duration = val16(ahdr->duration);
+		
+		animation.type = ahdr->type;
+		animation.light_unknow = ahdr->light_unknow;
+		animation.frame_float_size = val16(ahdr->frame_float_size);
+		
+		
+		EMAAnimationName* emaAnimationName = (EMAAnimationName*)GetOffsetPtr(ahdr, ahdr->name_offset);
+		animation.name_unknow_0 = val32(emaAnimationName->unknow_0);
+		animation.name_unknow_1 = val32(emaAnimationName->unknow_1);
+		animation.name_unknow_2 = val16(emaAnimationName->unknow_2);
+
+		animation.name = (char*)GetOffsetPtr(ahdr, ahdr->name_offset + sizeof(EMAAnimationName));
+		
+
+		animation.nodes.resize(val16(ahdr->cmd_count));
+
+		for (size_t j = 0; j < animation.nodes.size(); j++)
+		{
+			EMAAnimationNode &node = animation.nodes[j];
+			EMAAnimationAnimNodeHeader *chdr = (EMAAnimationAnimNodeHeader *)GetOffsetPtr(ahdr, ahdr->animNode_offsets, j);
+
+			//printf(("startAnimNodeOffset : " + UnsignedToString(anim_offsets[i] + ahdr->animNode_offsets[j], true) + "\n").c_str());		//todo test remove
+
+			if (HasSkeleton())
+			{
+
+				if (val16(chdr->bone_idx) >= GetNumBones())					//ex: some case on SSSS mat.ema
+				{
+					node.bone = nullptr;
+					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in node 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
+					//return false;
+				}else {
+					node.bone = &bones[val16(chdr->bone_idx)];
+				}
+			}else{
+				node.bone = nullptr;
+			}
+
+			node.bone_idx = val16(chdr->bone_idx);
+			node.transformComponent = (chdr->transformComponent & 0x3);
+			node.noInterpolation = ((chdr->transformComponent & 0x4)!=0);
+			node.unknow_0 = (chdr->transformComponent & 0x8);
+			node.unknow_1 = (chdr->transformComponent & 0x10);
+
+			node.transform = chdr->transform;
+			node.keyframes.resize(val16(chdr->keyframe_count));
+
+
+
+			for (size_t k = 0; k < node.keyframes.size(); k++)
+			{
+				EMAKeyframe &keyframe = node.keyframes[k];
+
+				node.timesByteSize = chdr->transformComponent & 0x20;
+
+				if (!(chdr->transformComponent & 0x20))				// timesByteSize
+				{
+					uint8_t *timing = (uint8_t *)GetOffsetPtr(chdr, sizeof(EMAAnimationAnimNodeHeader), true);
+					keyframe.time = timing[k];
+				}else {
+					uint16_t *timing = (uint16_t *)GetOffsetPtr(chdr, sizeof(EMAAnimationAnimNodeHeader), true);
+					keyframe.time = val16(timing[k]);
+				}
+				
+				if (!(chdr->transformComponent & 0x40))				// indexesByteSize
+				{
+					uint16_t *indices = (uint16_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
+					uint16_t tmp = val16(indices[k]);
+					keyframe.index = tmp & 0x3FFF;
+					keyframe.interpolation = (tmp & 0xC000) >> 12;
+
+				}else {
+					uint32_t *indices = (uint32_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
+					uint32_t tmp = val32(indices[k]);
+					keyframe.index = tmp & 0x3FFFFFFF;
+					keyframe.interpolation = (tmp & 0xC0000000) >> 28;
+				}
+			}
+		}
+
+		animation.values.resize(val32(ahdr->value_count));
+		float* values = (float *)GetOffsetPtr(ahdr, ahdr->values_offset);
+		uint16_t* values_uint6 = (uint16_t*)values;
+
+		//printf(("startoffsetFloatValues : " + UnsignedToString(anim_offsets[i] + ahdr->values_offset, true) + "\n").c_str());		//todo test remove
+
+
+		
+
+		for (size_t j = 0; j < animation.values.size(); j++)
+		{
+			if (animation.frame_float_size == 0)
+				animation.values[j] = val_float(values[j]);
+			else
+				animation.values[j] = float16ToFloat(values_uint6[j]);
+		}
+
+	}
+
+	return true;
+}
+
+
+
+
+
+
+uint8_t *EMA::CreateFile(unsigned int *psize)
+{
+	unsigned int file_size;
+	uint32_t offset;
+
+
+	file_size = CalculateFileSize();
+	uint8_t *buf = new uint8_t[file_size];
+
+	if (!buf)
+	{
+		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		LibXenoverse::notifyError();
+		return nullptr;
+	}
+
+	memset(buf, 0, file_size);
+	assert(animations.size() < 65536);
+
+	EMAHeader *hdr = (EMAHeader *)buf;
+	hdr->signature = EMA_SIGNATURE;
+	hdr->endianess_check = val16(0xFFFE);
+	hdr->header_size = val16(sizeof(EMAHeader));
+	hdr->anim_count = val16(animations.size());
+	hdr->type = val16(type);
+	hdr->unknow_0 = val32(unknow_0);
+	hdr->unknow_1 = val32(unknow_1);
+	hdr->unknow_2 = val32(unknow_2);
 	
+	if (version.length() == 0)
+		version = "0";
+	std::vector<string> sv = split(version, '.');
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (i < sv.size())
+			hdr->version[i] = (uint8_t)std::stoi(sv.at(i));
+		else
+			hdr->version[i] = 0;
+	}
+	
+
+
+	offset = sizeof(EMAHeader);
+	uint32_t *anim_offsets = (uint32_t *)GetOffsetPtr(buf, offset, true);
+
+	offset += animations.size() * sizeof(uint32_t);
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		if (offset & 3)
+			offset += (4 - (offset & 3));
+
+		const EmaAnimation &animation = animations[i];
+		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, offset, true);
+		anim_offsets[i] = val32(offset);
+
+		//printf(("startAnimOffset : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
+
+
+		assert(animation.nodes.size() < 65536);
+
+		ahdr->duration = val16(animation.duration);
+		ahdr->cmd_count = val16(animation.nodes.size());
+		ahdr->value_count = val32(animation.values.size());
+		ahdr->type = animation.type;
+		ahdr->light_unknow = animation.light_unknow;
+		ahdr->frame_float_size = val16(animation.frame_float_size);
+
+		size_t timesByteSize = (animation.duration > 0xFF) ? 0x20 : 0x0;
+		size_t indexesByteSize = (animation.values.size() > 0x3FFF) ? 0x40 : 0x0;
+
+
+		offset += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
+		offset += animation.nodes.size() * sizeof(uint32_t);
+
+		for (size_t j = 0; j < animation.nodes.size(); j++)
+		{
+			if (offset & 3)
+				offset += (4 - (offset & 3));
+
+			//printf(("startAnimNodeOffset : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
+
+
+			const EMAAnimationNode &node = animation.nodes[j];
+			EMAAnimationAnimNodeHeader *chdr = (EMAAnimationAnimNodeHeader *)GetOffsetPtr(buf, offset, true);
+			ahdr->animNode_offsets[j] = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
+
+			assert(node.keyframes.size() < 65536);
+
+			if ((HasSkeleton())&&(node.bone != nullptr))
+				chdr->bone_idx = val16(BoneToIndex(node.bone));
+			else
+				chdr->bone_idx = val16(node.bone_idx);
+
+			timesByteSize = (animation.duration > 0xFF) ? 0x20 : node.timesByteSize;
+			
+			chdr->transform = node.transform;
+			chdr->transformComponent = (node.transformComponent & 0x3) | ((node.noInterpolation) ? 0x4 : 0) | node.unknow_0 | node.unknow_1 | timesByteSize | indexesByteSize;
+			chdr->keyframe_count = val16(node.keyframes.size());
+			offset += sizeof(EMAAnimationAnimNodeHeader);
+
+			if (!timesByteSize)
+			{
+				uint8_t *timing = GetOffsetPtr(buf, offset, true);
+				for (size_t k = 0; k < node.keyframes.size(); k++)
+				{
+					assert(node.keyframes[k].time < 256);
+					timing[k] = (uint8_t)node.keyframes[k].time;
+					offset += sizeof(uint8_t);
+				}
+
+			}else {
+
+				uint16_t *timing = (uint16_t *)GetOffsetPtr(buf, offset, true);
+				for (size_t k = 0; k < node.keyframes.size(); k++)
+				{
+					timing[k] = val16(node.keyframes[k].time);
+					offset += sizeof(uint16_t);
+				}
+			}
+
+
+			if (offset & 3)
+				offset += (4 - (offset & 3));
+
+			uint32_t dif = EMO_BaseFile::DifPointer(buf + offset, chdr);
+			assert(dif < 65536);
+
+			chdr->indices_offset = val16(dif);
+
+			if (!indexesByteSize)
+			{
+				uint16_t *indices = (uint16_t *)GetOffsetPtr(buf, offset, true);
+				for (size_t k = 0; k < node.keyframes.size(); k++)
+				{
+					indices[k] = val16(node.keyframes[k].index | ( ((uint16_t)node.keyframes[k].interpolation) << 12) );
+					offset += sizeof(uint16_t);
+				}
+
+			}else {
+				uint32_t *indices = (uint32_t *)GetOffsetPtr(buf, offset, true);
+
+				for (size_t k = 0; k < node.keyframes.size(); k++)
+				{
+					indices[k] = val32(node.keyframes[k].index | (((uint32_t)node.keyframes[k].interpolation) << 28));
+					offset += sizeof(uint32_t);
+				}
+			}
+		}
+
+		if (offset & 3)
+			offset += (4 - (offset & 3));
+
+		//printf(("startoffsetFloatValues : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
+
+		if (animation.frame_float_size == 0)
+		{
+			float *values = (float *)GetOffsetPtr(buf, offset, true);
+			ahdr->values_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
+
+			for (size_t j = 0; j < animation.values.size(); j++)
+			{
+				values[j] = val_float(animation.values[j]);
+				copy_float(values + j, animation.values[j]);
+				offset += sizeof(float);
+			}
+
+		}else {
+
+			uint16_t *values = (uint16_t *)GetOffsetPtr(buf, offset, true);
+			ahdr->values_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
+
+			for (size_t j = 0; j < animation.values.size(); j++)
+			{
+				copy_float16(values + j, animation.values[j]);
+				offset += sizeof(uint16_t);
+			}
+		}
+	}
+
+	if ((offset & 0x3F) && (type != EMA_TYPE_ANIM_Light))
+		offset += (0x40 - (offset & 0x3F));
+
+	if (HasSkeleton())
+	{
+		unsigned int skl_size;
+		uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, type);
+		if (!skl)
+		{
+			delete[] buf;
+			return nullptr;
+		}
+
+		hdr->skeleton_offset = val32(offset);
+		memcpy(buf + offset, skl, skl_size);
+		delete[] skl;
+
+		offset += skl_size;
+
+	}
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		const EmaAnimation &animation = animations[i];
+		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
+
+		if (offset & 3)
+			offset += (4 - (offset & 3));
+
+		ahdr->name_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
+
+		EMAAnimationName* emaAnimationName = (EMAAnimationName*)GetOffsetPtr(buf, offset);
+		emaAnimationName->unknow_0 = val32(animation.name_unknow_0);
+		emaAnimationName->unknow_1 = val32(animation.name_unknow_1);
+		emaAnimationName->unknow_2 = val16(animation.name_unknow_2);
+		emaAnimationName->nbChar = animation.name.length();
+		offset += sizeof(EMAAnimationName);
+
+		strcpy((char *)buf + offset, animation.name.c_str());
+		offset += animation.name.length() + 1;
+	}
+
+	assert(offset == file_size);
+
+	*psize = file_size;
+	return buf;
+}
+
+
+unsigned int EMA::CalculateFileSize() const
+{
+	unsigned int file_size = sizeof(EMAHeader);
+
+	file_size += animations.size() * sizeof(uint32_t);
+
+	for (const EmaAnimation &a : animations)
+	{
+		if (file_size & 3)
+			file_size += (4 - (file_size & 3));
+
+		file_size += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
+		file_size += a.nodes.size() * sizeof(uint32_t);
+
+		size_t timesByteSize = (a.duration > 0xFF) ? 0x20 : 0x0;
+		size_t indexesByteSize = (a.values.size() > 0x3FFF) ? 0x40 : 0x0;
+
+
+		for (const EMAAnimationNode &c : a.nodes)
+		{
+			if (file_size & 3)
+				file_size += (4 - (file_size & 3));
+
+			file_size += sizeof(EMAAnimationAnimNodeHeader);
+
+			timesByteSize = (a.duration > 0xFF) ? 0x20 : c.timesByteSize;
+			if (!timesByteSize)
+				file_size += c.keyframes.size();					//uint8
+			else
+				file_size += c.keyframes.size() * sizeof(uint16_t);
+
+			if (file_size & 3)
+				file_size += (4 - (file_size & 3));
+
+			if (!indexesByteSize)
+				file_size += c.keyframes.size() * sizeof(uint16_t);
+			else
+				file_size += c.keyframes.size() * sizeof(uint32_t);
+		}
+
+		if (file_size & 3)
+			file_size += (4 - (file_size & 3));
+
+		if (a.frame_float_size == 0)
+			file_size += a.values.size() * sizeof(float);
+		else
+			file_size += a.values.size() * sizeof(uint16_t);
+	}
+
+
+	if ((file_size & 0x3F) && (type != EMA_TYPE_ANIM_Light))
+		file_size += (0x40 - (file_size & 0x3F));
+
+	if (HasSkeleton())
+		file_size += EMO_Skeleton::CalculateFileSize();
+
+	for (const EmaAnimation &a : animations)
+	{
+		if (file_size & 3)
+			file_size += (4 - (file_size & 3));
+
+		assert(a.name.length() < 256);
+		file_size += 11 + a.name.length() + 1;
+	}
+
+	return file_size;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// load/save the Xml version	/////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bool EMA::DecompileToFile(const std::string &path, bool show_error, bool build_path)
+{
+	LOG_DEBUG("Ema is being saved to .xml file. This process may take a while.\n");
+	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
+
+	if (ret) { LOG_DEBUG("Ema has been saved to .xml.\n"); }
+
+	return ret;
+}
+TiXmlDocument *EMA::Decompile() const
+{
+	TiXmlDocument *doc = new TiXmlDocument();
+
+	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
+	doc->LinkEndChild(decl);
+
+	TiXmlElement *root = new TiXmlElement("EMA");
+
+	root->SetAttribute("version", version);
+	root->SetAttribute("type", ((type == EMA_TYPE_ANIM_Object_or_Camera) ? "Object" : ((type == EMA_TYPE_ANIM_Light) ? "Light" : ((type == EMA_TYPE_ANIM_Material) ? "Material" : EMO_BaseFile::UnsignedToString(type, true)))));
+	root->SetAttribute("unknow_0", unknow_0);
+	root->SetAttribute("unknow_1", unknow_1);
+	root->SetAttribute("unknow_2", unknow_2);
+
+	if (HasSkeleton())
+		EMO_Skeleton::Decompile(root);
+
+	TiXmlElement* emaAnimsNode = new TiXmlElement("Animations");
+	emaAnimsNode->LinkEndChild(new TiXmlComment("f_id = floatIndex (in float_values list), interp = interpolation, QuadB = QuadraticBezier, CubicB = CubicBezier, dv = debugValues (can't be changed) and inside t=tang (value to be added to previous of segment/current point), tp= tangentPrevious (same as t), tn: tangentNext (at end of segment, to be sub to next value) "));
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		emaAnimsNode->LinkEndChild(new TiXmlComment((string(" Index :") + ToString(i) +" nbVertex: "+ ToString(animations[i].values.size()) ).c_str()));
+		animations[i].Decompile(emaAnimsNode);
+	}
+	root->LinkEndChild(emaAnimsNode);
+
+	doc->LinkEndChild(root);
+	return doc;
+}
+
+void EmaAnimation::Decompile(TiXmlNode *root) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("Animation");
+	entry_root->SetAttribute("name", name);
+	entry_root->SetAttribute("duration", duration);
+	entry_root->SetAttribute("target", ((type == EMA_ANIM_TARGET_Object) ? "Object" : ((type == EMA_ANIM_TARGET_Camera) ? "Camera" : ((type == EMA_ANIM_TARGET_Light) ? "Light" : ((type == EMA_ANIM_TARGET_Material) ? "Material" : EMO_BaseFile::UnsignedToString(type, true) )))) );
+	entry_root->SetAttribute("light_unk", light_unknow);
+	entry_root->SetAttribute("floatSize", ((frame_float_size==0) ? "32bits" : ((frame_float_size == 1) ? "16bits" : ToString(frame_float_size))) );
+	
+	entry_root->SetAttribute("name_unk0", name_unknow_0);
+	entry_root->SetAttribute("name_unk1", name_unknow_1);
+	entry_root->SetAttribute("name_unk2", name_unknow_2);
+
+	for (size_t i = 0; i < nodes.size(); i++)
+		nodes[i].Decompile(entry_root, values, type, duration);
+
+
+	//EMO_BaseFile::WriteParamMultipleFloats(entry_root, "float_values", values);				//not perfect Float rpresentation
+	string str = "";
+	for (size_t i = 0; i < values.size(); i++)
+		str += ((i!=0) ? ", " : "") + FloatToString(values.at(i));
+	TiXmlElement *float_values_node = new TiXmlElement("float_values"); 
+	entry_root->LinkEndChild(float_values_node);
+	float_values_node->SetAttribute("value", str);
+
+	
+
+	root->LinkEndChild(entry_root);
+}
+
+void EMAAnimationNode::Decompile(TiXmlNode *root, const std::vector<float> &values, size_t anim_type, size_t duration) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("AnimationNode");
+	entry_root->SetAttribute("name", ((bone) ? bone->GetName() : ""));
+	entry_root->SetAttribute("refIndex", bone_idx);
+
+	entry_root->SetAttribute("timesByteSize", ((timesByteSize == 0) ? "8bits" : "16bits"));						//oblige because some of StIv files don't respect the rule with duration.
+
+	string transformStr = EMO_BaseFile::UnsignedToString(transform, false);
+	string transformComponentStr = EMO_BaseFile::UnsignedToString(transformComponent, false);
+	switch (anim_type)
+	{
+	case EMA_ANIM_TARGET_Object:
+		{
+			switch (transform)
+			{
+			case 0: transformStr = "Position"; break;
+			case 1: transformStr = "Rotation"; break;
+			case 2: transformStr = "Scale"; break;
+			}
+
+			switch (transformComponent)
+			{
+			case 0: {transformComponentStr = "x"; } break;
+			case 1: {transformComponentStr = "y"; } break;
+			case 2: {transformComponentStr = "z"; } break;
+			case 3: {transformComponentStr = "w"; } break;
+			}
+		}
+		break;
+
+	case EMA_ANIM_TARGET_Camera:
+		{
+			switch (transform)
+			{
+			case 0: transformStr = "Position"; break;
+			case 1: transformStr = "TargetPosition"; break;
+			case 2: transformStr = "Camera"; break;
+			}
+
+			if (transform != 2)
+			{
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "x"; } break;
+				case 1: {transformComponentStr = "y"; } break;
+				case 2: {transformComponentStr = "z"; } break;
+				case 3: {transformComponentStr = "w"; } break;
+				}
+			}else {
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "roll"; } break;
+				case 1: {transformComponentStr = "focale"; } break;
+				}
+			}
+		}
+		break;
+
+
+	case EMA_ANIM_TARGET_Light:
+		{
+			switch (transform)
+			{
+			case 0: transformStr = "Position"; break;
+			case 2: transformStr = "Color"; break;
+			case 3: transformStr = "DegradeDistance"; break;
+			}
+
+			if (transform == 0)
+			{
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "x"; } break;
+				case 1: {transformComponentStr = "y"; } break;
+				case 2: {transformComponentStr = "z"; } break;
+				case 3: {transformComponentStr = "w"; } break;
+				}
+			}else if (transform == 2) {
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "r"; } break;
+				case 1: {transformComponentStr = "g"; } break;
+				case 2: {transformComponentStr = "b"; } break;
+				case 3: {transformComponentStr = "a"; } break;
+				}
+			}else if (transform == 3) {				//degrade
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "start"; } break;
+				case 1: {transformComponentStr = "end"; } break;
+				}
+			}
+		}
+		break;
+
+
+	case EMA_ANIM_TARGET_Material:
+		{
+			switch (transform)
+			{
+			case 0: transformStr = "MatCol0"; break;
+			case 1: transformStr = "MatCol1"; break;
+			case 2: transformStr = "MatCol2"; break;
+			case 3: transformStr = "MatCol3"; break;
+			case 4: transformStr = "TexScrl0"; break;
+			case 5: transformStr = "TexScrl1"; break;
+			case 6: transformStr = "TexScrl2"; break;				//logical interpolation from shader entries, but none of Dbvx2 and SSSS use it
+			case 7: transformStr = "TexScrl3"; break;				//logical interpolation from shader entries, but none of Dbvx2 and SSSS use it
+			}
+
+			if (transform < 4) {
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "r"; } break;
+				case 1: {transformComponentStr = "g"; } break;
+				case 2: {transformComponentStr = "b"; } break;
+				case 3: {transformComponentStr = "a"; } break;
+				}
+			}else{
+				switch (transformComponent)
+				{
+				case 0: {transformComponentStr = "u"; } break;
+				case 1: {transformComponentStr = "v"; } break;
+				}
+			}
+		}
+		break;
+	}
+
+
+	entry_root->SetAttribute("transform", transformStr);
+	entry_root->SetAttribute("component", transformComponentStr);
+	entry_root->SetAttribute("noInterpolation", noInterpolation ? "true" : "false");
+	entry_root->SetAttribute("unknow_0", unknow_0);
+	entry_root->SetAttribute("unknow_1", unknow_1);
+	
+	for(size_t i=0,nb= keyframes.size();i<nb;i++)
+		keyframes.at(i).Decompile(entry_root, values, (i+1<nb) ? &keyframes.at(i+1) : 0);
+
+	root->LinkEndChild(entry_root);
+}
+void EMAKeyframe::Decompile(TiXmlNode *root, const std::vector<float> &values, const EMAKeyframe* next_keyframe) const
+{
+	TiXmlElement *entry_root = new TiXmlElement("Keyframe");
+
+	bool isQuadraticBezier = ((interpolation & 0x4)!=0);
+	bool isCubicBezier = ((interpolation & 0x8)!=0);
+
+	entry_root->SetAttribute("frame", time);
+	entry_root->SetAttribute("f_id", EMO_BaseFile::UnsignedToString(index, false));
+	entry_root->SetAttribute("interp", ((isQuadraticBezier) ? "QuadB" : ((isCubicBezier) ? "CubicB" : "Linear")) );
+
+	if ((isQuadraticBezier)&&(next_keyframe))
+	{
+		float value_p = values.at(index);
+		float tangent_p = values.at(index + 1);
+		//float value_n = values.at(next_keyframe->index);
+		entry_root->SetAttribute("dv", (FloatToString(value_p) +", t:"+ FloatToString(tangent_p)).c_str() );
+
+	}else if ((isCubicBezier) && (next_keyframe)) {
+
+		float value_p = values.at(index);
+		float tangent_p = values.at(index + 1);
+		float tangent_n = values.at(index + 2);
+		//float value_n = values.at(next_keyframe->index);
+		entry_root->SetAttribute("dv", (FloatToString(value_p) + ", tp:" + FloatToString(tangent_p) + ", tn:" + FloatToString(tangent_n)).c_str());
+	}else {
+		float value = values.at(index);
+		entry_root->SetAttribute("dv", (FloatToString(value)).c_str());
+	}
+
+	
+
+	root->LinkEndChild(entry_root);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool EMA::CompileFromFile(const std::string &path, bool show_error, bool big_endian)
+{
+	LOG_DEBUG("Ema is being loaded from .xml file. This process may take a while.\n");
+	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
+
+	if (ret)
+	{
+		LOG_DEBUG("Ema has been loaded from .xml.\n");
+	}
+
+	return ret;
+}
+bool EMA::Compile(TiXmlDocument *doc, bool big_endian)
+{
+	Reset();
+	this->big_endian = big_endian;
+
+	TiXmlHandle handle(doc);
+
+	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMA");
+	if (!root)
+	{
+		LOG_DEBUG("Cannot find\"EMA\" in xml.\n");
+		return false;
+	}
+
+	uint32_t tmp = 0;
+	string str = "";
+	root->QueryStringAttribute("version", &version);
+	root->QueryUnsignedAttribute("type", &tmp); type = (uint16_t)tmp;
+
+	root->QueryStringAttribute("type", &str);
+	type = ((str == "Object") ? EMA_TYPE_ANIM_Object_or_Camera : ((str == "Light") ? EMA_TYPE_ANIM_Light : ((str == "Material") ? EMA_TYPE_ANIM_Material : EMO_BaseFile::GetUnsigned(str))));
+
+	context = (type == EMA_TYPE_ANIM_Material) ? ContextUse::MaterialAnimation : ContextUse::ObjectAnimation;
+
+
+	root->QueryUnsignedAttribute("unknow_0", &unknow_0);
+	root->QueryUnsignedAttribute("unknow_1", &unknow_1);
+	root->QueryUnsignedAttribute("unknow_2", &unknow_2);
+
+
+	mHaveExtraBytesOnEachBone = (type == EMA_TYPE_ANIM_Object_or_Camera);
+
+	EMO_Skeleton::Compile(root->FirstChildElement("Skeleton"));
+
+	const TiXmlElement* animations_node = root->FirstChildElement("Animations");
+	for (const TiXmlElement *elem = (animations_node) ? animations_node->FirstChildElement("Animation") : 0; elem; elem = elem->NextSiblingElement("Animation"))
+	{
+		EmaAnimation emaAnim;
+		if (!emaAnim.Compile(elem, *this))
+		{
+			LOG_DEBUG("%s: Compilation of Animation failed.\n", FUNCNAME);
+			continue;
+		}
+
+		animations.push_back(emaAnim);
+	}
+
+	if ((animations.size() != 0) && (animations.at(0).type == EMA_ANIM_TARGET_Camera))
+		mHaveExtraBytesOnEachBone = false;
+
+	return true;
+}
+
+bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
+{
+	uint32_t tmp;
+	string str;
+
+	root->QueryStringAttribute("name", &name);
+	root->QueryUnsignedAttribute("duration", &tmp); duration = (uint16_t)tmp;
+	
+	root->QueryStringAttribute("target", &str);
+	type = ((str == "Object") ? EMA_ANIM_TARGET_Object : ((str == "Camera") ? EMA_ANIM_TARGET_Camera : ((str == "Light") ? EMA_ANIM_TARGET_Light : ((str == "Material") ? EMA_ANIM_TARGET_Material : EMO_BaseFile::GetUnsigned(str) ))));
+
+	root->QueryUnsignedAttribute("light_unk", &tmp); light_unknow = (uint8_t)tmp;
+
+	root->QueryStringAttribute("floatSize", &str);
+	frame_float_size = ((str == "32bits") ? 0 : ((str == "16bits") ? 1 : std::stoi(str)));
+
+	root->QueryUnsignedAttribute("name_unk0", &name_unknow_0);
+	root->QueryUnsignedAttribute("name_unk1", &name_unknow_1);
+	root->QueryUnsignedAttribute("name_unk2", &tmp); name_unknow_2 = (uint16_t)tmp;
+
+
+	for (const TiXmlElement *elem = root->FirstChildElement("AnimationNode"); elem; elem = elem->NextSiblingElement("AnimationNode"))
+	{
+		EMAAnimationNode emaAnimNode;
+		if (!emaAnimNode.Compile(elem, skl))
+		{
+			LOG_DEBUG("%s: Compilation of node failed.\n", FUNCNAME);
+			continue;
+		}
+
+		nodes.push_back(emaAnimNode);
+	}
+
+	
+
+
+
+	//if (!EMO_BaseFile::GetParamMultipleFloats(root, "float_values", values))		//not perfect Float rpresentation
+	//	return false;
+
+	const TiXmlElement* node = root->FirstChildElement("float_values");
+	if (!node)
+		return false;
+
+	values.clear();
+	str = "";
+	node->QueryStringAttribute("value", &str);
+	std::vector<string> sv = split(str, ',');
+	for (size_t i = 0; i < sv.size(); i++)
+		values.push_back( StringToFloat( rtrim( ltrim(sv.at(i) ) ) ));
+
+	return true;
+}
+bool EMAAnimationNode::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
+{
+	std::string str;
+	size_t tmp = 0;
+	root->QueryStringAttribute("name", &str); 
+	this->bone = skl.GetBone(str);
+
+	root->QueryUnsignedAttribute("refIndex", &tmp);
+	bone_idx = (uint16_t)tmp;
+
+	string transformStr = "";
+	string transformComponentStr = "";
+	root->QueryStringAttribute("transform", &transformStr);
+	root->QueryStringAttribute("component", &transformComponentStr); 
+
+	root->QueryStringAttribute("timesByteSize", &str); timesByteSize = ((str == "8bits") ? 0 : 0x20);
+
+
+	if		((transformStr == "Position")															 || (transformStr == "MatCol0")) transform = 0;
+	else if ((transformStr == "Rotation") || (transformStr == "TargetPosition")						 || (transformStr == "MatCol1")) transform = 1;
+	else if ((transformStr == "Scale")	  || (transformStr == "Camera") || (transformStr == "Color") || (transformStr == "MatCol2")) transform = 2;
+	else if														((transformStr == "DegradeDistance") || (transformStr == "MatCol3")) transform = 3;
+	else if (transformStr == "TexScrl0") transform = 4;
+	else if (transformStr == "TexScrl1") transform = 5;
+	else if (transformStr == "TexScrl2") transform = 6;
+	else if (transformStr == "TexScrl3") transform = 7;
+	else transform = std::stoi(transformStr);
+
+
+	if		((transformComponentStr == "x") || (transformComponentStr == "r") || (transformComponentStr == "roll") || (transformComponentStr == "start") || (transformComponentStr == "u")) transformComponent = 0;
+	else if ((transformComponentStr == "y") || (transformComponentStr == "g") || (transformComponentStr == "focale") || (transformComponentStr == "end") || (transformComponentStr == "v")) transformComponent = 1;
+	else if ((transformComponentStr == "z") || (transformComponentStr == "b")) transformComponent = 2;
+	else if ((transformComponentStr == "w") || (transformComponentStr == "a")) transformComponent = 3;
+	else transformComponent = std::stoi(transformComponentStr);
+
+
+	root->QueryStringAttribute("noInterpolation", &str); noInterpolation = (str == "true");
+	root->QueryUnsignedAttribute("unknow_0", &tmp); unknow_0 = (uint8_t)tmp;
+	root->QueryUnsignedAttribute("unknow_1", &tmp); unknow_1 = (uint8_t)tmp;
+
+
+	for (const TiXmlElement *elem = root->FirstChildElement("Keyframe"); elem; elem = elem->NextSiblingElement("Keyframe"))
+	{
+		EMAKeyframe keyframe;
+		if (!keyframe.Compile(elem))
+			continue;
+
+		keyframes.push_back(keyframe);
+	}
+
+	return true;
+}
+
+bool EMAKeyframe::Compile(const TiXmlElement *root)
+{
+	uint32_t tmp;
+	root->QueryUnsignedAttribute("frame", &tmp); time = (uint16_t)tmp;
+	root->QueryUnsignedAttribute("f_id", &index);
+
+	string str = "Linear";
+	root->QueryStringAttribute("interp", &str);
+	interpolation = ((str == "QuadB") ? 0x4 : ((str == "CubicB") ? 0x8 : 0x0));
+
+	return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// EAN conversions	/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
 /*-------------------------------------------------------------------------------\
 |                             readEAN				                             |
 \-------------------------------------------------------------------------------*/
 void EMA::readEAN(EAN* ean, bool forceOrientationInterpolation)
 {
 	name = ean->name;
-	unk_08 = ean->unknown_total & 0xffff;
-	unk_12 = (ean->unknown_total >> 16) & 0xffff;
+	version = ean->version;
 	
+	type = EMA_TYPE_ANIM_Object_or_Camera;
+	switch (ean->type)
+	{
+	case LIBXENOVERSE_EAN_ANIMATION_TYPE_NORMAL: type = EMA_TYPE_ANIM_Object_or_Camera; break;
+	case LIBXENOVERSE_EAN_ANIMATION_TYPE_CAMERA: type = EMA_TYPE_ANIM_Object_or_Camera; break;
+	case EMA_ANIM_TARGET_Light: type = EMA_TYPE_ANIM_Light; break;
+	case EMA_ANIM_TARGET_Material: type = EMA_TYPE_ANIM_Material; break;
+	}
+
 	readEsk(ean->getSkeleton());
 	
 	size_t nbElements = ean->animations.size();
@@ -24,27 +987,6 @@ void EMA::readEAN(EAN* ean, bool forceOrientationInterpolation)
 		animations.back().readEANAnimation(&ean->animations.at(i), ean->getSkeleton(), this, forceOrientationInterpolation);
 	}
 }
-/*-------------------------------------------------------------------------------\
-|                             writeEAN				                             |
-\-------------------------------------------------------------------------------*/
-void EMA::writeEAN(EAN* ean)
-{
-	ean->name = name;
-	ean->unknown_total = (unsigned int)unk_08 + (((unsigned int)unk_12) << 16);
-	
-	ESK* skeleton = new ESK();
-	writeEsk(skeleton);
-	ean->setSkeleton(skeleton);
-
-	size_t nbElements = animations.size();
-	for (size_t i = 0; i < nbElements; i++)
-	{
-		ean->animations.push_back(EANAnimation());
-		ean->animations.back().setParent(ean);
-		animations.at(i).writeEANAnimation(&ean->animations.back(), skeleton);
-	}
-}
-
 
 /*-------------------------------------------------------------------------------\
 |                             readEsk				                             |
@@ -52,8 +994,7 @@ void EMA::writeEAN(EAN* ean)
 void EMA::readEsk(ESK* esk)
 {
 	name = esk->name;
-	unk_38[0] = *(float*)(&(esk->unknown_offset_2));
-	unk_38[1] = *(float*)(&(esk->unknown_offset_3));
+	skeletonUniqueId = esk->skeletonUniqueId;
 
 	EskTreeNode* rootNode = esk->getTreeOrganisation();
 
@@ -89,8 +1030,8 @@ void EMA::readEsk(ESK* esk)
 					if (bones.at(j).child == nullptr)
 					{
 						bones.at(j).child = &bones.at(i - 1);
-					}
-					else {
+
+					}else{
 
 						size_t inc = 0;
 						EMO_Bone* childBone = bones.at(j).child;
@@ -154,41 +1095,38 @@ void EMA::readEsk(ESK* esk)
 	}
 }
 
-
-
-
-
-
-
-
 /*-------------------------------------------------------------------------------\
 |                             readEANAnimation		                             |
 \-------------------------------------------------------------------------------*/
 void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* emoSkeleton, bool forceOrientationInterpolation)
 {
 	name = ean->name;
-	duration = ean->frame_count;
-	type = ean->getParent()->getType() & 0x1FF;			//todo find a way to have the type (may be the extension of the file)
+	duration = ean->duration;
 	frame_float_size = ((ean->frame_float_size == 1) ? 1 : 0);
 
+	size_t ean_type = ean->getParent()->getType();
+	type = ean_type;
+	
+
+	//Todo deal with the rest depend of the type.
 
 	ESKBone* eskBone;
 	EMO_Bone* emo_Bone;
 	size_t nbElements = ean->nodes.size();
 	size_t currentTransform = 0;
-	
+
 	for (size_t m = 0; m < 3; m++)								//we pass from position to Orientation to scale.
 	{
 		switch (m)
 		{
 		case 0: currentTransform = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION; break;
-		case 1: currentTransform = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION; break;
-		case 2: currentTransform = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE; break;
+		case 1: currentTransform = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition; break;
+		case 2: currentTransform = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA; break;
 		}
-		
-		
-		
-		for (size_t i = 0; i < nbElements; i++)						//Command is about a couple Bone+Transform+transformComponent, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
+
+
+
+		for (size_t i = 0; i < nbElements; i++)						//node is about a couple Bone+Transform+transformComponent, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
 		{
 			emo_Bone = 0;
 			eskBone = esk->getBone(ean->nodes.at(i).bone_index);
@@ -200,22 +1138,238 @@ void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* e
 			{
 				if (currentTransform != ean->nodes.at(i).keyframed_animations.at(j).getFlag())			//it will do the transform's order.
 					continue;
-				
+
 				for (size_t k = 0; k < 3; k++)					//so the part for each component of the transform component.
 				{
-					commands.push_back(EmaCommand());
-					commands.back().bone = emo_Bone;
-					//commands.back().transformComponent = k;			//0 for X, 1 one Y, 2 for Z.
-					commands.back().transformComponent = k + 0x8;			//0 for X, 1 one Y, 2 for Z. TODO find what is the first left bit for. and also the component 3. it's W for light and material animations.
+					nodes.push_back(EMAAnimationNode());
+					nodes.back().bone = emo_Bone;
+					//nodes.back().transformComponent = k;			//0 for X, 1 one Y, 2 for Z.
+					nodes.back().transformComponent = k + 0x8;			//0 for X, 1 one Y, 2 for Z. TODO find what is the first left bit for. and also the component 3. it's W for light and material animations.
 
-					commands.back().timesByteSize = ((duration > 0xff) ? 0x20 : 0x0);
-
-					commands.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k, duration, forceOrientationInterpolation);
-
-					commands.back().indexesByteSize = ((values.size() > 0xffff) ? 0x40 : 0x0);
+					nodes.back().readEANKeyframedAnimation(&ean->nodes.at(i).keyframed_animations.at(j), values, k, duration, forceOrientationInterpolation);
 				}
 			}
 		}
+	}
+}
+
+/*-------------------------------------------------------------------------------\
+|                             readANKeyframedAnimation                           |
+\-------------------------------------------------------------------------------*/
+void EMAAnimationNode::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation)
+{
+	size_t flag_tmp = 0;
+	switch (ean->flag)
+	{
+	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION: flag_tmp = 0; break;
+	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition: flag_tmp = 1; break;
+	case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA: flag_tmp = 2; break;
+	default:
+	{
+		//todo ajouter un warning.
+		//assert(false);
+	}
+	}
+
+	transform = flag_tmp;
+
+
+	size_t nbElements = ean->keyframes.size();
+	for (size_t i = 0; i < nbElements; i++)						//node is about a couple Bone+Transform, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
+	{
+		EANKeyframe &kf = ean->keyframes.at(i);
+
+
+		float value = 0.0;
+		if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition)
+		{
+			keyframes.push_back(EMAKeyframe());
+			keyframes.back().time = kf.frame;
+
+			if (currComponent == 0)
+				value = kf.x;
+			else if (currComponent == 1)
+				value = kf.y;
+			else if (currComponent == 2)
+				value = kf.z;
+			else if (currComponent == 3)
+				value = kf.w;
+
+		}else{
+
+			if ((!forceOrientationInterpolation) || (i + 1 == nbElements))
+			{
+				keyframes.push_back(EMAKeyframe());
+				keyframes.back().time = kf.frame;
+
+				//Quaternion -> Euler Angle (in real, is TaitBryan angles)
+				FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
+
+				//Xenoverse data is on XYZ order.
+				if (currComponent == 0)					//rotation for X axis
+					value = (float)angles[2];					//roll
+				else if (currComponent == 1)			//for Y axis
+					value = (float)angles[1];					//yaw on disc from pitch.
+				else if (currComponent == 2)			//for Z axis
+					value = (float)angles[0];					//pitch
+
+				/*
+				//test TODO REMOVE ( this test <=>remove if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) in certain case )
+				if (currComponent == 0)					//rotation for X axis
+					value = kf.x;					//roll
+				else if (currComponent == 1)			//for Y axis
+					value = kf.y;					//yaw on disc from pitch.
+				else if (currComponent == 2)			//for Z axis
+					value = kf.z;					//pitch
+				*/
+
+			}
+			else {									// force to have all keyframe for orientation, to avoid weird interpolation between result of the conversion from quaternion to EulerAngles XYZ.
+
+				EANKeyframe &kf_next = ean->keyframes.at(i + 1);
+				size_t prevFrame = kf.frame;
+				size_t nextFrame = kf_next.frame;
+				size_t nbFrames = nextFrame - prevFrame;
+
+				if (nbFrames != 0)
+				{
+					double factor = 0.0;
+					for (size_t j = 0; j < nbFrames; j++)
+					{
+						factor = (double)j / (double)nbFrames;
+
+						keyframes.push_back(EMAKeyframe());
+						keyframes.back().time = prevFrame + j;
+
+
+						//Todo slerp between kf, kf_next, factor => x y z w
+						FbxQuaternion prevQuat = FbxQuaternion(kf.x, kf.y, kf.z, kf.w);
+						FbxQuaternion nextQuat = FbxQuaternion(kf_next.x, kf_next.y, kf_next.z, kf_next.w);
+						FbxQuaternion currQuat = prevQuat.Slerp(nextQuat, factor);
+
+
+						FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(currQuat[0], currQuat[1], currQuat[2], currQuat[3]));		// yaws, pitch, roll
+
+						//Xenoverse data is on XYZ order.
+						if (currComponent == 0)					//rotation for X axis
+							value = (float)angles[2];					//roll
+						else if (currComponent == 1)			//for Y axis
+							value = (float)angles[1];					//yaw on disc from pitch.
+						else if (currComponent == 2)			//for Z axis
+							value = (float)angles[0];					//pitch
+
+
+						//to reduce the number of Values (goal of this format)
+						size_t isfound = (size_t)-1;
+						size_t nbValues = values.size();
+						for (size_t j = 0; j < nbValues; j++)
+						{
+							if (values.at(j) == value)
+							{
+								isfound = j;
+								break;
+							}
+						}
+						if (isfound == (size_t)-1)
+						{
+							isfound = nbValues;
+							values.push_back(value);
+						}
+
+						keyframes.back().index = isfound;
+					}
+					continue;
+
+
+
+				}
+				else {				//secu
+
+					keyframes.push_back(EMAKeyframe());
+					keyframes.back().time = kf.frame;
+
+					FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
+					if (currComponent == 0)					//rotation for X axis
+						value = (float)angles[2];					//roll
+					else if (currComponent == 1)			//for Y axis
+						value = (float)angles[1];					//yaw on disc from pitch.
+					else if (currComponent == 2)			//for Z axis
+						value = (float)angles[0];					//pitch
+				}
+			}
+		}
+
+		//to reduce the number of Values (goal of this format)
+		size_t isfound = (size_t)-1;
+		size_t nbValues = values.size();
+		for (size_t j = 0; j < nbValues; j++)
+		{
+			if (values.at(j) == value)
+			{
+				isfound = j;
+				break;
+			}
+		}
+		if (isfound == (size_t)-1)
+		{
+			isfound = nbValues;
+			values.push_back(value);
+		}
+
+		keyframes.back().index = isfound;
+	}
+
+
+	//apparently, not having the last keyframe make the game in infinte loop, so we will check for having frame 0 and last from duration
+	if (keyframes.size())
+	{
+		if (keyframes.at(0).time != 0)
+		{
+			keyframes.insert(keyframes.begin(), keyframes.at(0));					//clone the first index
+			keyframes.at(0).time = 0;
+		}
+
+		if ((duration > 0) && (keyframes.back().time + 1 != duration))
+		{
+			keyframes.push_back(keyframes.back());					//clone the first index
+			keyframes.back().time = duration - 1;
+		}
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*-------------------------------------------------------------------------------\
+|                             writeEAN				                             |
+\-------------------------------------------------------------------------------*/
+void EMA::writeEAN(EAN* ean)
+{
+	ean->name = name;
+	ean->version = version;
+	ean->type = (animations.size()) ? animations.at(0).type : LIBXENOVERSE_EAN_ANIMATION_TYPE_NORMAL;
+	
+	ESK* skeleton = new ESK();
+	writeEsk(skeleton);
+	ean->setSkeleton(skeleton);
+
+	size_t nbElements = animations.size();
+	for (size_t i = 0; i < nbElements; i++)
+	{
+		ean->animations.push_back(EANAnimation());
+		ean->animations.back().setParent(ean);
+		animations.at(i).writeEANAnimation(&ean->animations.back(), skeleton);
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -224,34 +1378,29 @@ void EmaAnimation::readEANAnimation(EANAnimation* ean, ESK* esk, EMO_Skeleton* e
 void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 {
 	ean->name = name;
-	ean->frame_count = duration;
-	ean->frame_index_size = 0;
-	if(ean->getParent())
-		ean->getParent()->setType(type | 0x400);
+	ean->duration = duration;
 	ean->frame_float_size = (unsigned char)((frame_float_size == 1) ? 1 : 2);
-	
 
 
-
-	//Command is about a couple Bone+Transform+TransformComponent,
+	//node is about a couple Bone+Transform+TransformComponent,
 	//but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
-	//so the first we have to do is to regroupe command by Bone, transform and transformComponent. withc will easiers to use.
-	struct CmdBoneTransformComponent
+	//so the first we have to do is to regroupe node by Bone, transform and transformComponent. withc will easiers to use.
+	struct EmaBoneTransformComponent
 	{
 		size_t transformComponentId;								//0:X, 1:Y, 2:Z 
-		EmaCommand* command;
+		EMAAnimationNode* node;
 	};
-	struct CmdBoneTransform
+	struct EmaBoneTransform
 	{
 		size_t transformId;								//0:position, 1:rotation, 2:scale
-		std::vector<CmdBoneTransformComponent> list;
+		std::vector<EmaBoneTransformComponent> list;
 	};
-	struct CmdBone
+	struct EmaBone
 	{
 		EMO_Bone* emo_Bone;
-		std::vector<CmdBoneTransform> list;
+		std::vector<EmaBoneTransform> list;
 	};
-	std::vector<CmdBone> listByBone;
+	std::vector<EmaBone> listByBone;
 
 
 
@@ -260,91 +1409,91 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 
 
 
-	EmaCommand* command;
-	CmdBone* cmdBone;
-	CmdBoneTransform* cmdBoneTransform;
-	CmdBoneTransformComponent* cmdBoneTransformComponent;
+	EMAAnimationNode* ema_node;
+	EmaBone* emaBone;
+	EmaBoneTransform* emaBoneTransform;
+	EmaBoneTransformComponent* emaBoneTransformComponent;
 	EMO_Bone* emo_Bone;
 	EANAnimationNode* node;
 	size_t boneIndex;
 	size_t nbBones;
 	size_t nbTransform;
 	size_t nbTransformComponent;
-	size_t nbElements = commands.size();
+	size_t nbElements = nodes.size();
 	for (size_t i = 0; i < nbElements; i++)
 	{
-		command = &(commands.at(i));
-		emo_Bone = command->bone;
+		ema_node = &(nodes.at(i));
+		emo_Bone = ema_node->bone;
 
-		cmdBone = 0;
+		emaBone = 0;
 		nbBones = listByBone.size();
 		for (size_t j = 0; j < nbBones; j++)
 		{
 			if (listByBone.at(j).emo_Bone == emo_Bone)
 			{
-				cmdBone = &(listByBone.at(j));
+				emaBone = &(listByBone.at(j));
 				break;
 			}
 		}
-		if (!cmdBone)
+		if (!emaBone)
 		{
-			listByBone.push_back(CmdBone());
-			cmdBone = &listByBone.back();
-			cmdBone->emo_Bone = emo_Bone;
+			listByBone.push_back(EmaBone());
+			emaBone = &listByBone.back();
+			emaBone->emo_Bone = emo_Bone;
 
-			cmdBone->list.push_back(CmdBoneTransform());
-			cmdBoneTransform = &cmdBone->list.back();
-			cmdBoneTransform->transformId = command->transform;
+			emaBone->list.push_back(EmaBoneTransform());
+			emaBoneTransform = &emaBone->list.back();
+			emaBoneTransform->transformId = ema_node->transform;
 
-			cmdBoneTransform->list.push_back(CmdBoneTransformComponent());
-			cmdBoneTransformComponent = &cmdBoneTransform->list.back();
-			cmdBoneTransformComponent->transformComponentId = command->transformComponent & 0x7;		//0x7 is limiting about 3 component (auras have a 0x9 for 0x1 + a flag at 0x8)
-			cmdBoneTransformComponent->command = command;
+			emaBoneTransform->list.push_back(EmaBoneTransformComponent());
+			emaBoneTransformComponent = &emaBoneTransform->list.back();
+			emaBoneTransformComponent->transformComponentId = ema_node->transformComponent & 0x7;		//0x7 is limiting about 3 component (auras have a 0x9 for 0x1 + a flag at 0x8)
+			emaBoneTransformComponent->node = ema_node;
 
 			continue;
 		}
 
 
-		cmdBoneTransform = 0;
-		nbTransform = cmdBone->list.size();
+		emaBoneTransform = 0;
+		nbTransform = emaBone->list.size();
 		for (size_t j = 0; j < nbTransform; j++)
 		{
-			if (cmdBone->list.at(j).transformId == command->transform)
+			if (emaBone->list.at(j).transformId == ema_node->transform)
 			{
-				cmdBoneTransform = &(cmdBone->list.at(j));
+				emaBoneTransform = &(emaBone->list.at(j));
 				break;
 			}
 		}
-		if (!cmdBoneTransform)
+		if (!emaBoneTransform)
 		{
-			cmdBone->list.push_back(CmdBoneTransform());
-			cmdBoneTransform = &cmdBone->list.back();
-			cmdBoneTransform->transformId = command->transform;
+			emaBone->list.push_back(EmaBoneTransform());
+			emaBoneTransform = &emaBone->list.back();
+			emaBoneTransform->transformId = ema_node->transform;
 
-			cmdBoneTransform->list.push_back(CmdBoneTransformComponent());
-			cmdBoneTransformComponent = &cmdBoneTransform->list.back();
-			cmdBoneTransformComponent->transformComponentId = command->transformComponent;
-			cmdBoneTransformComponent->command = command;
+			emaBoneTransform->list.push_back(EmaBoneTransformComponent());
+			emaBoneTransformComponent = &emaBoneTransform->list.back();
+			emaBoneTransformComponent->transformComponentId = ema_node->transformComponent;
+			emaBoneTransformComponent->node = ema_node;
 			continue;
 		}
 
 
-		cmdBoneTransformComponent = 0;
-		nbTransformComponent = cmdBoneTransform->list.size();
+		emaBoneTransformComponent = 0;
+		nbTransformComponent = emaBoneTransform->list.size();
 		for (size_t j = 0; j < nbTransformComponent; j++)
 		{
-			if (cmdBoneTransform->list.at(j).transformComponentId == command->transformComponent)
+			if (emaBoneTransform->list.at(j).transformComponentId == ema_node->transformComponent)
 			{
-				cmdBoneTransformComponent = &(cmdBoneTransform->list.at(j));
+				emaBoneTransformComponent = &(emaBoneTransform->list.at(j));
 				break;
 			}
 		}
-		if (!cmdBoneTransformComponent)
+		if (!emaBoneTransformComponent)
 		{
-			cmdBoneTransform->list.push_back(CmdBoneTransformComponent());
-			cmdBoneTransformComponent = &cmdBoneTransform->list.back();
-			cmdBoneTransformComponent->transformComponentId = command->transformComponent;
-			cmdBoneTransformComponent->command = command;
+			emaBoneTransform->list.push_back(EmaBoneTransformComponent());
+			emaBoneTransformComponent = &emaBoneTransform->list.back();
+			emaBoneTransformComponent->transformComponentId = ema_node->transformComponent;
+			emaBoneTransformComponent->node = ema_node;
 			continue;
 		}
 
@@ -359,8 +1508,8 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 	for (size_t i = 0; i < nbBones; i++)
 	{
 		boneIndex = -1;
-		cmdBone = &listByBone.at(i);
-		emo_Bone = cmdBone->emo_Bone;
+		emaBone = &listByBone.at(i);
+		emo_Bone = emaBone->emo_Bone;
 		if(emo_Bone)
 			boneIndex = esk->getBoneIndex(emo_Bone->GetName());		//Note: if boneIndex = -1 because there is no bone, it still work (ex : for material animation)
 
@@ -381,17 +1530,17 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 			node->setBoneIndex(boneIndex);							//not -1 , it's a kind of root.
 		}
 
-		nbTransform = cmdBone->list.size();
+		nbTransform = emaBone->list.size();
 		for (size_t j = 0; j < nbTransform; j++)
 		{
-			cmdBoneTransform = &cmdBone->list.at(j);
+			emaBoneTransform = &emaBone->list.at(j);
 
 			size_t flag_tmp = 0;
-			switch (cmdBoneTransform->transformId)
+			switch (emaBoneTransform->transformId)
 			{
 				case 0: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION; break;
-				case 1: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION; break;
-				case 2: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE; break;
+				case 1: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition; break;
+				case 2: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA; break;
 				default:
 				{
 					printf("Warning: unknow flag %s (different position/rotation/scale)", EMO_BaseFile::UnsignedToString(flag_tmp, true));
@@ -408,15 +1557,15 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 			//here, the trouble is about one animation by channel, so you could not have the same keyframe on all channel.
 			//so we have to merge list of frameIndex on each components.
 			std::vector<size_t> listIndexMerged;
-			nbTransformComponent = cmdBoneTransform->list.size();
+			nbTransformComponent = emaBoneTransform->list.size();
 			for (size_t k=0; k < nbTransformComponent; k++)
 			{
-				command = cmdBoneTransform->list.at(k).command;
+				ema_node = emaBoneTransform->list.at(k).node;
 
-				size_t nbFrames = command->steps.size();
+				size_t nbFrames = ema_node->keyframes.size();
 				for (size_t m=0; m < nbFrames; m++)
 				{
-					size_t time = command->steps.at(m).time;
+					size_t time = ema_node->keyframes.at(m).time;
 					
 					size_t nbIndex = listIndexMerged.size();
 					bool isfound = false;
@@ -449,12 +1598,12 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 
 				for (size_t k=0; k < nbTransformComponent; k++)
 				{
-					cmdBoneTransformComponent = &cmdBoneTransform->list.at(k);
-					cmdBoneTransformComponent->command->writeEANKeyframe(kf, values, time, isValuesReallyUsed);
+					emaBoneTransformComponent = &emaBoneTransform->list.at(k);
+					emaBoneTransformComponent->node->writeEANKeyframe(kf, values, time, isValuesReallyUsed);
 				}
 
 				//need to convert Euler Angles to Quaternion
-				if (flag_tmp == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION)
+				if (flag_tmp == LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition)
 				{
 					float rotX = kf->x;
 					float rotY = kf->y;
@@ -496,205 +1645,14 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 		int aa = 42;
 	}
 }
-
-
-
-
-
-
-
-
-
-/*-------------------------------------------------------------------------------\
-|                             readANKeyframedAnimation                           |
-\-------------------------------------------------------------------------------*/
-void EmaCommand::readEANKeyframedAnimation(EANKeyframedAnimation* ean, std::vector<float> &values, size_t currComponent, size_t duration, bool forceOrientationInterpolation)
-{
-	size_t flag_tmp = 0;
-	switch (ean->flag)
-	{
-		case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_POSITION	: flag_tmp = 0; break;
-		case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION	: flag_tmp = 1; break;
-		case LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE	: flag_tmp = 2; break;
-		default:
-		{
-			//todo ajouter un warning.
-			//assert(false);
-		}
-	}
-
-	transform = flag_tmp;
-
-
-	size_t nbElements = ean->keyframes.size();
-	for (size_t i = 0; i < nbElements; i++)						//Command is about a couple Bone+Transform, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
-	{
-		EANKeyframe &kf = ean->keyframes.at(i);
-
-		
-		float value = 0.0;
-		if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION)
-		{
-			steps.push_back(EmaStep());
-			steps.back().time = kf.frame;
-
-			if (currComponent == 0)
-				value = kf.x;
-			else if (currComponent == 1)
-				value = kf.y;
-			else if (currComponent == 2)
-				value = kf.z;
-			else if (currComponent == 3)
-				value = kf.w;
-
-		}else{
-
-			if ((!forceOrientationInterpolation)||(i+1 == nbElements))
-			{
-				steps.push_back(EmaStep());
-				steps.back().time = kf.frame;
-				
-				//Quaternion -> Euler Angle (in real, is TaitBryan angles)
-				FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
-
-				//Xenoverse data is on XYZ order.
-				if (currComponent == 0)					//rotation for X axis
-					value = (float)angles[2];					//roll
-				else if (currComponent == 1)			//for Y axis
-					value = (float)angles[1];					//yaw on disc from pitch.
-				else if (currComponent == 2)			//for Z axis
-					value = (float)angles[0];					//pitch
-
-				/*
-				//test TODO REMOVE ( this test <=>remove if (ean->flag != LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION) in certain case )
-				if (currComponent == 0)					//rotation for X axis
-					value = kf.x;					//roll
-				else if (currComponent == 1)			//for Y axis
-					value = kf.y;					//yaw on disc from pitch.
-				else if (currComponent == 2)			//for Z axis
-					value = kf.z;					//pitch
-				*/
-
-			}else{									// force to have all keyframe for orientation, to avoid weird interpolation between result of the conversion from quaternion to EulerAngles XYZ.
-
-				EANKeyframe &kf_next = ean->keyframes.at(i+1);
-				size_t prevFrame = kf.frame;
-				size_t nextFrame = kf_next.frame;
-				size_t nbFrames = nextFrame - prevFrame;
-
-				if (nbFrames != 0)
-				{
-					double factor = 0.0;
-					for (size_t j = 0; j < nbFrames; j++)
-					{
-						factor = (double)j / (double)nbFrames;
-
-						steps.push_back(EmaStep());
-						steps.back().time = prevFrame + j;
-
-
-						//Todo slerp between kf, kf_next, factor => x y z w
-						FbxQuaternion prevQuat = FbxQuaternion(kf.x, kf.y, kf.z, kf.w);
-						FbxQuaternion nextQuat = FbxQuaternion(kf_next.x, kf_next.y, kf_next.z, kf_next.w);
-						FbxQuaternion currQuat = prevQuat.Slerp(nextQuat, factor);
-						
-
-						FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(currQuat[0], currQuat[1], currQuat[2], currQuat[3]));		// yaws, pitch, roll
-
-						//Xenoverse data is on XYZ order.
-						if (currComponent == 0)					//rotation for X axis
-							value = (float)angles[2];					//roll
-						else if (currComponent == 1)			//for Y axis
-							value = (float)angles[1];					//yaw on disc from pitch.
-						else if (currComponent == 2)			//for Z axis
-							value = (float)angles[0];					//pitch
-
-
-						//to reduce the number of Values (goal of this format)
-						size_t isfound = (size_t)-1;
-						size_t nbValues = values.size();
-						for (size_t j = 0; j < nbValues; j++)
-						{
-							if (values.at(j) == value)
-							{
-								isfound = j;
-								break;
-							}
-						}
-						if (isfound == (size_t)-1)
-						{
-							isfound = nbValues;
-							values.push_back(value);
-						}
-
-						steps.back().index = isfound;
-					}
-					continue;
-
-
-
-				}else {				//secu
-					
-					steps.push_back(EmaStep());
-					steps.back().time = kf.frame;
-					
-					FbxDouble3 angles = giveAngleOrientationForThisOrientationTaitBryan_XYZ(FbxVector4(kf.x, kf.y, kf.z, kf.w));		// yaws, pitch, roll
-					if (currComponent == 0)					//rotation for X axis
-						value = (float)angles[2];					//roll
-					else if (currComponent == 1)			//for Y axis
-						value = (float)angles[1];					//yaw on disc from pitch.
-					else if (currComponent == 2)			//for Z axis
-						value = (float)angles[0];					//pitch
-				}
-			}
-		}
-		
-		//to reduce the number of Values (goal of this format)
-		size_t isfound = (size_t)-1;
-		size_t nbValues = values.size();
-		for (size_t j = 0; j < nbValues; j++)
-		{
-			if (values.at(j)== value)
-			{
-				isfound = j;
-				break;
-			}
-		}
-		if (isfound == (size_t)-1)
-		{
-			isfound = nbValues;
-			values.push_back(value);
-		}
-		
-		steps.back().index = isfound;
-	}
-
-
-	//apparently, not having the last keyframe make the game in infinte loop, so we will check for having frame 0 and last from duration
-	if (steps.size())
-	{
-		if (steps.at(0).time != 0)
-		{
-			steps.insert(steps.begin(), steps.at(0));					//clone the first index
-			steps.at(0).time = 0;
-		}
-
-		if((duration > 0) && (steps.back().time + 1 != duration))
-		{
-			steps.push_back(steps.back());					//clone the first index
-			steps.back().time = duration - 1;
-		}
-	}
-
-}
 /*-------------------------------------------------------------------------------\
 |                             writeEANKeyframedAnimation                         |
 \-------------------------------------------------------------------------------*/
-void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed)
+void EMAAnimationNode::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, size_t frame, std::vector<bool> &isValuesReallyUsed)
 {
-	uint8_t transformComponent_tmp = transformComponent & 0x7;
+	uint8_t transformComponent_tmp = transformComponent;
 	
-	size_t nbElements = steps.size();
+	size_t nbElements = keyframes.size();
 	if (nbElements == 0)
 	{
 		if (transform == 2)				//default for scale
@@ -718,14 +1676,14 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 	size_t index_p = (size_t)-1;					//prev
 	size_t index_n = (size_t)-1;					//next
 	float factor = 0.0;								//between prev and next.
-	if (frame <= steps.at(0).time)
+	if (frame <= keyframes.at(0).time)
 	{
 		index_p = 0;
 		index_n = 0;
 	}
-	if (frame >= steps.back().time)
+	if (frame >= keyframes.back().time)
 	{
-		index_p = steps.size() - 1;
+		index_p = keyframes.size() - 1;
 		index_n = index_p;
 	}
 
@@ -733,17 +1691,17 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 	{
 		for (size_t i = 1; i < nbElements; i++)						//Command is about a couple Bone+Transform, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
 		{
-			if (frame == steps.at(i).time)
+			if (frame == keyframes.at(i).time)
 			{
 				index_p = i;
 				index_n = i;
 				factor = 0.0;
 				break;
 
-			} else if (frame < steps.at(i).time) {
+			} else if (frame < keyframes.at(i).time) {
 				index_p = i-1;
 				index_n = i;
-				factor = ((float)frame - (float)steps.at(i-1).time) /((float)steps.at(i).time - (float)steps.at(i-1).time);
+				factor = ((float)frame - (float)keyframes.at(i-1).time) /((float)keyframes.at(i).time - (float)keyframes.at(i-1).time);
 				break;
 			}
 		}
@@ -751,38 +1709,15 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 	
 	float result = 0.0;
 
-	size_t indexValue_p = steps.at(index_p).index;
-	size_t indexValue_n = steps.at(index_n).index;
-
-
+	size_t indexValue_p = keyframes.at(index_p).index;
+	size_t indexValue_n = keyframes.at(index_n).index;
+	size_t interpolation_p = keyframes.at(index_p).interpolation;
+	size_t interpolation_n = keyframes.at(index_n).interpolation;
+	bool isQuadraticBezier_p = ((interpolation_p & 0x4)!=0);
+	bool isCubicBezier_p = ((interpolation_p & 0x8) != 0);
+	bool isQuadraticBezier_n = ((interpolation_n & 0x4) != 0);
+	bool isCubicBezier_n = ((interpolation_n & 0x8) != 0);
 	size_t nbValues = values.size();
-	uint32_t mask = (!this->indexesByteSize) ? 0x3FFF : 0x3FFFFFFF;			//we remove the 2 last bits, seam the solution to remove upper index.
-	
-	// 0x4xxx => isQuadraticBezier
-	bool isQuadraticBezier_p = false;
-	bool isQuadraticBezier_n = false;
-	bool isCubicBezier_p = false;
-	bool isCubicBezier_n = false;
-	if (indexValue_p >= nbValues)
-	{
-		isQuadraticBezier_p = (indexValue_p & ((!this->indexesByteSize) ? 0x4000 : 0x40000000)) != 0;
-		isCubicBezier_p = (indexValue_p & ((!this->indexesByteSize) ? 0x8000 : 0x80000000)) != 0;
-		
-		indexValue_p = indexValue_p & mask;
-
-		if (indexValue_p >= nbValues)
-			assert(false);
-	}
-	if (indexValue_n >= nbValues)
-	{
-		isQuadraticBezier_n = (indexValue_n & ((!this->indexesByteSize) ? 0x4000 : 0x40000000)) != 0;
-		isCubicBezier_n = (indexValue_p & ((!this->indexesByteSize) ? 0x8000 : 0x80000000)) != 0;
-		
-		indexValue_n = indexValue_n & mask;
-
-		if (indexValue_n >= nbValues)
-			assert(false);
-	}
 
 	isValuesReallyUsed.at(indexValue_p) = true;
 	if((isQuadraticBezier_p) ||(isCubicBezier_p))
@@ -799,7 +1734,7 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 
 	if (indexValue_p == indexValue_n)
 	{
-		if (indexValue_p >= nbValues)								//saddly , so index are not into array range.
+		if (indexValue_p >= nbValues)								//saddly , so index are not into array range. normally it's good from the discover of interpolation. keep it for security
 		{
 			if (transform == 2)				//default for scale
 			{
@@ -892,448 +1827,48 @@ void EmaCommand::writeEANKeyframe(EANKeyframe* ean, std::vector<float> &values, 
 
 
 
-void EmaStep::Decompile(TiXmlNode *root, const std::vector<float> &values) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("Step");
-	entry_root->SetAttribute("TIME", time);
-	entry_root->SetAttribute("INDEX", EMO_BaseFile::UnsignedToString(index, true));
 
-	/*
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "TIME", time);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "INDEX", index, true);
-	*/
 
-	size_t index_tmp = index;
-	if (index_tmp >= values.size())
-		index_tmp = index_tmp & 0x3fffffff;
-	if (index_tmp >= values.size())
-		index_tmp = index_tmp & 0x3fff;
 
-	if (index_tmp < values.size())
-	{
-		entry_root->SetDoubleAttribute("TestValues", values.at(index_tmp));
-		//EMO_BaseFile::WriteParamFloat(entry_root, "TestValues", values.at(index_tmp));
-	}
 
-	root->LinkEndChild(entry_root);
-}
 
-bool EmaStep::Compile(const TiXmlElement *root)
-{
-	uint32_t time;
 
-	if (!EMO_BaseFile::GetParamUnsigned(root, "TIME", &time))
-		return false;
 
-	if (time > 65535)
-	{
-		LOG_DEBUG("%s: time can't be bigger than 65535.\n", FUNCNAME);
-		return false;
-	}
 
-	this->time = time;
 
-	if (!EMO_BaseFile::GetParamUnsigned(root, "INDEX", &index))
-		return false;
 
-	return true;
-}
 
-void EmaCommand::Decompile(TiXmlNode *root, uint32_t id, const std::vector<float> &values) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("Command");
-	entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
 
-	if (bone)
-		EMO_BaseFile::WriteParamString(entry_root, "BONE", bone->GetName());
 
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "TRANSFORM", transform, true);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "FLAGS", transformComponent, true);
 
-	for (const EmaStep &step : steps)
-	{
-		step.Decompile(entry_root, values);
-	}
 
-	root->LinkEndChild(entry_root);
-}
 
-bool EmaCommand::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
-{
-	std::string bone;
-	uint32_t transform, flags;
 
-	if (skl.GetNumBones() > 0)
-	{
-		if (!EMO_BaseFile::GetParamString(root, "BONE", bone))
-			return false;
 
-		this->bone = skl.GetBone(bone);
-		if (!this->bone)
-		{
-			LOG_DEBUG("%s: Bone \"%s\" doesn't exist.\n", FUNCNAME, bone.c_str());
-			return false;
-		}
-	}
-	else
-	{
-		this->bone = nullptr;
-	}
 
-	if (!EMO_BaseFile::GetParamUnsigned(root, "TRANSFORM", &transform))
-		return false;
 
-	if (!EMO_BaseFile::GetParamUnsigned(root, "FLAGS", &flags))
-		return false;
 
-	if (transform > 255)
-	{
-		LOG_DEBUG("%s: \"TRANSFORM\" cannot be bigger than 255.\n", FUNCNAME);
-		return false;
-	}
 
-	if (flags > 255)
-	{
-		LOG_DEBUG("%s: \"FLAGS\" cannot be bigger than 255.\n", FUNCNAME);
-		return false;
-	}
 
-	this->transform = transform;
-	this->transformComponent = transformComponent;
 
-	for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-	{
-		if (elem->ValueStr() == "Step")
-		{
-			EmaStep step;
+/////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
 
-			if (!step.Compile(elem))
-				return false;
 
-			steps.push_back(step);
-		}
-	}
 
-	return true;
-}
 
-void EmaAnimation::Decompile(TiXmlNode *root, uint32_t id) const
-{
-	TiXmlElement *entry_root = new TiXmlElement("Animation");
-	entry_root->SetAttribute("id", EMO_BaseFile::UnsignedToString(id, true));
-	entry_root->SetAttribute("name", name);
 
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "DURATION", duration);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "type", type, true);
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "frame_float_size", frame_float_size, true);
 
-	EMO_BaseFile::WriteParamUnsigned(entry_root, "ValuesOffset", debugValuesOffset, true);
-	
 
-	for (size_t i = 0; i < commands.size(); i++)
-	{
-		commands[i].Decompile(entry_root, i, values);
-	}
 
-	EMO_BaseFile::WriteParamMultipleFloats(entry_root, "VALUES", values);
-	//EMO_BaseFile::WriteParamBlob(entry_root, "VALUES", (const uint8_t *)values.data(), values.size() * sizeof(float));
-
-	root->LinkEndChild(entry_root);
-}
-
-bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
-{
-	uint32_t duration;
-
-	if (!EMO_BaseFile::ReadAttrString(root, "name", name))
-		return false;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "DURATION", &duration))
-		return false;
-
-	if (duration > 65535)
-	{
-		LOG_DEBUG("%s: duration cannot be bigger than 65535 (on animation \"%s\")\n", FUNCNAME, name.c_str());
-		return false;
-	}
-
-	this->duration = duration;
-
-	uint32_t tmp = 0;
-	EMO_BaseFile::GetParamUnsigned(root, "type", &tmp);
-	type = (uint16_t)tmp;
-	EMO_BaseFile::GetParamUnsigned(root, "frame_float_size", &tmp);
-	frame_float_size = (uint16_t)tmp;
-		
-
-	size_t count = EMO_BaseFile::GetElemCount(root, "Command");
-	if (count > 0)
-	{
-		std::vector<bool> initialized;
-
-		commands.resize(count);
-		initialized.resize(count);
-
-		for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-		{
-			if (elem->ValueStr() == "Command")
-			{
-				uint32_t id;
-
-				if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-				{
-					LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-					return false;
-				}
-
-				if (id >= commands.size())
-				{
-					LOG_DEBUG("%s: Command id 0x%x out of range.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (initialized[id])
-				{
-					LOG_DEBUG("%s: Command id 0x%x was already specified.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (!commands[id].Compile(elem, skl))
-				{
-					LOG_DEBUG("%s: Compilation of Command failed.\n", FUNCNAME);
-					return false;
-				}
-
-				initialized[id] = true;
-			}
-		}
-	}
-
-	if (!EMO_BaseFile::GetParamMultipleFloats(root, "VALUES", values))
-		return false;
-
-	return true;
-}
 
 EMA::EMA()
 {
 	this->big_endian = false;
-
-
-	//section 0 - HavokHeader : black/grey
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#232323");			//background color
-	listTagColors.back().back().push_back("#FFFFFF");			//font color (just to possibility read from background color)
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#464646");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 1 - Section0a : red
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC0000");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC7777");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 2 - Section0b : green
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#00CC00");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#77CC77");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 3 - Section0b_names : green
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#009900");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#339933");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-																//section 4 - Section1 : bleu
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#0000CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#7777CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-																//section 5 - Section2 : yellow
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CCCC00");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CCCC77");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-																//section 6 - Section3 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#00CCCC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#77CCCC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 7 - Section3 indexes : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#009999");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#339999");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-																//section 8 - Section4 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC00CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC77CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-																//section 9 - Section4_Next : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#990099");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#993399");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-
-																//section 10 - Section4_Next_b : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9900CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9933CC");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 11 - Section4_Next_c : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC0099");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CC3399");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 12 - Section4_Next_d : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9900AA");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9933AA");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 13 - Section4_Next_e : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#AA0099");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#AA3399");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-
-																//section 14 - Section4_Next2 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#770077");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#773377");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 15 - Section4_Next2_b : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#550055");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#553355");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-
-
-
-																//section 16 - Section4_Next2 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#AA00FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#AA33FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 17 - Section4_Next2_b : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9900FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#9933FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 18 - Section4_Next2 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#7700FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#7733FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-																//section 19 - Section4_Next2_b : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#5500FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#5533FF");			//bg
-	listTagColors.back().back().push_back("#FFFFFF");			//f
-
-
-
-
-																//section 20 - Section5 : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#CCCCCC");			//bg
-	listTagColors.back().back().push_back("#000000");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#AAAAAA");			//bg
-	listTagColors.back().back().push_back("#000000");			//f
-
-
-																//section 21 - Section5_Box : 
-	listTagColors.push_back(std::vector<std::vector<string>>());
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#999999");			//bg
-	listTagColors.back().back().push_back("#000000");			//f
-	listTagColors.back().push_back(std::vector<string>());
-	listTagColors.back().back().push_back("#777777");			//bg
-	listTagColors.back().back().push_back("#000000");			//f
+	version = "0.0.0.0";
+	type = 3;
+	unknow_0 = unknow_1 = unknow_2 = 0;
 }
 
 EMA::~EMA()
@@ -1347,7 +1882,7 @@ bool EMA::LinkAnimation(EmaAnimation &anim, EMO_Bone **not_found)
 
 	EmaAnimation temp = anim;
 
-	for (EmaCommand &c : temp)
+	for (EMAAnimationNode &c : temp)
 	{
 		EMO_Bone *b = GetBone(c.bone->GetName());
 
@@ -1370,11 +1905,9 @@ uint16_t EMA::AppendAnimation(const EmaAnimation &animation)
 {
 	if (HasSkeleton())
 	{
-		for (const EmaCommand &c : animation.commands)
-		{
+		for (const EMAAnimationNode &c : animation.nodes)
 			if (!BoneExists(c.bone->GetName()))
 				return 0xFFFF;
-		}
 	}
 
 	uint16_t id = animations.size();
@@ -1382,10 +1915,8 @@ uint16_t EMA::AppendAnimation(const EmaAnimation &animation)
 
 	if (HasSkeleton())
 	{
-		for (EmaCommand &c : animations[id].commands)
-		{
+		for (EMAAnimationNode &c : animations[id].nodes)
 			c.bone = GetBone(c.bone->GetName());
-		}
 	}
 
 	return id;
@@ -1405,14 +1936,15 @@ void EMA::Copy(const EMA &other)
 	EMO_Skeleton::Copy(other);
 
 	this->animations = other.animations;
-	this->unk_08 = other.unk_08;
-	this->unk_12 = other.unk_12;
+	this->version = other.version;
+	this->type = other.type;
+
 
 	if (HasSkeleton())
 	{
 		for (EmaAnimation &a : animations)
 		{
-			for (EmaCommand &c : a.commands)
+			for (EMAAnimationNode &c : a.nodes)
 			{
 				c.bone = GetBone(c.bone->GetName());
 				assert(c.bone != nullptr);
@@ -1427,182 +1959,6 @@ void EMA::Reset()
 	animations.clear();
 }
 
-bool EMA::Load(const uint8_t *buf, unsigned int size)
-{
-	Reset();
-
-	EMAHeader *hdr = (EMAHeader *)buf;
-	if (size < sizeof(EMAHeader) || hdr->signature != EMA_SIGNATURE)
-		return false;
-
-	this->big_endian = (buf[4] != 0xFE);
-
-	if (hdr->skeleton_offset == 0)
-	{
-		// No skeleton
-	}else{
-
-		if (!EMO_Skeleton::Load(GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset)))
-			return false;
-	}
-
-	unk_08 = val16(hdr->unk_08);
-	unk_12 = val16(hdr->unk_12);
-
-	uint32_t *anim_offsets = (uint32_t *)GetOffsetPtr(buf, val16(hdr->header_size), true);
-	animations.resize(val16(hdr->anim_count));
-
-	for (size_t i = 0; i < animations.size(); i++)
-	{
-		EmaAnimation &animation = animations[i];
-		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
-
-		animation.duration = val16(ahdr->duration);
-		animation.name = (char *)GetOffsetPtr(ahdr, ahdr->name_offset) + 11;
-		animation.type = val32(ahdr->type);
-		animation.frame_float_size = val32(ahdr->frame_float_size);
-
-		animation.commands.resize(val16(ahdr->cmd_count));
-
-		for (size_t j = 0; j < animation.commands.size(); j++)
-		{
-			EmaCommand &command = animation.commands[j];
-			EMAAnimationCommandHeader *chdr = (EMAAnimationCommandHeader *)GetOffsetPtr(ahdr, ahdr->cmd_offsets, j);
-
-			if (HasSkeleton())
-			{
-
-				if (val16(chdr->bone_idx) >= GetNumBones())
-				{
-					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in command 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
-					return false;
-				}
-
-				command.bone = &bones[val16(chdr->bone_idx)];
-			}
-			else
-			{
-				command.bone = nullptr;
-			}
-
-			command.transformComponent = (chdr->transformComponent & 0xF);
-			command.timesByteSize = (chdr->transformComponent & 0x20);
-			command.indexesByteSize = (chdr->transformComponent & 0x40);
-
-			command.transform = chdr->transform;
-			command.steps.resize(val16(chdr->step_count));
-
-			for (size_t k = 0; k < command.steps.size(); k++)
-			{
-				EmaStep &step = command.steps[k];
-
-				if(!(chdr->transformComponent & 0x20))
-				{
-					uint8_t *timing = (uint8_t *)GetOffsetPtr(chdr, sizeof(EMAAnimationCommandHeader), true);
-					step.time = timing[k];
-				}else{
-					uint16_t *timing = (uint16_t *)GetOffsetPtr(chdr, sizeof(EMAAnimationCommandHeader), true);
-					step.time = val16(timing[k]);
-				}
-
-
-				if (!(chdr->transformComponent & 0x40))
-				{
-					uint16_t *indices = (uint16_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
-					step.index = val16(indices[k]);
-				}else{
-					uint32_t *indices = (uint32_t *)GetOffsetPtr(chdr, val16(chdr->indices_offset), true);
-					step.index = val32(indices[k]);
-				}
-				
-				//if (step.index >= ahdr->value_count)				//test to recomment
-				//	printf("step.index > ahdr->value_count : %s > %s  on %s %s \n", UnsignedToString(step.index, true).c_str(), UnsignedToString(ahdr->value_count, true).c_str(),  animation.name.c_str(), (command.bone ? command.bone->GetName() : "").c_str()  );
-			}
-		}
-
-		animation.values.resize(val32(ahdr->value_count));
-		float* values = (float *)GetOffsetPtr(ahdr, ahdr->values_offset);
-		uint16_t* values_uint6 = (uint16_t*)values;
-
-		animation.debugValuesOffset = anim_offsets[i] + ahdr->values_offset;				//test debug Todo remove.
-
-		for (size_t j = 0; j < animation.values.size(); j++)
-		{	
-			if (animation.frame_float_size==0)
-				animation.values[j] = val_float(values[j]);
-			else
-				animation.values[j] = float16ToFloat(values_uint6[j]);
-		}
-
-	}
-
-	return true;
-}
-
-unsigned int EMA::CalculateFileSize() const
-{
-	unsigned int file_size = sizeof(EMAHeader);
-
-	file_size += animations.size() * sizeof(uint32_t);
-
-	for (const EmaAnimation &a : animations)
-	{
-		if (file_size & 3)
-			file_size += (4 - (file_size & 3));
-
-		file_size += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
-		file_size += a.commands.size() * sizeof(uint32_t);
-
-		for (const EmaCommand &c : a.commands)
-		{
-			if (file_size & 3)
-				file_size += (4 - (file_size & 3));
-
-			file_size += sizeof(EMAAnimationCommandHeader);
-
-			if (!c.timesByteSize)
-				file_size += c.steps.size();					//uint8
-			else
-				file_size += c.steps.size() * sizeof(uint16_t);
-
-			if (file_size & 3)
-				file_size += (4 - (file_size & 3));
-
-			if (!c.indexesByteSize)
-				file_size += c.steps.size() * sizeof(uint16_t);
-			else
-				file_size += c.steps.size() * sizeof(uint32_t);
-		}
-
-		if (file_size & 3)
-			file_size += (4 - (file_size & 3));
-
-		if (a.frame_float_size == 0)
-			file_size += a.values.size() * sizeof(float);
-		else
-			file_size += a.values.size() * sizeof(uint16_t);
-	}
-
-	if (HasSkeleton())
-	{
-		if (file_size & 0x3F)
-			file_size += (0x40 - (file_size & 0x3F));
-
-		file_size += EMO_Skeleton::CalculateFileSize();
-	}
-
-	for (const EmaAnimation &a : animations)
-	{
-		if (file_size & 3)
-			file_size += (4 - (file_size & 3));
-
-		assert(a.name.length() < 256);
-		file_size += 11 + a.name.length() + 1;
-	}
-
-	return file_size;
-}
-
 void EMA::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
 {
 	if (!HasSkeleton())
@@ -1612,7 +1968,7 @@ void EMA::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
 
 	for (EmaAnimation &a : animations)
 	{
-		for (EmaCommand &c : a.commands)
+		for (EMAAnimationNode &c : a.nodes)
 		{
 			uint16_t id = FindBone(old_bones_ptr, c.bone, false);
 
@@ -1627,363 +1983,20 @@ void EMA::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
 	}
 }
 
-uint8_t *EMA::CreateFile(unsigned int *psize)
-{
-	unsigned int file_size;
-	uint32_t offset;
 
-	file_size = CalculateFileSize();
-	uint8_t *buf = new uint8_t[file_size];
-
-	if (!buf)
-	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
-		LibXenoverse::notifyError();
-		return nullptr;
-	}
-
-	memset(buf, 0, file_size);
-	assert(animations.size() < 65536);
-
-	EMAHeader *hdr = (EMAHeader *)buf;
-	hdr->signature = EMA_SIGNATURE;
-	hdr->endianess_check = val16(0xFFFE);
-	hdr->header_size = val16(sizeof(EMAHeader));
-	hdr->unk_08 = val16(unk_08);
-	hdr->anim_count = val16(animations.size());
-	hdr->unk_12 = val16(unk_12);
-
-	offset = sizeof(EMAHeader);
-	uint32_t *anim_offsets = (uint32_t *)GetOffsetPtr(buf, offset, true);
-
-	offset += animations.size() * sizeof(uint32_t);
-
-	for (size_t i = 0; i < animations.size(); i++)
-	{
-		if (offset & 3)
-			offset += (4 - (offset & 3));
-
-		const EmaAnimation &animation = animations[i];
-		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, offset, true);
-		anim_offsets[i] = val32(offset);
-
-		assert(animation.commands.size() < 65536);
-
-		ahdr->duration = val16(animation.duration);
-		ahdr->cmd_count = val16(animation.commands.size());
-		ahdr->value_count = val32(animation.values.size());
-		ahdr->type = val16(animation.type);
-		ahdr->frame_float_size = val16(animation.frame_float_size);
-
-		offset += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
-		offset += animation.commands.size() * sizeof(uint32_t);
-
-		for (size_t j = 0; j < animation.commands.size(); j++)
-		{
-			if (offset & 3)
-				offset += (4 - (offset & 3));
-
-			const EmaCommand &command = animation.commands[j];
-			EMAAnimationCommandHeader *chdr = (EMAAnimationCommandHeader *)GetOffsetPtr(buf, offset, true);
-			ahdr->cmd_offsets[j] = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
-
-			assert(command.steps.size() < 65536);
-
-			if (HasSkeleton())
-				chdr->bone_idx = val16(BoneToIndex(command.bone));
-			else
-				chdr->bone_idx = 0;
-
-			chdr->transform = command.transform;
-			chdr->transformComponent = command.transformComponent | command.timesByteSize | command.indexesByteSize;
-			chdr->step_count = val16(command.steps.size());
-			offset += sizeof(EMAAnimationCommandHeader);
-
-			if (!command.timesByteSize)
-			{
-				uint8_t *timing = GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < command.steps.size(); k++)
-				{
-					assert(command.steps[k].time < 256);
-					timing[k] = (uint8_t)command.steps[k].time;
-					offset += sizeof(uint8_t);
-				}
-					
-			} else {
-
-				uint16_t *timing = (uint16_t *)GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < command.steps.size(); k++)
-				{
-					timing[k] = val16(command.steps[k].time);
-					offset += sizeof(uint16_t);
-				}
-			}
-
-
-			if (offset & 3)
-				offset += (4 - (offset & 3));
-
-			uint32_t dif = EMO_BaseFile::DifPointer(buf + offset, chdr);
-			assert(dif < 65536);
-
-			chdr->indices_offset = val16(dif);
-
-			if (!command.indexesByteSize)
-			{
-				uint16_t *indices = (uint16_t *)GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < command.steps.size(); k++)
-				{
-					assert(command.steps[k].index < 65536);
-					indices[k] = val16(command.steps[k].index);
-					offset += sizeof(uint16_t);
-				}
-
-			} else {
-				uint32_t *indices = (uint32_t *)GetOffsetPtr(buf, offset, true);
-
-				for (size_t k = 0; k < command.steps.size(); k++)
-				{
-					indices[k] = val32(command.steps[k].index);
-					offset += sizeof(uint32_t);
-				}
-			}
-		}
-
-		if (offset & 3)
-			offset += (4 - (offset & 3));
-
-		if (animation.frame_float_size == 0)
-		{
-			float *values = (float *)GetOffsetPtr(buf, offset, true);
-			ahdr->values_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
-
-			for (size_t j = 0; j < animation.values.size(); j++)
-			{
-				values[j] = val_float(animation.values[j]);
-				copy_float(values + j, animation.values[j]);
-				offset += sizeof(float);
-			}
-
-		}else {
-
-			uint16_t *values = (uint16_t *)GetOffsetPtr(buf, offset, true);
-			ahdr->values_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
-
-			for (size_t j = 0; j < animation.values.size(); j++)
-			{
-				copy_float16(values + j, animation.values[j]);
-				offset += sizeof(uint16_t);
-			}
-		}
-	}
-
-	if (HasSkeleton())
-	{
-
-		if (offset & 0x3F)
-			offset += (0x40 - (offset & 0x3F));
-
-		unsigned int skl_size;
-		uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size);
-		if (!skl)
-		{
-			delete[] buf;
-			return nullptr;
-		}
-
-		hdr->skeleton_offset = val32(offset);
-		memcpy(buf + offset, skl, skl_size);
-		delete[] skl;
-
-		offset += skl_size;
-	}
-
-	for (size_t i = 0; i < animations.size(); i++)
-	{
-		const EmaAnimation &animation = animations[i];
-		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
-
-		if (offset & 3)
-			offset += (4 - (offset & 3));
-
-		ahdr->name_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
-		offset += 10;
-
-		assert(animation.name.length() < 256);
-		buf[offset] = animation.name.length();
-		offset++;
-
-		strcpy((char *)buf + offset, animation.name.c_str());
-		offset += animation.name.length() + 1;
-	}
-
-	assert(offset == file_size);
-
-	*psize = file_size;
-	return buf;
-}
-
-TiXmlDocument *EMA::Decompile() const
-{
-	TiXmlDocument *doc = new TiXmlDocument();
-
-	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "utf-8", "");
-	doc->LinkEndChild(decl);
-
-	TiXmlElement *root = new TiXmlElement("EMA");
-
-	EMO_BaseFile::WriteParamUnsigned(root, "U_08", unk_08, true);
-	EMO_BaseFile::WriteParamUnsigned(root, "U_12", unk_12, true);
-
-	for (size_t i = 0; i < animations.size(); i++)
-	{
-		animations[i].Decompile(root, i);
-	}
-
-	doc->LinkEndChild(root);
-
-	if (HasSkeleton())
-	{
-		EMO_Skeleton::Decompile(doc);
-	}
-
-	return doc;
-}
-
-bool EMA::Compile(TiXmlDocument *doc, bool big_endian)
-{
-	Reset();
-	this->big_endian = big_endian;
-
-	TiXmlHandle handle(doc);
-
-	if (EMO_BaseFile::FindRoot(&handle, "Skeleton"))
-	{
-		if (!EMO_Skeleton::Compile(doc, big_endian))
-			return false;
-	}
-
-	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMA");
-
-	if (!root)
-	{
-		LOG_DEBUG("Cannot find\"EMA\" in xml.\n");
-		return false;
-	}
-
-	uint32_t unk_08, unk_12;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_08", &unk_08))
-		return false;
-
-	if (!EMO_BaseFile::GetParamUnsigned(root, "U_12", &unk_12))
-		return false;
-
-	if (unk_08 > 65535)
-	{
-		LOG_DEBUG("%s: U_08 cannot be bigger than 65535.\n", FUNCNAME);
-		return false;
-	}
-
-	if (unk_12 > 65535)
-	{
-		LOG_DEBUG("%s: U_12 cannot be bigger than 65535.\n", FUNCNAME);
-		return false;
-	}
-
-	this->unk_08 = unk_08;
-	this->unk_12 = unk_12;
-
-	size_t count = EMO_BaseFile::GetElemCount(root, "Animation");
-	if (count > 0)
-	{
-		std::vector<bool> initialized;
-
-		animations.resize(count);
-		initialized.resize(count);
-
-		for (const TiXmlElement *elem = root->FirstChildElement(); elem; elem = elem->NextSiblingElement())
-		{
-			if (elem->ValueStr() == "Animation")
-			{
-				uint32_t id;
-
-				if (!EMO_BaseFile::ReadAttrUnsigned(elem, "id", &id))
-				{
-					LOG_DEBUG("%s: Cannot read attribute \"id\"\n", FUNCNAME);
-					return false;
-				}
-
-				if (id >= animations.size())
-				{
-					LOG_DEBUG("%s: Animation id 0x%x out of range.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (initialized[id])
-				{
-					LOG_DEBUG("%s: Animation id 0x%x was already specified.\n", FUNCNAME, id);
-					return false;
-				}
-
-				if (!animations[id].Compile(elem, *this))
-				{
-					LOG_DEBUG("%s: Compilation of Animation failed.\n", FUNCNAME);
-					return false;
-				}
-
-				initialized[id] = true;
-			}
-		}
-	}
-
-	return true;
-}
-
-bool EMA::DecompileToFile(const std::string &path, bool show_error, bool build_path)
-{
-	LOG_DEBUG("Ema is being saved to .xml file. This process may take a while.\n");
-	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
-
-	if (ret)
-	{
-		LOG_DEBUG("Ema has been saved to .xml.\n");
-	}
-
-	return ret;
-}
-
-bool EMA::CompileFromFile(const std::string &path, bool show_error, bool big_endian)
-{
-	LOG_DEBUG("Ema is being loaded from .xml file. This process may take a while.\n");
-	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
-
-	if (ret)
-	{
-		LOG_DEBUG("Ema has been loaded from .xml.\n");
-	}
-
-	return ret;
-}
 
 bool EMA::operator==(const EMA &rhs) const
 {
-	if (this->animations != rhs.animations)
-		return false;
-
-	if (this->unk_08 != rhs.unk_08)
-		return false;
-
-	if (this->unk_12 != rhs.unk_12)
+	if( (this->animations != rhs.animations) ||
+		(this->version != rhs.version) ||
+		(this->type != rhs.type) )
 		return false;
 
 	if (!HasSkeleton())
 	{
 		if (rhs.HasSkeleton())
 			return false;
-	}
-	else if (!rhs.HasSkeleton())
-	{
+	}else if (!rhs.HasSkeleton()){
 		return false;
 	}
 
@@ -2005,256 +2018,23 @@ bool EMA::operator==(const EMA &rhs) const
 
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////// wxHexEditor coloration ////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
 
 /*-------------------------------------------------------------------------------\
-|                             save_Coloration		                             |
+|                             buildOrganizedNodes		                         |
 \-------------------------------------------------------------------------------*/
-void EMA::save_Coloration(string filename, bool show_error)
+void EMA::buildOrganizedNodes()
 {
-	uint8_t *buf;
-	size_t size;
-
-	buf = ReadFile(filename, &size, show_error);
-	if (!buf)
-		return;
-
-	TiXmlDocument *doc = new TiXmlDocument();
-	TiXmlDeclaration* decl = new TiXmlDeclaration("1.0", "UTF-8", "");
-	doc->LinkEndChild(decl);
-
-	TiXmlElement *root = new TiXmlElement("wxHexEditor_XML_TAG");
-
-
-	TiXmlElement* filename_node = new TiXmlElement("filename");
-	EMO_BaseFile::WriteParamString(filename_node, "path", filename);
-
-
-
-	write_Coloration(filename_node, buf, size);
-
-
-
-	root->LinkEndChild(filename_node);
-	doc->LinkEndChild(root);
-
-
-
-	delete[] buf;
-
-	doc->SaveFile(filename + ".tags");
-
-	return;
+	for (size_t i = 0, nb = animations.size(); i < nb; i++)
+		animations.at(i).buildOrganizedNodes();
 }
-
-
-
-
-
-
 /*-------------------------------------------------------------------------------\
-|                             write_Coloration				                     |
+|                             clearOrganizedNodes		                         |
 \-------------------------------------------------------------------------------*/
-void EMA::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size)
+void EMA::clearOrganizedNodes()
 {
-	EMAHeader *hdr = (EMAHeader *)buf;
-	if (size < sizeof(EMAHeader) || hdr->signature != EMA_SIGNATURE)
-		return;
-
-
-	std::vector<bool> listBytesAllreadyTagged;
-	listBytesAllreadyTagged.resize(size, false);				//to check override of the same byte (overflow)
-
-
-	size_t idTag = 0;
-	size_t offset = 0;
-	size_t incSection = 0;
-	size_t incParam = 0;
-
-	write_Coloration_Tag("signature", "string", "", offset, 4 * sizeof(char), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged);	offset += 4 * sizeof(char);
-	write_Coloration_Tag("endianess_check", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("header_size", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_08", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_0A", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("skeleton_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("anim_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_14x3", "uint32_t", "", offset, 3 * sizeof(uint32_t), "EMAHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += 3 * sizeof(uint32_t);
-
-
-	incParam = 0;
-	incSection++;
-	if (hdr->skeleton_offset)
-	{
-		write_Coloration_Skeleton(parent, GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset), hdr->skeleton_offset, listBytesAllreadyTagged);
-	}
-
-	size_t startOffset_animAdress = hdr->header_size;
-
-	uint32_t* anim_offsets = (uint32_t *)GetOffsetPtr(buf, val16(startOffset_animAdress), true);
-	animations.resize(val16(hdr->anim_count));
-
-	for (size_t i = 0; i < animations.size(); i++)
-	{
-		incParam = 0;
-		incSection = 2;
-		write_Coloration_Tag("offset_animation", "uint32_t", "", startOffset_animAdress + i * sizeof(uint32_t), sizeof(uint32_t), "Animation", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i);
-
-		size_t startAnimOffset = anim_offsets[i];
-		offset = startAnimOffset;
-
-		EmaAnimation &animation = animations[i];
-		EMAAnimationHeader *ahdr = (EMAAnimationHeader*)GetOffsetPtr(buf, offset);
-
-		incParam = 0;
-		incSection++;
-		write_Coloration_Tag("duration", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("cmd_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("value_count", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
-		write_Coloration_Tag("unk_08", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
-		write_Coloration_Tag("name_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
-		write_Coloration_Tag("values_offset", "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
-		
-		incParam = 0;
-		incSection++;
-		for (size_t j = 0; j < ahdr->cmd_count; j++)
-		{
-			write_Coloration_Tag("cmd_offsets_"+ std::to_string(i), "uint32_t", "", offset, sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint32_t);
-		}
-
-
-		animation.duration = val16(ahdr->duration);
-		animation.type = val16(ahdr->type);
-		animation.frame_float_size = val16(ahdr->frame_float_size);
-		animation.commands.resize(val16(ahdr->cmd_count));
-
-		animation.name = (char *)GetOffsetPtr(buf, startAnimOffset + ahdr->name_offset) + 11;
-		write_Coloration_Tag("nbChar", "uint8_t", "", startAnimOffset + ahdr->name_offset + 10, sizeof(uint8_t), "NAME", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint8_t);
-		write_Coloration_Tag("name", "string", "", startAnimOffset + ahdr->name_offset + 11, animation.name.length() + 1, "NAME", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged);
-
-
-		for (size_t j = 0; j < animation.commands.size(); j++)
-		{
-			size_t startCommandOffset = startAnimOffset + ahdr->cmd_offsets[j];
-			offset = startCommandOffset;
-
-			EmaCommand &command = animation.commands[j];
-			EMAAnimationCommandHeader *chdr = (EMAAnimationCommandHeader *)GetOffsetPtr(buf, startCommandOffset);
-
-			incParam = 0;
-			incSection = 5;
-			write_Coloration_Tag("bone_idx", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
-			write_Coloration_Tag("transform", "uint8_t", "", offset, sizeof(uint8_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
-			write_Coloration_Tag("transformComponent", "uint8_t", "", offset, sizeof(uint8_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint8_t);
-			write_Coloration_Tag("step_count", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
-			write_Coloration_Tag("indices_offset", "uint16_t", "", offset, sizeof(uint16_t), "EMAAnimationCommandHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
-
-
-
-			if (HasSkeleton())
-			{
-				if (val16(chdr->bone_idx) >= GetNumBones())
-				{
-					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in command 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
-					return;
-				}
-				command.bone = &bones[val16(chdr->bone_idx)];
-			}else{
-				command.bone = nullptr;
-			}
-
-			command.transformComponent = (chdr->transformComponent & 0xF);
-			command.timesByteSize = (chdr->transformComponent & 0x20);
-			command.indexesByteSize = (chdr->transformComponent & 0x40);
-
-			command.transform = chdr->transform;
-			command.steps.resize(val16(chdr->step_count));
-
-			
-			size_t startOffsetStepTimeIndexes = startCommandOffset + sizeof(EMAAnimationCommandHeader);
-			offset = startOffsetStepTimeIndexes;
-
-			incParam = 0;
-			incSection++;
-
-			uint8_t* timing_u8 = (uint8_t*)GetOffsetPtr(buf, startOffsetStepTimeIndexes);
-			uint16_t* timing_16 = (uint16_t*)GetOffsetPtr(buf, startOffsetStepTimeIndexes);
-
-			for (size_t k = 0; k < command.steps.size(); k++)
-			{
-				EmaStep &step = command.steps[k];
-
-				if (!(chdr->transformComponent & 0x20))
-				{
-					step.time = timing_u8[k];
-					write_Coloration_Tag("indexForTiming", "uint8_t", "", offset, sizeof(uint8_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint8_t);
-				}else {
-					step.time = val16(timing_16[k]);
-					write_Coloration_Tag("indexForTiming", "uint16_t", "", offset, sizeof(uint16_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-				}
-			}
-
-
-
-			size_t startOffsetStepIndexes = startCommandOffset + val16(chdr->indices_offset);
-			offset = startOffsetStepIndexes;
-
-			incParam = 0;
-			incSection++;
-
-			uint16_t* indices_u16 = (uint16_t*)GetOffsetPtr(buf, startOffsetStepIndexes);
-			uint32_t* indices_u32 = (uint32_t*)GetOffsetPtr(buf, startOffsetStepIndexes);
-
-			for (size_t k = 0; k < command.steps.size(); k++)
-			{
-				EmaStep &step = command.steps[k];
-
-				if (!(chdr->transformComponent & 0x40))
-				{
-					step.index = val16(indices_u16[k]);
-					write_Coloration_Tag("indexForValue", "uint16_t", "", offset, sizeof(uint16_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint16_t);
-				}else {
-					step.index = val32(indices_u32[k]);
-					write_Coloration_Tag("indexForValue", "uint32_t", "", offset, sizeof(uint32_t), "STEP", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, k); offset += sizeof(uint32_t);
-				}
-			}
-		}
-
-
-
-
-		animation.values.resize(val32(ahdr->value_count));
-
-		size_t startoffsetFloatValues = startAnimOffset + ahdr->values_offset;
-		offset = startoffsetFloatValues;
-
-		float* values_32 = (float *)GetOffsetPtr(buf, startoffsetFloatValues);
-		uint16_t* values_u16 = (uint16_t*)values_32;
-
-		animation.debugValuesOffset = startoffsetFloatValues;				//test debug Todo remove.
-
-		incParam = 0;
-		incSection++;
-
-		for (size_t j = 0; j < animation.values.size(); j++)
-		{
-			if (animation.frame_float_size == 0)
-			{
-				animation.values[j] = val_float(values_32[j]);
-				write_Coloration_Tag("Float", "uint32_t", "", offset, sizeof(uint32_t), "ListFloatValues", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint32_t);
-			}else {
-				animation.values[j] = float16ToFloat(values_u16[j]);
-				write_Coloration_Tag("Float", "uint16_t", "", offset, sizeof(uint16_t), "ListFloatValues", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, j); offset += sizeof(uint16_t);
-			}
-		}
-	}
-
-
-
+	for (size_t i = 0, nb = animations.size(); i < nb; i++)
+		animations.at(i).clearOrganizedNodes();
 }
 
 
@@ -2262,231 +2042,237 @@ void EMA::write_Coloration(TiXmlElement *parent, const uint8_t *buf, size_t size
 
 
 /*-------------------------------------------------------------------------------\
-|                             write_Coloration_Skeleton		                     |
+|                             buildOrganizedNodes						          |
 \-------------------------------------------------------------------------------*/
-void EMA::write_Coloration_Skeleton(TiXmlElement *parent, const uint8_t *buf, size_t size, size_t startOffset_Skeleton, std::vector<bool> &listBytesAllreadyTagged)
+void EmaAnimation::buildOrganizedNodes()				//the goal is to split the nodes for organize by Nodes, byTranform and by component.
 {
-	size_t idTag = 0;
-	size_t offset = 0;
-	size_t incSection = 0;
-	size_t incParam = 0;
+	organizedNodes.clear();
 
-	SkeletonHeader *hdr = (SkeletonHeader *)buf;
+	struct TestToOrder { bool operator() (const EMAAnimationNode *a, const EMAAnimationNode *b) const { return (a->transformComponent <= b->transformComponent); } };
 
-	write_Coloration_Tag("node_count", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_02", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("ik_count", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_06", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("start_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("names_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_10_0", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_10_1", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_skd_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("matrix_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("ik_data_offset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_24_0", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_24_1", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_24_2", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_24_3", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint32_t);
-	write_Coloration_Tag("unk_34_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_34_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(uint16_t);
-	write_Coloration_Tag("unk_38_0", "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
-	write_Coloration_Tag("unk_38_1", "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += sizeof(float);
-
-
-
-	incParam = 0;
-	incSection++;
-
-	uint16_t node_count = val16(hdr->node_count);
-	size_t startOffset_data = hdr->ik_data_offset;
-
-	size_t ik_size = 0;
-
-	if (startOffset_data)
+	
+	for (size_t i = 0, nb = nodes.size(); i < nb; i++)
 	{
-		size_t ik_size = 0;
-		for (uint16_t i = 0; i < hdr->ik_count; i++)
-			ik_size += val16(*(uint16_t *)(buf + startOffset_data + ik_size + 2));
+		EMAAnimationNode &node = nodes.at(i);
 
-		write_Coloration_Tag("Data InverseKinematic", "blob", "", startOffset_Skeleton + startOffset_data, ik_size, "DataIK", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += ik_size;
-	}
-
-	if (hdr->unk_24[0] != 0 || hdr->unk_24[1] != 0 || hdr->unk_24[2] != 0 || hdr->unk_24[3] != 0)
-	{
-		LOG_DEBUG("%s: unk_24 not zero as expected.\n", FUNCNAME);
-		return;
-	}
-
-
-	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, hdr->names_offset);
-	SkeletonNode *nodes = (SkeletonNode*)GetOffsetPtr(buf, hdr->start_offset);
-	UnkSkeletonData *unks = nullptr;
-	MatrixData *matrixes = nullptr;
-
-
-	incParam = 0;
-	incSection++;
-
-	if (hdr->names_offset)
-	{
-		offset = hdr->names_offset;
-		for (size_t i = 0; i < node_count; i++)
+		bool isfound = false;
+		for (size_t j = 0, nb2 = organizedNodes.size(); j < nb2; j++)
 		{
-			write_Coloration_Tag("nameOffset", "uint32_t", "", startOffset_Skeleton + offset, sizeof(uint32_t), "NameOffset", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint32_t);
+			if (node.bone_idx != organizedNodes.at(j).bone_idx)
+				continue;
+
+
+			isfound = true;
+			EMAAnimation_ByNode &organizedNode = organizedNodes.at(j);
+
+			bool isfound2 = false;
+			for (size_t k = 0, nb3 = organizedNode.transforms.size(); k < nb3; k++)
+			{
+				if (node.transform != organizedNode.transforms.at(k).transform)
+					continue;
+
+				isfound2 = true;
+				EMAAnimation_ByNode_ByTransform &transform = organizedNode.transforms.at(k);
+
+				transform.components.push_back(&(nodes.at(i)));
+				std::sort(transform.components.begin(), transform.components.end(), TestToOrder());
+			}
+			if(!isfound2)
+			{
+				organizedNode.transforms.push_back(EMAAnimation_ByNode_ByTransform(node.transform));
+				organizedNode.transforms.back().components.push_back(&(nodes.at(i)));
+			}
 		}
-	}
-
-
-	incParam = 0;
-	incSection++;
-	if (hdr->unk_skd_offset)
-	{
-		unks = (UnkSkeletonData*)GetOffsetPtr(buf, hdr->unk_skd_offset);
-
-		offset = hdr->unk_skd_offset;
-		for (size_t i = 0; i < node_count; i++)
+		if (!isfound)
 		{
-			incParam = 0;
-			write_Coloration_Tag("unk_00_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-			write_Coloration_Tag("unk_00_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-			write_Coloration_Tag("unk_00_2", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-			write_Coloration_Tag("unk_00_3", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "UnkSkeletonData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
+			organizedNodes.push_back(EMAAnimation_ByNode(node.bone_idx, node.bone));
+			organizedNodes.back().transforms.push_back(EMAAnimation_ByNode_ByTransform(node.transform));
+			organizedNodes.back().transforms.back().components.push_back(&(nodes.at(i)));
 		}
-	}
-
-	incParam = 0;
-	incSection++;
-	if (hdr->matrix_offset)
-	{
-		matrixes = (MatrixData *)GetOffsetPtr(buf, hdr->matrix_offset);
-
-		offset = hdr->matrix_offset;
-		for (size_t i = 0; i < 16; i++)
-		{
-			write_Coloration_Tag("matrix_00", "float", "", startOffset_Skeleton + offset, sizeof(float), "MatrixData", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(float);
-		}
-	}
-
-
-
-	for (uint16_t i = 0; i < node_count; i++)
-	{
-		EMO_Bone bone;
-
-		size_t startSkeletonNode = hdr->start_offset + i * sizeof(SkeletonNode);
-		offset = startSkeletonNode;
-
-		incParam = 0;
-		incSection = 5;
-
-		write_Coloration_Tag("parent_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("child_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("sibling_id", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("emgIndex", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("index_4", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("unk_0A_0", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("unk_0A_1", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		write_Coloration_Tag("unk_0A_2", "uint16_t", "", startOffset_Skeleton + offset, sizeof(uint16_t), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(uint16_t);
-		for (size_t j = 0; j < 16; j++)
-		{
-			write_Coloration_Tag("matrix_" + std::to_string(j), "float", "", startOffset_Skeleton + offset, sizeof(float), "SkeletonNode", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += sizeof(float);
-		}
-
-		incParam = 0;
-		incSection++;
-
-		bone.meta_original_offset = EMO_BaseFile::DifPointer(&nodes[i], buf);
-		bone.name = std::string((char *)GetOffsetPtr(buf, names_table, i));
-		write_Coloration_Tag("BoneName", "string", "", startOffset_Skeleton + names_table[i], bone.name.length() + 1, "SkeletonName", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged, i); offset += bone.name.length() + 1;
 	}
 }
 
+/*-------------------------------------------------------------------------------\
+|                             getInterpolatedKeyframe						     |
+\-------------------------------------------------------------------------------*/
+EANKeyframe EMAAnimation_ByNode_ByTransform::getInterpolatedKeyframe(float time, std::vector<float> &values, float default_x, float default_y, float default_z, float default_w)
+{
+	EANKeyframe kf((int)time, default_x, default_y, default_z, default_w);
+
+	float default_value = 0;
+	
+
+	float value = 0;
+	for (size_t i = 0, nb = components.size(); i < nb; i++)
+	{
+		switch (components.at(i)->getTransformComponent())
+		{
+		case 0: default_value = default_x;  break;
+		case 1: default_value = default_y;  break;
+		case 2: default_value = default_z;  break;
+		case 3: default_value = default_w;  break;
+		};
+
+		value = components.at(i)->getInterpolatedKeyframeComponent(time, values, default_value);
+
+		switch (components.at(i)->getTransformComponent())
+		{
+		case 0: kf.x = value;  break;
+		case 1: kf.y = value;  break;
+		case 2: kf.z = value;  break;
+		case 3: kf.w = value;  break;
+		};
+	}
+
+	return kf;
+}
+float EMAAnimationNode::getInterpolatedKeyframeComponent(float time, std::vector<float> &values, float default_value)
+{
+	float value = default_value;
+	
+	size_t nbElements = keyframes.size();
+	if (nbElements == 0)
+		return value;
+
+	//todo add case	this->noInterpolation.
 
 
+	size_t index_p = (size_t)-1;					//prev
+	size_t index_n = (size_t)-1;					//next
+	float factor = 0.0;								//between prev and next.
+	if (time <= keyframes.at(0).time)
+	{
+		index_p = 0;
+		index_n = 0;
+	}
+	if (time >= keyframes.back().time)
+	{
+		index_p = keyframes.size() - 1;
+		index_n = index_p;
+	}
 
+	if (index_p == (size_t)-1)
+	{
+		for (size_t i = 1; i < nbElements; i++)						//Command is about a couple Bone+Transform, but EanAnimationNode is only bone, and under, EanKeyframeAnimation is about transform (position, rotation, scale).
+		{
+			if (time == keyframes.at(i).time)
+			{
+				index_p = i;
+				index_n = i;
+				factor = 0.0;
+				break;
+
+			}else if (time < keyframes.at(i).time) {
+				index_p = i - 1;
+				index_n = i;
+				factor = (time - (float)keyframes.at(i - 1).time) / ((float)keyframes.at(i).time - (float)keyframes.at(i - 1).time);
+				break;
+			}
+		}
+	}
+
+	size_t indexValue_p = keyframes.at(index_p).index;
+	size_t indexValue_n = keyframes.at(index_n).index;
+	size_t interpolation_p = keyframes.at(index_p).interpolation;
+	size_t interpolation_n = keyframes.at(index_n).interpolation;
+	bool isQuadraticBezier_p = ((interpolation_p & 0x4) != 0);
+	bool isCubicBezier_p = ((interpolation_p & 0x8) != 0);
+	bool isQuadraticBezier_n = ((interpolation_n & 0x4) != 0);
+	bool isCubicBezier_n = ((interpolation_n & 0x8) != 0);
+	size_t nbValues = values.size();
+
+	if ((factor < 0) || (factor > 1))
+		int aa = 42;
+
+	if (indexValue_p == indexValue_n)
+	{
+		if (indexValue_p >= nbValues)								//saddly , so index are not into array range. normally it's good from the discover of interpolation. keep it for security
+			return value;
+
+		value = values.at(indexValue_p);
+
+	}else {
+
+		if (indexValue_n >= nbValues)
+		{
+			indexValue_n = indexValue_p;
+			factor = 0.0;
+		}
+
+		if (indexValue_p >= nbValues)
+			return value;
+
+		double value_p = (double)values.at(indexValue_p);
+		double value_n = (double)values.at(indexValue_n);
+
+
+		value = (float)(value_p + factor * (value_n - value_p));
+
+		if (isQuadraticBezier_p)
+		{
+			double tangent_p = (double)values.at(indexValue_p + 1);
+			value = (float)quadraticBezier(factor, value_p, value_p + tangent_p, value_n);
+		}
+
+		if (isCubicBezier_p)
+		{
+			double tangent_p = (double)values.at(indexValue_p + 1);
+			double tangent_n = (double)values.at(indexValue_p + 2);
+			value = (float)cubicBezier(factor, value_p, value_p + tangent_p, value_n - tangent_n, value_n);
+		}
+	}
+
+	return value;
+}
 
 /*-------------------------------------------------------------------------------\
-|                             write_Coloration_Tag			                     |
+|                             transformNameForXXXXXAnim						     |
 \-------------------------------------------------------------------------------*/
-void EMA::write_Coloration_Tag(string paramName, string paramType, string paramComment, size_t startOffset, size_t size, string sectionName, TiXmlElement* parent, size_t idTag, size_t sectionIndex, size_t paramIndex, std::vector<bool> &listBytesAllreadyTagged, size_t sectionIndexInList, bool checkAllreadyTaggued)
+string EMAAnimationNode::transformNameForObjectAnim()
 {
-	TiXmlElement* tag_node = new TiXmlElement("TAG");
-
-	tag_node->SetAttribute("id", UnsignedToString(idTag, false));
-
-
-	TiXmlElement* start_offset_node = new TiXmlElement("start_offset");
-	TiXmlText* text = new TiXmlText(std::to_string(startOffset));
-	start_offset_node->LinkEndChild(text);
-	tag_node->LinkEndChild(start_offset_node);
-
-	TiXmlElement* end_offset_node = new TiXmlElement("end_offset");
-	text = new TiXmlText(std::to_string(startOffset + size - 1));
-	end_offset_node->LinkEndChild(text);
-	tag_node->LinkEndChild(end_offset_node);
-
-	TiXmlElement* text_node = new TiXmlElement("tag_text");
-	text = new TiXmlText(sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment);
-	text_node->LinkEndChild(text);
-	tag_node->LinkEndChild(text_node);
-
-
-
-
-
-	if (listTagColors.size() == 0)
+	switch (transform)
 	{
-		listTagColors.push_back(std::vector<std::vector<string>>());
-		listTagColors.back().push_back(std::vector<string>());
-		listTagColors.back().back().push_back("#000000");			//background color
-		listTagColors.back().back().push_back("#FFFFFF");			//font color (just to possibility read from background color)
+	case 0: return "Position";
+	case 1: return "Rotation";
+	case 2: return "Scale";
 	}
-
-	size_t sectionIndex_tmp = sectionIndex % listTagColors.size();
-	std::vector<std::vector<string>> &sectionColorlist = listTagColors.at(sectionIndex_tmp);
-	size_t paramIndex_tmp = paramIndex % sectionColorlist.size();
-	std::vector<string> &paramColors = sectionColorlist.at(paramIndex_tmp);
-
-	TiXmlElement* font_colour_node = new TiXmlElement("font_colour");
-	text = new TiXmlText(paramColors.at(1));
-	font_colour_node->LinkEndChild(text);
-	tag_node->LinkEndChild(font_colour_node);
-
-	TiXmlElement* bg_colour_node = new TiXmlElement("note_colour");
-	text = new TiXmlText(paramColors.at(0));
-	bg_colour_node->LinkEndChild(text);
-	tag_node->LinkEndChild(bg_colour_node);
-
-	parent->LinkEndChild(tag_node);
-
-
-
-
-	//un check d'overide , pour savoir si des blocks se chevauche.
-	size_t index;
-	size_t limit = listBytesAllreadyTagged.size();
-	for (size_t i = 0; i < size; i++)
+	return "";
+}
+string EMAAnimationNode::transformNameForCameraAnim()
+{
+	switch (transform)
 	{
-		index = startOffset + i;
-		if (index >= limit)
-		{
-			printf("Error on tagID %i : overflow %s >= %s.\n", idTag, UnsignedToString(index, true).c_str(), UnsignedToString(limit, true).c_str());
-			LibXenoverse::notifyError();
-			continue;
-		}
-
-		if (index == 0x11ac)			//for test
-			int aa = 42;
-
-		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
-		{
-			printf("warning on tagID %i : the byte %s allready taggued, may be a overflow between blocks. Infos : %s. \n", idTag, UnsignedToString(index, true).c_str(), (sectionName + ((sectionIndexInList != (size_t)-1) ? "[" + std::to_string(sectionIndexInList) + "]" : "") + "." + paramName + " (" + paramType + ") : " + paramComment).c_str());
-			LibXenoverse::notifyWarning();
-		}
-
-		listBytesAllreadyTagged.at(index) = true;
+	case 0: return "Position";
+	case 1: return "TargetPosition";
+	case 2: return "Camera";
 	}
+	return "";
+}
+string EMAAnimationNode::transformNameForLightAnim()
+{
+	switch (transform)
+	{
+	case 0: return "Position";
+	case 2: return "Color";
+	case 3: return "DegradeDistance";
+	}
+	return "";
+
+}
+string EMAAnimationNode::transformNameForMaterialAnim()
+{
+	switch (transform)
+	{
+	case 0: return "MatCol0";
+	case 1: return "MatCol1";
+	case 2: return "MatCol2";
+	case 3: return "MatCol3";
+	case 4: return "TexScrl0";
+	case 5: return "TexScrl1";
+	case 6: return "TexScrl2";				//logical interpolation from shader entries, but none of Dbvx2 and SSSS use it
+	case 7: return "TexScrl3";				//logical interpolation from shader entries, but none of Dbvx2 and SSSS use it
+	}
+	return "";
 }
 
 

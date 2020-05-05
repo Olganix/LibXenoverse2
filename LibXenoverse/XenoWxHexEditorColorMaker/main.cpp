@@ -4,7 +4,7 @@ int main(int argc, char** argv)
 {
 	printf("*******************************************************************\n\
  This tool is for Color/tag some binaries with the help of WxHexEditor (creation of .tags files).\n\
- It's for help to discover/debugging structurs and take care of file format: ema, map, emp, etr, spm, scd, emd, emm.\n\
+ It's for help to discover/debugging structurs and take care of file format: ema, map, emp, etr, spm, scd, emd, emm, esk, ean.\n\
  Please consider the result as Debug to share information and test if All files are All colored.\n\
  There is also warning when one bytes is taggued 2 time or on overflow, so that could help (search 'error' in .tags)\n\
  There is also detection of holes (search 'empty' in .tags).\n\
@@ -45,15 +45,57 @@ int main(int argc, char** argv)
 		string basefilename2 = basefilename.substr(0, basefilename.length() - (extension2.size() + 1));
 		string extension3 = LibXenoverse::extensionFromFilename(basefilename2, true);
 		string basefilename3 = basefilename2.substr(0, basefilename2.length() - (extension3.size() + 1));
-	
+		
+
 
 		/////////////////////////////////////////////////////////////
-		if (extension == "map")
+		if (extension == "emd")							// model/mesh
 		{
-			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
-			fmp->save_Coloration(filename);
+			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
+			emd->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "emm")							// Material
+		{
+			LibXenoverse::EMM* emm = new LibXenoverse::EMM();
+			emm->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "esk")							// Skeleton
+		{
+			LibXenoverse::ESK* esk = new LibXenoverse::ESK();
+			esk->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "ean")							// animation
+		{
+			LibXenoverse::EAN* ean = new LibXenoverse::EAN();
+			ean->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "scd")							// dynamique Object (gravity, ...)
+		{
+			LibXenoverse::Scd* scd = new LibXenoverse::Scd();
+			scd->save_Coloration(filename);
 		}
 
+
+		//version Emo
+		/////////////////////////////////////////////////////////////
+		if (extension == "emo")							// model/mesh
+		{
+			LibXenoverse::EMO* emo = new LibXenoverse::EMO();
+			emo->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "ema")							// animation
+		{
+			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
+			ema->save_Coloration(filename);
+		}
+
+
+		//effects
 		/////////////////////////////////////////////////////////////
 		if (extension == "etr")							// traces/trails for effects.
 		{
@@ -68,38 +110,43 @@ int main(int argc, char** argv)
 			emp->save_Coloration(filename);
 		}
 
+
+		//stages
 		/////////////////////////////////////////////////////////////
-		if (extension == "spm")							// particules/mappedPlanes for effects.
+		if (extension == "map")							//stage config
+		{
+			LibXenoverse::FmpFile* fmp = new LibXenoverse::FmpFile();
+			fmp->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "spm")							// stage postEffects
 		{
 			LibXenoverse::Spm* spm = new LibXenoverse::Spm();
 			spm->save_Coloration(filename);
 		}
 
+
+
+
+		//Uasset and Uexp for JumpForce and may be DbZfighter
 		/////////////////////////////////////////////////////////////
-		if (extension == "ema")							// particules/mappedPlanes for effects.
+		if (extension == "uasset")							// Header Package
 		{
-			LibXenoverse::EMA* ema = new LibXenoverse::EMA();
-			ema->save_Coloration(filename);
+			LibXenoverse::Uasset* uasset = new LibXenoverse::Uasset();
+			uasset->save_Coloration(filename);
+		}
+		/////////////////////////////////////////////////////////////
+		if (extension == "uexp")							// Body Package
+		{
+			LibXenoverse::Uexp* uexp = new LibXenoverse::Uexp();
+			uexp->save_Coloration(filename);
 		}
 
 		/////////////////////////////////////////////////////////////
-		if (extension == "scd")							// dynamique Object (gravity, ...)
+		if (extension == "mdl")							// Model file for  Yu-Gi-Oh! Online 3: Duel Accelerator Todo remove
 		{
-			LibXenoverse::Scd* scd = new LibXenoverse::Scd();
-			scd->save_Coloration(filename);
-		}
-
-		/////////////////////////////////////////////////////////////
-		if (extension == "emd")							// model/mesh
-		{
-			LibXenoverse::EMD* emd = new LibXenoverse::EMD();
-			emd->save_Coloration(filename);
-		}
-		/////////////////////////////////////////////////////////////
-		if (extension == "emm")							// Material
-		{
-			LibXenoverse::EMM* emm = new LibXenoverse::EMM();
-			emm->save_Coloration(filename);
+			LibXenoverse::Mdl* mdl = new LibXenoverse::Mdl();
+			mdl->save_Coloration(filename);
 		}
 	}
 

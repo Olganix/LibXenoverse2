@@ -14,7 +14,6 @@ EANOgre::EANOgre()
 
 	ean = 0;
 	ema = 0;
-	ema_material = 0;
 
 	fps = 60.0f;
 	force_animation = 0;
@@ -36,12 +35,9 @@ void EANOgre::clear()
 		delete ean;
 	if (ema)
 		delete ema;
-	if (ema_material)
-		delete ema_material;
 
 	ean = 0;
 	ema = 0;
-	ema_material = 0;
 
 	mListEANOgreAnimation.clear();
 }
@@ -68,7 +64,7 @@ bool EANOgre::load(string filename)
 
 		vector<EANAnimation> &animations = ean->getAnimations();
 		for (size_t i = 0, nb = animations.size(); i < nb; i++)
-			mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, &animations.at(i)));
+			mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, i, &animations.at(i)));
 
 
 	}else if (extension == "ema") {
@@ -76,46 +72,42 @@ bool EANOgre::load(string filename)
 		string extension2 = LibXenoverse::extensionFromFilename(basefilename, true);
 		string basefilename2 = basefilename.substr(0, basefilename.length() - (extension2.size() + 1));
 
-		if (extension2 == "mat") 
+		ema = new EMA();
+		if (!ema->LoadFromFile(filename))
 		{
-			ema_material = new EMA_Material();
-			if (!ema_material->load(filename))
-			{
-				delete ema_material;
-				return false;
-			}
-			name = ema_material->getName();
+			delete ema;
+			ema = 0;
+			return false;
+		}
+		if (ema->getType() == EMA_TYPE_ANIM_Light)					//todo
+		{
+			delete ema;
+			ema = 0;
+			return false;
+		}
+		name = ema->getName();
 
-			//todo the same for others case.
-			vector<EMA_Material_Animation> &animations = ema_material->getAnimations();
-			for (size_t i = 0, nb = animations.size(); i < nb; i++)
-				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, 0, &animations.at(i)));
-
-
-		}else if (extension2 == "light") {
-
-			return false;				//todo add this case.
-
-		}else{							//obj or no second extension
-
-			ema = new EMA();
-			if (!ema->LoadFromFile(filename))
-			{
-				delete ema;
-				return false;
-			}
-
-			//todo use direct values instead convert into ean.
+		
+		
+		if (ema->getType() == EMA_TYPE_ANIM_Object_or_Camera)		// convert into ean (also apply spline betweeen keyframes)
+		{
 			ean = new EAN();
 			ema->writeEAN(ean);
-			
+
 			delete ema;
 			ema = 0;
 			name = ean->getName();
 
 			vector<EANAnimation> &animations = ean->getAnimations();
 			for (size_t i = 0, nb = animations.size(); i < nb; i++)
-				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, &animations.at(i)));
+				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).getName(), this, i, &animations.at(i)));
+		}else{
+			
+			ema->buildOrganizedNodes();					//organize the Node by material and by transform.
+
+			std::vector<EmaAnimation> &animations = ema->getAnimations();
+			for (size_t i = 0, nb = animations.size(); i < nb; i++)
+				mListEANOgreAnimation.push_back(EANOgreAnimation(animations.at(i).GetName(), this, i, 0, &animations.at(i)));
 		}
 
 	}else{
@@ -145,7 +137,7 @@ void EANOgre::createOgreAnimations(ESKOgre *v)
 \-------------------------------------------------------------------------------*/
 Ogre::Animation *EANOgre::createOgreAnimation(EANAnimation *animation)
 {
-	int keyframes_count = animation->getFrameCount();
+	int keyframes_count = animation->getDuration();
 	vector<Ogre::NodeAnimationTrack *> node_tracks;
 
 	Ogre::Skeleton *ogre_skeleton = esk_skeleton->getOgreSkeleton();
@@ -259,18 +251,16 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 
 
 
-	size_t frame_count = animation->getFrameCount();
+	size_t frame_count = animation->getDuration();
 	size_t nbBoneLink = bonelink_list.size();
 	for (size_t i = 0; i < frame_count; i++)																			//we will now working on the current frame.
 	{
 		frame = (float)i / fps;
 
-
 		for (size_t j = 0; j < nbBoneLink; j++)
 		{
 			Bonelink &bonelink = bonelink_list.at(j);
 			treeNode = bonelink.treeNode;
-
 
 			string ogreParentBoneName = bonelink.ogre_Bone->getParent() ? bonelink.ogre_Bone->getParent()->getName() : "";		//as the parent bone is also animated, we have to stop recursive on it.
 
@@ -288,9 +278,9 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 
 				if (eanBone)
 				{
-					translate_mem = Ogre::Vector3(eanBone->skinning_matrix[0], eanBone->skinning_matrix[1], eanBone->skinning_matrix[2]) / eanBone->skinning_matrix[3];
-					rotation_mem = Ogre::Quaternion(eanBone->skinning_matrix[7], eanBone->skinning_matrix[4], eanBone->skinning_matrix[5], eanBone->skinning_matrix[6]);
-					scale_mem = Ogre::Vector3(eanBone->skinning_matrix[8], eanBone->skinning_matrix[9], eanBone->skinning_matrix[10]) / eanBone->skinning_matrix[11];
+					translate_mem = Ogre::Vector3(eanBone->relativeTransform[0], eanBone->relativeTransform[1], eanBone->relativeTransform[2]) / eanBone->relativeTransform[3];
+					rotation_mem = Ogre::Quaternion(eanBone->relativeTransform[7], eanBone->relativeTransform[4], eanBone->relativeTransform[5], eanBone->relativeTransform[6]);
+					scale_mem = Ogre::Vector3(eanBone->relativeTransform[8], eanBone->relativeTransform[9], eanBone->relativeTransform[10]) / eanBone->relativeTransform[11];
 					eanBone_relative_matrix.makeTransform(translate_mem, scale_mem, rotation_mem);
 				}
 
@@ -331,7 +321,7 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 						translate = translate_mem;
 					}
 
-					if (eanNode->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION, rx, ry, rz, rw))
+					if (eanNode->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_ROTATION_or_TargetPosition, rx, ry, rz, rw))
 					{
 						if (isinf(rx)) rx = 99999.0;
 						if (isinf(ry)) ry = 99999.0;
@@ -343,7 +333,7 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 						rotation = rotation_mem;
 					}
 
-					if (eanNode->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE, sx, sy, sz, sw))
+					if (eanNode->getInterpolatedFrame(i, LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA, sx, sy, sz, sw))
 					{
 						if (isinf(sx)) sx = 99999.0;
 						if (isinf(sy)) sy = 99999.0;
@@ -369,7 +359,6 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 					if (scale.y <= 0.0000001) scale.y = 0.0000001;
 					if (scale.z <= 0.0000001) scale.z = 0.0000001;
 
-
 					eanAnim_matrix.makeTransform(translate, scale, rotation);		// Get the relative values, by matrix operation
 				}
 
@@ -392,13 +381,12 @@ void EANOgre::createOgreAnimationTracks(Ogre::Animation* mAnim, Ogre::Skeleton *
 
 
 			eanBone_relative_Anim_matrix.decomposition(translate, scale, rotation);
-			
 
 			ogreKeyFrame = bonelink.node_track->createNodeKeyFrame(frame);
 			ogreKeyFrame->setTranslate(translate);
 			ogreKeyFrame->setRotation(rotation);
 			ogreKeyFrame->setScale(scale);
-		}
+		}	
 	}
 
 }

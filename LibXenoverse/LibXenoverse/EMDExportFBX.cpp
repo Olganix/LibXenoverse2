@@ -102,7 +102,6 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 		forceBoneNode = 0;
 	}
 
-	
 
 	FbxMesh* fbxMesh = FbxMesh::Create(scene, name.c_str());
 	if (!fbxMesh)
@@ -312,6 +311,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 						{
 							ESK::FbxBonesInstance_DBxv	&fbxBoneInst = global_fbx_bones.at(k);
 							fbxCluster->SetLink(fbxBoneInst.mNode);
+							
 							
 							if (!forceBoneNode)
 							{
