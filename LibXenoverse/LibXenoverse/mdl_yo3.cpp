@@ -599,7 +599,7 @@ void Mdl::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 				ESKBone* bone = new ESKBone(dh.name);
 				esk.getBones().push_back(bone);
 
-				bone->haveTransformMatrix = true;
+				bone->haveAbsoluteMatrix = true;
 
 				for (size_t j = 0; j < 16; j++)
 					bone->absoluteMatrix[j] = floats[j];
@@ -637,7 +637,7 @@ void Mdl::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 					ESKBone* bone = new ESKBone("body_sk");
 					EskTreeNode* treeCurrentNode = new EskTreeNode(bone, bones.size(), treeRootNode);
 					bones.push_back(bone);
-					bone->haveTransformMatrix = true;			//still have default values
+					bone->haveAbsoluteMatrix = true;			//still have default values
 					treeRootNode->mChildren.push_back(treeCurrentNode);
 					lastOnEachLevel.push_back(treeCurrentNode);
 					currentLevel++;
@@ -683,7 +683,7 @@ void Mdl::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 						lastOnEachLevel.at(currentLevel) = treeCurrentNode;
 
 
-						bone->haveTransformMatrix = true;			//still have default values
+						bone->haveAbsoluteMatrix = true;			//still have default values
 
 						if (haveMatrix4x4)
 						{
@@ -692,7 +692,7 @@ void Mdl::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 								relativeTransformMatrix.push_back( (double)floats[j] );
 
 
-							bone->calculSkinningMatrixFromRelativeTransformMatrix(relativeTransformMatrix);
+							bone->calculRelativeTransformFromRelativeTransformMatrix(relativeTransformMatrix);
 						}
 
 						//if (dh.buf[offset] == 0)						//to cancel the current increase.
@@ -1018,7 +1018,7 @@ void Mdl::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 	{
 		std::vector<ESKBone*> &bones = esk.getBones();
 		for(size_t j=0, nbBones = bones.size();j<nbBones;j++)
-			esk.getBones().at(j)->calculTransformMatrixFromSkinningMatrix(bones, true);
+			esk.getBones().at(j)->calculAbsoluteMatrixFromRelativeTransform(bones, true);
 		
 		esk.save(filenameNoExtension(originefilename) + ".esk");
 

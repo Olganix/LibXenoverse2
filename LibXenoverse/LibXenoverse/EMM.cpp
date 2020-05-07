@@ -194,7 +194,7 @@ void EMMParameter::read(File *file)
 
 	}else {
 		printf("Unknown Parameter Flag %x\n", type);
-
+		notifyError();
 		file->readInt32E(&uint_value);
 	}
 }
@@ -247,8 +247,14 @@ void EMM::write(File *file)
 	unsigned int material_base_address = header_size;
 	file->writeInt32E(&material_base_address);
 
-	if(header_size==0x20)
-		file->writeNull(0x10);
+	if (header_size == 0x20)
+	{
+		file->writeNull(4);
+		file->writeInt32E(&unknow_0);
+		file->writeInt32E(&unknow_1);
+		file->writeInt32E(&unknow_2);
+	}
+		
 
 
 
@@ -359,7 +365,7 @@ bool EMM::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'EMM' tags. skip.'\n", filename);
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -373,9 +379,9 @@ void EMM::readXML(TiXmlElement* xmlCurrentNode)
 {
 	string str = "";
 	xmlCurrentNode->QueryStringAttribute("version", &version);
-	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);
-	xmlCurrentNode->QueryUnsignedAttribute("unknow_1", &unknow_1);
-	xmlCurrentNode->QueryUnsignedAttribute("unknow_2", &unknow_2);
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &unknow_0);
+	xmlCurrentNode->QueryUnsignedAttribute("unk_1", &unknow_1);
+	xmlCurrentNode->QueryUnsignedAttribute("unk_2", &unknow_2);
 
 
 	for (TiXmlElement* xmlNode = xmlCurrentNode->FirstChildElement("EMMMaterial"); xmlNode; xmlNode = xmlNode->NextSiblingElement("EMMMaterial"))
@@ -409,7 +415,7 @@ void EMMMaterial::readXML(TiXmlElement* xmlCurrentNode)
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 	xmlCurrentNode->QueryStringAttribute("shaderProgram", &shaderProgramName);
 	uint32_t tmp = 0;
-	xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp);
 	unknow_0 = (uint16_t)tmp;
 
 
@@ -445,7 +451,7 @@ void EMMParameter::readXML(TiXmlElement *root)
 		type = 0x1;
 		root->QueryUnsignedAttribute("value", &uint_value);
 	
-	}else if (str_tmp.substr(0, 9) == "Unknow_0x") {
+	}else if (str_tmp.substr(0, 9) == "unk_0x") {
 
 		type = parseHexaUnsignedInt(str_tmp.substr(9));
 
@@ -454,7 +460,7 @@ void EMMParameter::readXML(TiXmlElement *root)
 
 	}else {
 		printf("Unknown Parameter Flag %s\n", str_tmp);
-		getchar();
+		notifyError();
 	}
 }
 
@@ -483,9 +489,9 @@ TiXmlElement*  EMM::writeXML()
 {
 	TiXmlElement* rootNode = new TiXmlElement("EMM");
 	rootNode->SetAttribute("version", version);
-	rootNode->SetAttribute("unknow_0", unknow_0);
-	rootNode->SetAttribute("unknow_1", unknow_1);
-	rootNode->SetAttribute("unknow_2", unknow_2);
+	rootNode->SetAttribute("unk_0", unknow_0);
+	rootNode->SetAttribute("unk_1", unknow_1);
+	rootNode->SetAttribute("unk_2", unknow_2);
 
 	rootNode->LinkEndChild(new TiXmlComment("For all files of Dbxv2:\n\tEMM unk_0 to 2 are always 0.\n\tEMMMaterial unk_0 is 0 or 65535 ('FF FF').\n\tversion 0.0.0.0 always have 0 and no unknowValues (but not inverses).\n\tWe didn't find what is the 68 unknowValues are for.\n\t"));
 
@@ -526,7 +532,7 @@ void EMMMaterial::writeXML(TiXmlElement* xmlCurrentNode)
 	TiXmlElement* materialRoot = new TiXmlElement("EMMMaterial");
 	materialRoot->SetAttribute("name", name);
 	materialRoot->SetAttribute("shaderProgram", shaderProgramName);
-	materialRoot->SetAttribute("unknow_0", unknow_0);
+	materialRoot->SetAttribute("unk_0", unknow_0);
 
 	size_t nbParam = parameters.size();
 	for (size_t i = 0; i < nbParam; i++)
@@ -555,7 +561,7 @@ void EMMParameter::writeXML(TiXmlElement* xmlCurrentNode)
 		parameterRoot->SetAttribute("value", uint_value);
 
 	}else {
-		string tmp = "Unknow_0x" + toStringHexa(type);
+		string tmp = "unk_0x" + toStringHexa(type);
 		parameterRoot->SetAttribute("type", tmp);
 
 		tmp = "0x" + toStringHexa(uint_value);

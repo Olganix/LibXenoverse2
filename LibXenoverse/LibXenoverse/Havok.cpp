@@ -185,7 +185,8 @@ bool Havok::Load(const uint8_t *buf, size_t size)
 	size_t hdr_size = hdr->size;  hdr_size = val32(hdr_size) & 0x3FFFFFFF;
 	if (size < sizeof(Havok_PartHeader) || (memcmp(hdr->signature, Havok_TAG0_SIGNATURE, 4) != 0) || (size < hdr_size))
 	{
-		printf("havok's version request : %s\n", Havok_TAG0_SIGNATURE);
+		printf("error: havok's version request : %s\n", Havok_TAG0_SIGNATURE);
+		notifyError();
 		return false;
 	}
 	offset += sizeof(Havok_PartHeader);
@@ -195,7 +196,8 @@ bool Havok::Load(const uint8_t *buf, size_t size)
 	size_t version_hdr_size = version_hdr->size;  version_hdr_size = val32(version_hdr_size) & 0x3FFFFFFF;
 	if (memcmp(version_hdr->signature, Havok_SDKV_SIGNATURE, 4) != 0)
 	{
-		printf("havok's version request : %s\n", Havok_SDKV_SIGNATURE);
+		printf("error: havok's version request : %s\n", Havok_SDKV_SIGNATURE);
+		notifyError();
 		return false;
 	}
 	offset += sizeof(Havok_PartHeader);
@@ -204,7 +206,8 @@ bool Havok::Load(const uint8_t *buf, size_t size)
 	Havok_Version* version_info = (Havok_Version*)GetOffsetPtr(buf, offset, true);
 	if ((memcmp(version_info->year, Havok_v2015_SIGNATURE, 4) != 0) || (memcmp(version_info->major, Havok_major01_SIGNATURE, 2) != 0) || (memcmp(version_info->minor, Havok_minor00_SIGNATURE, 2) != 0))
 	{
-		printf("havok's version request : %s.%s.%s\n", Havok_v2015_SIGNATURE, Havok_major01_SIGNATURE, Havok_minor00_SIGNATURE);
+		printf("error: havok's version request : %s.%s.%s\n", Havok_v2015_SIGNATURE, Havok_major01_SIGNATURE, Havok_minor00_SIGNATURE);
+		notifyError();
 		return false;
 	}
 	offset += sizeof(Havok_Version);
@@ -1071,7 +1074,7 @@ uint8_t* Havok::CreateFile(unsigned int *psize)
 	uint8_t* buf = new uint8_t[size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, size);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, size);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
@@ -1346,7 +1349,8 @@ TiXmlElement* Havok_TagObject::exportXml(string name)
 		for (size_t i = 0; i<nbObj; i++)
 			node->LinkEndChild(listObjectTuple.at(i)->exportXml());
 	}else {
-		printf("unknow superType->subType() : %s", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		printf("unknow superType->subType() : %s\n", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		notifyError();
 	}
 
 	return node;
@@ -1412,7 +1416,8 @@ bool Havok::Compile(TiXmlDocument *doc, bool big_endian)
 		}
 		*/
 
-		LOG_DEBUG("Cannot find\"Havok\" in xml.\n");
+		printf("Cannot find\"Havok\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -1431,18 +1436,21 @@ bool Havok::import_Xml(TiXmlElement* rootNode)
 	if (!node_Types)
 	{
 		printf("Cannot find\"ListType\" in xml.\n");
+		notifyError();
 		return false;
 	}
 	TiXmlElement* node_Data = rootNode->FirstChildElement("Data");
 	if (!node_Data)
 	{
 		printf("Cannot find\"Data\" in xml.\n");
+		notifyError();
 		return false;
 	}
 	TiXmlElement* node_Item = rootNode->FirstChildElement("ListItem");
 	if (!node_Item)
 	{
 		printf("Cannot find\"ListItem\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -1769,7 +1777,8 @@ bool Havok_TagObject::importXml(TiXmlElement* node, std::vector<Havok_TagType*> 
 		}
 
 	}else {
-		printf("unknow superType->subType() : %s", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		printf("unknow superType->subType() : %s\n", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		notifyError();
 	}
 
 
@@ -1812,12 +1821,14 @@ bool Havok::import_Xml_v2014_01_00_r1(TiXmlElement* rootNode)
 	if (!node_Types)
 	{
 		printf("Cannot find\"class\" in xml.\n");
+		notifyError();
 		return false;
 	}
 	TiXmlElement* node_Data = rootNode->FirstChildElement("object");
 	if (!node_Data)
 	{
 		printf("Cannot find\"object\" in xml.\n");
+		notifyError();
 		return false;
 	}
 	
@@ -2225,7 +2236,8 @@ Havok_TagObject* Havok::objectImportXml_v2014_01_00_r1(TiXmlElement* node, std::
 	Havok_TagType* type = searchForType(str);
 	if (!type)
 	{
-		printf("warning: type %s not found. it's not normal. skipped", str.c_str());
+		printf("warning: type %s not found. it's not normal. skipped\n", str.c_str());
+		notifyError();
 		return 0;
 	}
 	Havok_TagType* supertype = type->superType();
@@ -2295,7 +2307,8 @@ Havok_TagObject* Havok::objectImportXml_v2014_01_00_r1(TiXmlElement* node, std::
 			obj->listObjectTuple.push_back(objectImportXml_v2014_01_00_r1(node_tmp, linkObj, linkIndex, parentAttachement));
 
 	}else {
-		printf("unknow superType->subType() : %s", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		printf("unknow superType->subType() : %s\n", EMO_BaseFile::UnsignedToString(supertype->subType(), true).c_str());
+		notifyError();
 	}
 
 
@@ -3582,7 +3595,7 @@ bool Havok::importFBX(FbxNode *fbxNode)
 
 	if (!isSuccess)
 	{
-		printf("Warning: fbx node '%s' fail to be used in havok file", name.c_str());
+		printf("Warning: fbx node '%s' fail to be used in havok file\n", name.c_str());
 		LibXenoverse::notifyWarning();
 	}
 
@@ -3702,7 +3715,7 @@ bool Havok_TagObject::importFBX(FbxNode *fbxNode, std::vector<string> &xmlPath, 
 			size_t nbTriangle = listTriangle.size();
 			if ((nbVertex == 0)||(nbTriangle==0))
 			{
-				printf("Error hkGeometry : We need minimum one vertice and one triangle in havok as a model for new values.");
+				printf("Error hkGeometry : We need minimum one vertice and one triangle in havok as a model for new values.\n");
 				LibXenoverse::notifyError();
 				return false;
 			}
@@ -4072,7 +4085,7 @@ void Havok::simplifyHavokXml(string filename, string filenameOut)
 		}
 
 	}else {
-		LOG_DEBUG("Cannot find\"Havok\" in xml.\n");
+		printf("Cannot find\"Havok\" in xml.\n");
 		LibXenoverse::notifyError();
 		return;
 	}

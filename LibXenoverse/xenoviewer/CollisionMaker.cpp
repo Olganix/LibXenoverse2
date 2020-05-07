@@ -842,7 +842,7 @@ void CollisionMaker::exportVoxel_Havok(string basename)
 	buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath + "/resources/box_template.hkx.xml", &size, true);
 	if (!buf)
 	{
-		printf("Error loading file : resources/box_template.hkx.xml");
+		printf("Error loading file : resources/box_template.hkx.xml\n");
 		LibXenoverse::notifyError();
 		QMessageBox::about(NULL, "Collision Voxel Export", "Fail to load /resources/box_template.hkx.xml. Export Fail.");
 		return;
@@ -952,7 +952,7 @@ void CollisionMaker::exportVoxel_Havok(string basename)
 		LibXenoverse::Havok *havok = new LibXenoverse::Havok();
 		if (!havok->Compile(&doc))
 		{
-			printf("Error on parsing havok");
+			printf("Error on parsing havok\n");
 			LibXenoverse::notifyError();
 			LibXenoverse::waitOnEnd();
 		}

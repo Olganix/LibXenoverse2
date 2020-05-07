@@ -57,7 +57,7 @@ bool NSK::loadXml(string filename)
 	if (!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -67,7 +67,7 @@ bool NSK::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'NSK' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -136,8 +136,8 @@ void NSK::read(File *file)
 			mEsk = 0;
 		}
 	}catch(exception &e) {
-		LOG_DEBUG("load ESK part faild : %s\n", e.what());
-
+		printf("load ESK part faild : %s\n", e.what());
+		notifyError();
 		delete mEsk;
 		mEsk = 0;
 	}
@@ -163,7 +163,8 @@ void NSK::read(File *file)
 			mEmd = 0;
 		}
 	}catch (exception &e) {
-		LOG_DEBUG("load EMD part faild : %s\n", e.what());
+		printf("load EMD part faild : %s\n", e.what());
+		notifyError();
 		delete mEmd;
 		mEmd = 0;
 	}
@@ -210,9 +211,10 @@ void NSK::addEmdFile(const std::string filename)
 			delete mEmd;
 
 		mEmd = emd;
-	}
-	catch (exception &e) {
-		LOG_DEBUG("load ESK %s faild : %s\n", filename.c_str(), e.what());
+
+	}catch (exception &e) {
+		printf("load ESK %s faild : %s\n", filename.c_str(), e.what());
+		notifyError();
 		if (emd)
 			delete emd;
 	}
@@ -232,9 +234,10 @@ void NSK::addEskFile(const std::string filename)
 			delete mEsk;
 
 		mEsk = esk;
-	}
-	catch (exception &e) {
-		LOG_DEBUG("load ESK %s faild : %s\n", filename.c_str(), e.what());
+
+	}catch (exception &e) {
+		printf("load ESK %s faild : %s\n", filename.c_str(), e.what());
+		notifyError();
 		if (esk)
 			delete esk;
 	}
@@ -272,7 +275,7 @@ bool NSK::direct_extract(string filename)
 
 		ESK esk;							//to be more precise on Size , and avoid padding in new esk.
 		if (esk.load(&file, "test"))
-			size_esk = sizeof(ESK_Header) + esk.getWriteSize(esk.getBone(0)->haveTransformMatrix);
+			size_esk = sizeof(ESK_Header) + esk.getWriteSize(esk.getBone(0)->haveAbsoluteMatrix);
 
 		char* buf = (char*)malloc(size_esk);
 		file.goToAddress(startAddress_Esk);

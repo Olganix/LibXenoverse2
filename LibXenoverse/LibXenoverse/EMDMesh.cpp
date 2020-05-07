@@ -12,7 +12,7 @@ EMDMesh::EMDMesh(EMDMesh* emdMesh)
 	if (emdMesh)
 	{
 		name = emdMesh->name;
-		unknow_total = emdMesh->unknow_total;
+		unknow_0 = emdMesh->unknow_0;
 		
 		aabb_center_x = emdMesh->aabb_center_x;
 		aabb_center_y = emdMesh->aabb_center_y;
@@ -47,7 +47,7 @@ EMDMesh::~EMDMesh(void)
 void EMDMesh::zero(void)
 {
 	aabb_center_x = aabb_center_y = aabb_center_z = aabb_center_w = aabb_min_x = aabb_min_y = aabb_min_z = aabb_min_w = aabb_max_x = aabb_max_y = aabb_max_z = aabb_max_w = 0.0f;
-	unknow_total = 0;
+	unknow_0 = 0;
 	name = "";
 }
 /*-------------------------------------------------------------------------------\
@@ -57,7 +57,6 @@ void EMDMesh::read(File *file, uint16_t &paddingForCompressedVertex)
 {
 	unsigned int address = 0;
 	unsigned int base_mesh_address = file->getCurrentAddress();
-	printf("Reading Mesh at %d\n", base_mesh_address);
 
 	file->readFloat32E(&aabb_center_x);
 	file->readFloat32E(&aabb_center_y);
@@ -76,21 +75,13 @@ void EMDMesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	unsigned short submesh_total = 0;
 	unsigned int submesh_table_address = 0;
 	file->readInt32E(&mesh_name_offset);
-	file->readInt16E(&unknow_total);
+	file->readInt16E(&unknow_0);
 	file->readInt16E(&submesh_total);
 	file->readInt32E(&submesh_table_address);
 
 	file->goToAddress(base_mesh_address + mesh_name_offset);
 	file->readString(&name);
 
-	LOG_DEBUG("Mesh Floats\n");
-	LOG_DEBUG("%f %f %f %f\n", aabb_center_x, aabb_center_y, aabb_center_z, aabb_center_w);
-	LOG_DEBUG("%f %f %f %f\n", aabb_min_x, aabb_min_y, aabb_min_z, aabb_min_w);
-	LOG_DEBUG("%f %f %f %f\n\n", aabb_max_x, aabb_max_y, aabb_max_z, aabb_max_w);
-
-	LOG_DEBUG("Mesh Name: %s\n", name.c_str());
-	LOG_DEBUG("\nSubmesh Total: %d\n", submesh_total);
-		
 	for (size_t k = 0; k < submesh_total; k++)
 	{
 		file->goToAddress(base_mesh_address + submesh_table_address + k * 4);
@@ -152,7 +143,7 @@ void EMDMesh::write(File *file, uint16_t paddingForCompressedVertex)
 	// Fix Offsets
 	file->goToAddress(base_mesh_address + 0x30);
 	file->writeInt32E(&mesh_name_offset);
-	file->writeInt16E(&unknow_total);
+	file->writeInt16E(&unknow_0);
 	file->writeInt16E(&submesh_total);
 	file->writeInt32E(&submesh_table_address);
 	file->goToEnd();

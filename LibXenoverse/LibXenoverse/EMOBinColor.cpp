@@ -1019,8 +1019,8 @@ void EMA::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 			{
 				if (val16(chdr->bone_idx) >= GetNumBones())
 				{
-					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in AnimNode 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
-					//return;
+					printf("Bone idx 0x%x out of bounds, in animation \"%s\", in AnimNode 0x%x. could happen for certain material animation (we don't know why yet)\n", chdr->bone_idx, animation.name.c_str(), j);
+					notifyWarning();
 					node.bone = nullptr;
 				}else {
 					node.bone = &bones[val16(chdr->bone_idx)];

@@ -33,11 +33,11 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)							//read
 
 	SkeletonHeader *hdr = (SkeletonHeader *)buf;
 	uint16_t node_count = val16(hdr->node_count);
+	unknow_0 = val32(hdr->unknow_0);
+	unknow_1 = val32(hdr->unknow_1);
 	unknow_2 = val32(hdr->unknow_2);
 	unknow_3 = val32(hdr->unknow_3);
 	unknow_4 = val32(hdr->unknow_4);
-	unknow_5 = val32(hdr->unknow_5);
-	unknow_6 = val32(hdr->unknow_6);
 	skeletonUniqueId = val64(hdr->skeletonUniqueId);
 	
 
@@ -77,7 +77,7 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)							//read
 
 		if (absMatrixes)
 		{
-			bone.has_absoluteMatrix = true;
+			bone.haveAbsoluteMatrix = true;
 			for (int j = 0; j < 16; j++)
 				bone.absoluteMatrix[j] = val_float(absMatrixes[i].absoluteMatrix[j]);
 		}
@@ -200,7 +200,7 @@ bool EMO_Skeleton::Load(const uint8_t *buf, unsigned int size)							//read
 					break;
 
 			}else {
-				LOG_DEBUG("Error: Ik_Group type unknow %i: \n", typeGroup);
+				printf("Error: Ik_Group type unknow %i: \n", typeGroup);
 				LibXenoverse::notifyError();
 			}
 			if (wrongOldCaseDetected)
@@ -316,7 +316,8 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 	buf = new uint8_t[file_size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		notifyError();
 		return nullptr;
 	}
 
@@ -328,11 +329,11 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 	hdr->ik2_count = 0;
 	hdr->ik2_offset = 0;
 	hdr->ik2_names_offset = 0;
+	hdr->unknow_0 = val32(unknow_0);
+	hdr->unknow_1 = val32(unknow_1);
 	hdr->unknow_2 = val32(unknow_2);
 	hdr->unknow_3 = val32(unknow_3);
 	hdr->unknow_4 = val32(unknow_4);
-	hdr->unknow_5 = val32(unknow_5);
-	hdr->unknow_6 = val32(unknow_6);
 	hdr->skeletonUniqueId = val64(skeletonUniqueId);
 	
 	offset = sizeof(SkeletonHeader);
@@ -353,24 +354,6 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 		nodes[i].sibling_id = val16(BoneToIndex(bones[i].sibling));
 
 		nodes[i].emgIndex = (typeFile == EMA_TYPE_ANIM_Material) ? 0xFFFF : val16(bones[i].emgIndex);
-
-		/*
-		if (typeFile != EMA_TYPE_ANIM_Material)					//case ssssss USI_9stone00.eo.emo didn't work on automatic detections.
-		{
-			string boneName = bones[i].GetName();
-			for (size_t j = 0; j < listEMG_tmp.size(); j++)
-			{
-				if (listEMG_tmp.at(j) == boneName)
-				{
-					nodes[i].emgIndex = val16(listEMGIndex_tmp.at(j));
-
-					listEMG_tmp.erase(listEMG_tmp.begin() + j);				//to avoid duplicate name in bones, like  for Cor.emo.
-					listEMGIndex_tmp.erase(listEMGIndex_tmp.begin() + j);
-					break;
-				}
-			}
-		}
-		*/
 
 		nodes[i].unknow_0 = val16(bones[i].unknow_0);
 		nodes[i].ik_flag = val16(bones[i].ik_flag);
@@ -421,7 +404,7 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 
 	// Padding special , sort of match from the 8 before the names.
 	if ( (offset > startNames) && 
-		((addLastPadding) || (bones[0].has_absoluteMatrix) || (listInverseKinematic.size()) || (listInverseKinematic2.size())) )
+		((addLastPadding) || (bones[0].haveAbsoluteMatrix) || (listInverseKinematic.size()) || (listInverseKinematic2.size())) )
 	{
 		/*
 		startNames += (size_t)(ceil((double)(startNames) / 8.0) * 8.0) - startNames;
@@ -436,7 +419,7 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 	}
 
 
-	if (bones[0].has_absoluteMatrix)
+	if (bones[0].haveAbsoluteMatrix)
 	{
 		hdr->offset_absMatrices = val32(offset);
 
@@ -658,7 +641,11 @@ uint8_t *EMO_Skeleton::CreateFile(unsigned int *psize, std::vector<string> listE
 	}
 
 
-	assert(offset == file_size);
+	if (offset != file_size)
+	{
+		printf("Error: the size of the final file is not the same as allocated memory. so there certainly is a mistake. please contact the dev team and send them yours current sample.\n");
+		notifyError();
+	}
 
 	*psize = file_size;
 	return buf;
@@ -712,7 +699,7 @@ unsigned int EMO_Skeleton::CalculateFileSize(bool addLastPadding) const
 
 	// Padding special , sort of match from the 8 before the names.
 	if ((file_size > startNames) && 
-		((addLastPadding) || (bones[0].has_absoluteMatrix) || (listInverseKinematic.size()) || (listInverseKinematic2.size())))
+		((addLastPadding) || (bones[0].haveAbsoluteMatrix) || (listInverseKinematic.size()) || (listInverseKinematic2.size())))
 	{
 		/*
 		startNames += (size_t)(ceil((double)(startNames) / 8.0) * 8.0) - startNames;
@@ -726,7 +713,7 @@ unsigned int EMO_Skeleton::CalculateFileSize(bool addLastPadding) const
 		file_size += size_padding;
 	}
 
-	if (bones[0].has_absoluteMatrix)
+	if (bones[0].haveAbsoluteMatrix)
 		file_size += (bones.size() * sizeof(EMO_Ske_Bone_Absolute_Matrix));
 
 	file_size += calculIksize(addLastPadding);
@@ -863,7 +850,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Decompilation of file \"%s\" failed.\n", path.c_str());
+			printf("Decompilation of file \"%s\" failed.\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -876,7 +863,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
 		{
 			if (show_error)
 			{
-				LOG_DEBUG("Cannot create path for file \"%s\"\n", path.c_str());
+				printf("Cannot create path for file \"%s\"\n", path.c_str());
 				LibXenoverse::notifyError();
 			}
 
@@ -889,7 +876,7 @@ bool EMO_Skeleton::DecompileSkeletonToFile(const std::string &path, bool show_er
 
 	if (!ret && show_error)
 	{
-		LOG_DEBUG("Cannot create/write file \"%s\"\n", path.c_str());
+		printf("Cannot create/write file \"%s\"\n", path.c_str());
 		LibXenoverse::notifyError();
 	}
 
@@ -909,12 +896,14 @@ void EMO_Skeleton::Decompile(TiXmlNode *root) const
 {
 	TiXmlElement *entry_root = new TiXmlElement("Skeleton");
 
-	entry_root->SetAttribute("unknow_2", UnsignedToString(unknow_2, true));
-	entry_root->SetAttribute("unknow_3", UnsignedToString(unknow_3, true));
-	entry_root->SetAttribute("unknow_4", UnsignedToString(unknow_4, true));
-	entry_root->SetAttribute("unknow_5", UnsignedToString(unknow_5, true));
-	entry_root->SetAttribute("unknow_6", UnsignedToString(unknow_6, true));
 	entry_root->SetAttribute("skeletonUniqueId", Unsigned64ToString(skeletonUniqueId, true));
+
+	entry_root->SetAttribute("unk_0", UnsignedToString(unknow_0, true));
+	entry_root->SetAttribute("unk_1", UnsignedToString(unknow_1, true));
+	entry_root->SetAttribute("unk_2", UnsignedToString(unknow_2, true));
+	entry_root->SetAttribute("unk_3", UnsignedToString(unknow_3, true));
+	entry_root->SetAttribute("unk_4", UnsignedToString(unknow_4, true));
+	
 	
 
 	{							//test Todo remove
@@ -1165,9 +1154,9 @@ void EMO_Skeleton::Decompile(TiXmlNode *root) const
 			const Emo_IK_Relation &ik = group.mListIK.at(0);
 			TiXmlElement* node_ik = new TiXmlElement("IK");
 			node_group->LinkEndChild(node_ik);
-			node_ik->SetAttribute("unknow_0", ik.unknow_0);
+			node_ik->SetAttribute("unk_0", ik.unknow_0);
 			if(group.type == LIBXENOVERSE_EMO_IK_TYPE_EQUAL)
-				node_ik->SetAttribute("unknow_1", ik.unknow_1);
+				node_ik->SetAttribute("unk_1", ik.unknow_1);
 			
 			size_t nbBones = ik.mListBones.size();
 			for (size_t k = 0; k < nbBones; k++)
@@ -1196,7 +1185,7 @@ void EMO_Skeleton::Decompile(TiXmlNode *root) const
 			TiXmlElement* node_ik2 = new TiXmlElement("IK2");
 			node_IK_list->LinkEndChild(node_ik2);
 			node_ik2->SetAttribute("name", ik2.name);
-			node_ik2->SetAttribute("unknow_0",  ik2.unknow_0); 
+			node_ik2->SetAttribute("unk_0",  ik2.unknow_0); 
 
 			size_t nbBones = ik2.mListBones.size();
 			for (size_t k = 0; k < nbBones; k++)
@@ -1222,16 +1211,16 @@ void EMO_Bone::Decompile(TiXmlNode *root, bool hasExtraData) const
 	entry_root->SetAttribute("sibling", (sibling) ? sibling->name : "");
 	entry_root->SetAttribute("EmgIndex", (emgIndex != 0xFFFF) ? ToString(emgIndex) : "");
 	entry_root->SetAttribute("ik_flag", ik_flag);					//to test todo remove.
-	entry_root->SetAttribute("unknow_1", FloatToString(unknow_1));
-
-	entry_root->SetAttribute("unknow_0", unknow_0);
+	
+	entry_root->SetAttribute("unk_0", unknow_0);
+	entry_root->SetAttribute("unk_1", FloatToString(unknow_1));
 	
 
 	entry_root->SetAttribute("debugIndex", EMO_BaseFile::UnsignedToString(debugIndex, true));			//todo remove.
 	
 	DecompileTransformationMatrix(entry_root, "RelativeTransformMatrix", relativeMatrix);
 
-	if (has_absoluteMatrix)
+	if (haveAbsoluteMatrix)
 		DecompileTransformationMatrix(entry_root, "AbsoluteTransformMatrix", absoluteMatrix);
 
 	if (hasExtraData)
@@ -1322,7 +1311,8 @@ bool EMO_Skeleton::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!root)
 	{
-		LOG_DEBUG("Cannot find\"Skeleton\" in xml.\n");
+		printf("Cannot find\"Skeleton\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -1335,11 +1325,11 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
 
 	string str = "";
 	root->QueryStringAttribute("skeletonUniqueId", &str); skeletonUniqueId = EMO_BaseFile::GetUnsigned64(str);
-	root->QueryStringAttribute("unknow_2", &str); unknow_2 = EMO_BaseFile::GetUnsigned(str);
-	root->QueryStringAttribute("unknow_3", &str); unknow_3 = EMO_BaseFile::GetUnsigned(str);
-	root->QueryStringAttribute("unknow_4", &str); unknow_4 = EMO_BaseFile::GetUnsigned(str);
-	root->QueryStringAttribute("unknow_5", &str); unknow_5 = EMO_BaseFile::GetUnsigned(str);
-	root->QueryStringAttribute("unknow_6", &str); unknow_6 = EMO_BaseFile::GetUnsigned(str);
+	root->QueryStringAttribute("unk_0", &str); unknow_0 = EMO_BaseFile::GetUnsigned(str);
+	root->QueryStringAttribute("unk_1", &str); unknow_1 = EMO_BaseFile::GetUnsigned(str);
+	root->QueryStringAttribute("unk_2", &str); unknow_2 = EMO_BaseFile::GetUnsigned(str);
+	root->QueryStringAttribute("unk_3", &str); unknow_3 = EMO_BaseFile::GetUnsigned(str);
+	root->QueryStringAttribute("unk_4", &str); unknow_4 = EMO_BaseFile::GetUnsigned(str);
 
 
 	// Skeleton, first pass (all parameters with no relations between all bones)
@@ -1349,7 +1339,8 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
 		EMO_Bone b;
 		if (!b.Compile(elem, mHaveExtraBytesOnEachBone))
 		{
-			LOG_DEBUG("%s: EMO_Bone compilation failed.\n", FUNCNAME);
+			printf("%s: EMO_Bone compilation failed.\n", FUNCNAME);
+			notifyError();
 			return false;
 		}
 		bones.push_back(b);
@@ -1394,17 +1385,17 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
 			
 			listInverseKinematic.back().mListIK.push_back(Emo_IK_Relation());
 			Emo_IK_Relation &ik = listInverseKinematic.back().mListIK.back();
-			node_ik->QueryUnsignedAttribute("unknow_0", &tmp); ik.unknow_0 = (uint8_t)tmp;
+			node_ik->QueryUnsignedAttribute("unk_0", &tmp); ik.unknow_0 = (uint8_t)tmp;
 
 			ik.unknow_1 = 0;
 			if(listInverseKinematic.back().type == LIBXENOVERSE_EMO_IK_TYPE_EQUAL)
-				node_ik->QueryUnsignedAttribute("unknow_1", &tmp); ik.unknow_1 = (uint8_t)tmp;
+				node_ik->QueryUnsignedAttribute("unk_1", &tmp); ik.unknow_1 = (uint8_t)tmp;
 
 			const TiXmlElement* node_influenced = node_ik->FirstChildElement("BoneInfluenced");
 			if (!node_influenced)
 			{
 				printf("No 'BoneInfluenced' tags find. skip.'\n");
-				getchar();
+				notifyError();
 				listInverseKinematic.pop_back();
 				continue;
 			}
@@ -1432,7 +1423,7 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
 				ik.mListBones.push_back(Emo_IK_Relation::IKR_Bone(eskBone, (float)value));
 			}else {
 				printf("'BoneInfluenced' not found in bones declaration. skip.'\n");
-				getchar();
+				notifyError();
 				listInverseKinematic.pop_back();
 				continue;
 			}
@@ -1481,7 +1472,7 @@ bool EMO_Skeleton::Compile(const TiXmlElement *root)
 			listInverseKinematic2.push_back(Emo_IK_Relation2());
 			Emo_IK_Relation2 &ik = listInverseKinematic2.back();
 			node_ik->QueryStringAttribute("name", &ik.name);
-			node_ik->QueryUnsignedAttribute("unknow_0", &ik.unknow_0);
+			node_ik->QueryUnsignedAttribute("unk_0", &ik.unknow_0);
 			
 			for (const TiXmlElement* node = node_ik->FirstChildElement("Bone"); node; node = node->NextSiblingElement("Bone"))
 			{
@@ -1507,7 +1498,8 @@ bool EMO_Bone::Compile(const TiXmlElement *root, bool hasExtraData)
 {
 	if (root->QueryStringAttribute("name", &name) != 0)
 	{
-		LOG_DEBUG("%s: Cannot get name of EMO_Bone.\n", FUNCNAME);
+		printf("%s: Cannot get name of EMO_Bone.\n", FUNCNAME);
+		notifyWarning();
 	}
 
 	string str = "";
@@ -1516,8 +1508,8 @@ bool EMO_Bone::Compile(const TiXmlElement *root, bool hasExtraData)
 
 	size_t tmp = 0;
 	root->QueryUnsignedAttribute("ik_flag", &tmp);	ik_flag = tmp;				//to test perfect rebuild todo remove.
-	root->QueryStringAttribute("unknow_1", &str); unknow_1 = StringToFloat(str);
-	root->QueryUnsignedAttribute("unknow_0", &tmp); unknow_0 = tmp;
+	root->QueryUnsignedAttribute("unk_0", &tmp); unknow_0 = tmp;
+	root->QueryStringAttribute("unk_1", &str); unknow_1 = StringToFloat(str);
 
 	
 	if (hasExtraData)
@@ -1534,7 +1526,7 @@ bool EMO_Bone::Compile(const TiXmlElement *root, bool hasExtraData)
 
 
 	const TiXmlElement* absoluteTransformMatrixNode = root->FirstChildElement("AbsoluteTransformMatrix");
-	has_absoluteMatrix = (absoluteTransformMatrixNode != 0);
+	haveAbsoluteMatrix = (absoluteTransformMatrixNode != 0);
 	CompileTransformationMatrix(absoluteTransformMatrixNode, absoluteMatrix);
 
 	meta_original_offset = 0xFFFFFFFF;
@@ -1552,7 +1544,7 @@ bool EMO_Bone::CompileTransformationMatrix(const TiXmlElement *root, float *matr
 	if (!lineNode3)
 	{
 		printf("AbsoluteTransformMatrix incomplete number of 'Line'. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 
 	}
@@ -1607,20 +1599,20 @@ void EMO_Bone::readESKBone(ESKBone* esk)
 	unk_extraInfo_2 = esk->unk_extraInfo_2;
 	unk_extraInfo_3 = esk->unk_extraInfo_3;
 
-	has_absoluteMatrix = esk->haveTransformMatrix;
+	haveAbsoluteMatrix = esk->haveAbsoluteMatrix;
 
-	if (has_absoluteMatrix)
+	if (haveAbsoluteMatrix)
 	{
 		for (size_t i = 0; i < 16; i++)
 			absoluteMatrix[i] = esk->absoluteMatrix[i];
 	}
 
-	double skinning_matrix_a[12];									//special tranformation from observation between skinningMatrix and transformMatrix
+	double relativeTransform_a[12];									//special tranformation from observation between relativeTransform and transformMatrix
 	for (size_t i = 0; i < 12; i++)
-		skinning_matrix_a[i] = esk->relativeTransform[i];
+		relativeTransform_a[i] = esk->relativeTransform[i];
 
 	double resultTransformMatrix[16];
-	ESKBone::makeTransform4x4(&skinning_matrix_a[0], &resultTransformMatrix[0]);
+	ESKBone::makeTransform4x4(&relativeTransform_a[0], &resultTransformMatrix[0]);
 	ESKBone::transpose4x4(&resultTransformMatrix[0]);				//in Ogre, position is in last colone, but in Esk, position is on the last row, so we will use Transpose transformation.
 
 	for (size_t i = 0; i < 16; i++)
@@ -1883,32 +1875,28 @@ void EMO_Bone::writeESKBone(ESKBone* esk)
 
 
 
-	esk->haveTransformMatrix = has_absoluteMatrix;
+	esk->haveAbsoluteMatrix = haveAbsoluteMatrix;
 
-	if (esk->haveTransformMatrix)
+	if (esk->haveAbsoluteMatrix)
 	{
 		for (size_t i = 0; i < 16; i++)
-			esk->relativeTransform[i] = absoluteMatrix[i];
+			esk->absoluteMatrix[i] = absoluteMatrix[i];
 	}
 
 
 
 
-	double resultTransformMatrix[16];
 	double tmpTransformMatrix[16];
 
 	for (size_t i = 0; i < 16; i++)
-	{
 		tmpTransformMatrix[i] = relativeMatrix[i];
-		resultTransformMatrix[i] = relativeMatrix[i];
-	}
 
-	ESKBone::transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
-	double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-	ESKBone::decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
+	ESKBone::transpose4x4(&tmpTransformMatrix[0]);		//come back to Ogre matrice way
+	double relativeTransform_b[12];						//special tranformation from observation between relativeTransform and relativeMatrix
+	ESKBone::decomposition4x4(&tmpTransformMatrix[0], &relativeTransform_b[0]);
 
 	for (size_t i = 0; i < 12; i++)
-		esk->relativeTransform[i] = (float)skinning_matrix_b[i];
+		esk->relativeTransform[i] = (float)relativeTransform_b[i];
 }
 
 
@@ -2028,7 +2016,7 @@ EMO_Bone::EMO_Bone(void)
 	unk_extraInfo_2 = 0xffff;
 	debugIndex = 0;
 
-	has_absoluteMatrix = false;
+	haveAbsoluteMatrix = false;
 
 	for (size_t i = 0; i < 16; i++)
 	{
@@ -2155,7 +2143,7 @@ bool EMO_Bone::PartialCompare(const EMO_Bone *b1, const EMO_Bone *b2)
 
     if( (!b1) || (!b2) || 
 		(b1->name != b2->name) ||
-		(b1->has_absoluteMatrix != b2->has_absoluteMatrix) ||
+		(b1->haveAbsoluteMatrix != b2->haveAbsoluteMatrix) ||
 		(b1->emgIndex != b2->emgIndex) ||
 		(b1->unknow_0 != b2->unknow_0) ||
 		(b1->ik_flag != b2->ik_flag) ||
@@ -2168,7 +2156,7 @@ bool EMO_Bone::PartialCompare(const EMO_Bone *b1, const EMO_Bone *b2)
 		((b1->child != b2->child) && ((!b1->child) || (!b2->child) || (b1->child->name != b2->child->name))) || 
 		((b1->sibling != b2->sibling) && ((!b1->sibling) || (!b2->sibling) || (b1->sibling->name != b2->sibling->name))) ||
 		(memcmp(b1->relativeMatrix, b2->relativeMatrix, sizeof(b1->relativeMatrix)) != 0) ||
-		((b1->has_absoluteMatrix) && (memcmp(b1->absoluteMatrix, b2->absoluteMatrix, sizeof(b1->absoluteMatrix)) != 0))
+		((b1->haveAbsoluteMatrix) && (memcmp(b1->absoluteMatrix, b2->absoluteMatrix, sizeof(b1->absoluteMatrix)) != 0))
 		)
     {
         return false;
@@ -2217,11 +2205,11 @@ void EMO_Skeleton::Copy(const EMO_Skeleton &other)
 {
 	this->listInverseKinematic = other.listInverseKinematic;
 	this->listInverseKinematic2 = other.listInverseKinematic2;
+	this->unknow_0 = other.unknow_0;
+	this->unknow_1 = other.unknow_1;
 	this->unknow_2 = other.unknow_2;
 	this->unknow_3 = other.unknow_3;
 	this->unknow_4 = other.unknow_4;
-	this->unknow_5 = other.unknow_5;
-	this->unknow_6 = other.unknow_6;
     this->skeletonUniqueId = other.skeletonUniqueId;
 	this->context = context;
 
@@ -2230,22 +2218,13 @@ void EMO_Skeleton::Copy(const EMO_Skeleton &other)
     for (EMO_Bone &b : bones)
     {
         if (b.parent)
-        {
             b.parent = GetBone(b.parent->name);
-			assert(b.parent != nullptr);
-        }
 		
 		if (b.child)
-		{
 			b.child = GetBone(b.child->name);
-			assert(b.child != nullptr);
-		}
 		
 		if (b.sibling)
-		{
 			b.sibling = GetBone(b.sibling->name);
-			assert(b.sibling != nullptr);
-		}
     }
 
     this->big_endian = other.big_endian;
@@ -2254,7 +2233,7 @@ void EMO_Skeleton::Copy(const EMO_Skeleton &other)
 void EMO_Skeleton::Reset()
 {
 	mHaveExtraBytesOnEachBone = true;					//by default object have Extra, but camera light or material animation don't have Extra.
-	unknow_2 = unknow_3 = unknow_4 = unknow_5 = unknow_6 = 0;
+	unknow_0 = unknow_1 = unknow_2 = unknow_3 = unknow_4 = 0;
 	skeletonUniqueId = 0;
 
 	context = ContextUse::Object;
@@ -2266,18 +2245,14 @@ void EMO_Skeleton::Reset()
 
 uint16_t EMO_Skeleton::FindBone(const std::vector<EMO_Bone *> &bones, EMO_Bone *bone, bool assert_if_not_found)
 {
-    assert(bone != nullptr);
+    if(bone == nullptr)
+		return 0xFFFF;
 
     for (size_t i = 0; i < bones.size(); i++)
-    {
-        if (bones[i] == bone)
+        if (bones.at(i) == bone)
             return i;
-    }
 
-    if (assert_if_not_found)
-    {
-        assert(0);
-    }
+    if (assert_if_not_found) { assert(0); }
 
     return 0xFFFF;
 }
@@ -2287,19 +2262,13 @@ void EMO_Skeleton::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
     for (EMO_Bone &b : bones)
     {
         if (b.parent != nullptr)
-        {
             b.parent = &bones[FindBone(old_bones_ptr, b.parent, true)];
-        }
 
         if (b.child != nullptr)
-        {
             b.child = &bones[FindBone(old_bones_ptr, b.child, true)];
-        }
 
         if (b.sibling != nullptr)
-        {
             b.sibling = &bones[FindBone(old_bones_ptr, b.sibling, true)];
-        }
     }
 }
 
@@ -2454,8 +2423,8 @@ uint16_t EMO_Skeleton::BoneToIndex(EMO_Bone *bone) const
             return i;
     }
 
-    LOG_DEBUG("%s: We are about to crash or abort.\n", FUNCNAME);
-    LOG_DEBUG("Cannot find bone \"%s\" in this skeleton\n", bone->name.c_str());
+	printf("%s: We are about to crash or abort.\n", FUNCNAME);
+	printf("Cannot find bone \"%s\" in this skeleton\n", bone->name.c_str());
 	LibXenoverse::notifyError();
 
     //LOG_DEBUG("%s: coding error somewhere. This bone is not in this object (%s)\n", FUNCNAME, bone->name.c_str());
@@ -2480,11 +2449,11 @@ bool EMO_Skeleton::operator==(const EMO_Skeleton &rhs) const
 		if (listInverseKinematic2.at(i) != rhs.listInverseKinematic2.at(i))
 			return false;
 
-	if( (this->unknow_2 != rhs.unknow_2) ||
+	if( (this->unknow_0 != rhs.unknow_0) ||
+		(this->unknow_1 != rhs.unknow_1) ||
+		(this->unknow_2 != rhs.unknow_2) ||
 		(this->unknow_3 != rhs.unknow_3) ||
 		(this->unknow_4 != rhs.unknow_4) ||
-		(this->unknow_5 != rhs.unknow_5) ||
-		(this->unknow_6 != rhs.unknow_6) ||
 		(this->skeletonUniqueId != rhs.skeletonUniqueId) ||
 		(this->bones != rhs.bones)  )
 		return false;

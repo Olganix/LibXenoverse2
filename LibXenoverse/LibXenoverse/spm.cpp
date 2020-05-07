@@ -62,7 +62,8 @@ bool Spm::Compile(TiXmlDocument *doc, bool big_endian)
 	TiXmlElement* rootNode = EMO_BaseFile::FindRoot(&handle, "Spm");
 	if (!rootNode)
 	{
-		LOG_DEBUG("Cannot find\"Spm\" in xml.\n");
+		printf("Cannot find\"Spm\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -863,7 +864,7 @@ bool Spm::Compile(TiXmlDocument *doc, bool big_endian)
 	uint8_t *buf = new uint8_t[filesize];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
@@ -885,6 +886,7 @@ bool Spm::Compile(TiXmlDocument *doc, bool big_endian)
 	if (!f)
 	{
 		printf("Cannot open for write/create file \"%s\"\n", filename.c_str());
+		notifyError();
 		return false;
 	}
 
@@ -909,7 +911,8 @@ bool Spm::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!rootNode)
 	{
-		LOG_DEBUG("Cannot find\"Spm\" in xml.\n");
+		printf("Cannot find\"Spm\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -925,14 +928,16 @@ bool Spm::import_Xml(TiXmlElement* rootNode)
 	TiXmlElement* partsNode = rootNode->FirstChildElement("Parts");
 	if (!partsNode)
 	{
-		LOG_DEBUG("Cannot find\"Parts\" in xml.\n");
+		printf("Cannot find\"Parts\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
 	TiXmlElement* textureUnitsNode = rootNode->FirstChildElement("TextureUnits");
 	if (!textureUnitsNode)
 	{
-		LOG_DEBUG("Cannot find\"TextureUnits\" in xml.\n");
+		printf("Cannot find\"TextureUnits\" in xml.\n");
+		notifyError();
 		return false;
 	}
 

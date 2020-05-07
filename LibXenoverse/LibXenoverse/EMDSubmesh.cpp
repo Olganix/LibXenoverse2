@@ -59,8 +59,6 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	unsigned int base_submesh_address = file->getCurrentAddress();
 
 	// Read Submesh
-	printf("\nReading Submesh at %d\n", base_submesh_address);
-
 	file->readFloat32E(&aabb_center_x);
 	file->readFloat32E(&aabb_center_y);
 	file->readFloat32E(&aabb_center_z);
@@ -73,11 +71,6 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	file->readFloat32E(&aabb_max_y);
 	file->readFloat32E(&aabb_max_z);
 	file->readFloat32E(&aabb_max_w);
-
-	LOG_DEBUG("Submesh Floats\n");
-	LOG_DEBUG("%f %f %f %f\n", aabb_center_x, aabb_center_y, aabb_center_z, aabb_center_w);
-	LOG_DEBUG("%f %f %f %f\n", aabb_min_x, aabb_min_y, aabb_min_z, aabb_min_w);
-	LOG_DEBUG("%f %f %f %f\n\n", aabb_max_x, aabb_max_y, aabb_max_z, aabb_max_w);
 
 	unsigned int vertex_count = 0;
 	unsigned int vertex_address = 0;
@@ -105,10 +98,9 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	if (calculatedSize != vertex_size)
 	{
 		printf("Strange VertexDefinition Size : Flag %x => calculatedSize: %u octets but have %u in file informations. => Will be skipped.\nPress a key to continue.\n", vertex_type_flag, calculatedSize, vertex_size);
-		getchar();
+		notifyError();
 		return;
 	}
-	LOG_DEBUG("%s\n", EMDVertex::getFlagsVertexDefinitionInformations(vertex_type_flag) );
 	
 
 
@@ -119,17 +111,7 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	// Use a placeholder string instead
 	if (!name.size()) name = "null";
 
-	LOG_DEBUG("Submesh Triangles Count: %d\n", submesh_triangles_count);
-	LOG_DEBUG("Submesh Material Name: %s\n", name.c_str());
-	LOG_DEBUG("Submesh Definitions: %d\n", submesh_definition_count);
-
-	printf("Submesh Name: %s\n", name.c_str());
-	printf("Submesh Unknown 1: %d\n", vertex_type_flag);
-	printf("Vertex Size: %d\n", vertex_size);
-	printf("Vertex Count: %d\n", vertex_count);
-	printf("Vertex Address: %d\n", vertex_address);
-	printf("Submesh Offset 1: %d\n", submesh_offset_1);
-	printf("Submesh Offset 2: %d\n", submesh_offset_2);
+	printf("Submesh Name: %s, %d vertex (flag: %s)\n", name.c_str(), vertex_count, EMO_BaseFile::UnsignedToString(vertex_type_flag, true).c_str());
 
 	definitions.resize(submesh_definition_count);
 	for (size_t i = 0; i < submesh_definition_count; i++)
@@ -144,23 +126,23 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 	{
 		file->goToAddress(base_submesh_address + submesh_offset_2 + i * 4);
 
-		printf("Reading Triangles address at %d\n", file->getCurrentAddress());
 		file->readInt32E(&address);
 
 		if (address)
 		{
 			file->goToAddress(base_submesh_address + address);
 		}else{
+			/*
 			if (submesh_triangles_count > 1)
 			{
 				printf("More than 1 submesh triangle list but address is 0? Exception not handled.\n");
-				getchar();
+				notifyError();
 			}
+			*/
 
 			file->goToAddress(base_submesh_address + submesh_offset_2 + 4);
 		}
 
-		LOG_DEBUG("Reading triangle list at %d from submesh\n", file->getCurrentAddress());
 		triangles[i].read(file);
 	}
 
@@ -174,9 +156,6 @@ void EMDSubmesh::read(File *file, uint16_t &paddingForCompressedVertex)
 		vertices[v].read(file, vertex_type_flag, paddingForCompressedVertex);
 		vertex_aabb.addPoint(vertices[v].pos_x, vertices[v].pos_y, vertices[v].pos_z);
 	}
-
-	LOG_DEBUG("Submesh AABB Coordinates: %f %f %f %f %f %f\n", vertex_aabb.start_x, vertex_aabb.start_y, vertex_aabb.start_z, vertex_aabb.end_x, vertex_aabb.end_y, vertex_aabb.end_z);
-	LOG_DEBUG("Submesh AABB Size: %f %f %f\n", vertex_aabb.sizeX(), vertex_aabb.sizeY(), vertex_aabb.sizeZ());
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |

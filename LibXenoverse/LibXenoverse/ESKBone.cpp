@@ -45,7 +45,7 @@ ESKBone::ESKBone(string name)
 	relativeTransform[4] = 0; relativeTransform[5] = 0; relativeTransform[6] = 0; relativeTransform[7] = 1;		//Orientation quaternion x y z w
 	relativeTransform[8] = 1; relativeTransform[9] = 1; relativeTransform[10] = 1; relativeTransform[11] = 1;	//scale
 
-	this->haveTransformMatrix = false;
+	this->haveAbsoluteMatrix = false;
 	mVisible = true;
 }
 /*-------------------------------------------------------------------------------\
@@ -63,7 +63,7 @@ ESKBone::ESKBone(ESKBone *eskBone)
 	unk_extraInfo_2 = 0xffff;
 	memcpy(&this->absoluteMatrix, &eskBone->absoluteMatrix, 16 * sizeof(float));
 	memcpy(&this->relativeTransform, &eskBone->relativeTransform, 12 * sizeof(float));
-	this->haveTransformMatrix = eskBone->haveTransformMatrix;
+	this->haveAbsoluteMatrix = eskBone->haveAbsoluteMatrix;
 
 	this->childIndex_is0xFFFF = eskBone->childIndex_is0xFFFF;
 	this->hierarchyIndex = eskBone->hierarchyIndex;
@@ -77,8 +77,6 @@ void ESKBone::readName(File *file)
 	mListFilenameOrigin.push_back(filename);
 		
 	file->readString(&name);
-
-	//LOG_DEBUG("Bone - %s\n", name.c_str());
 }
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
@@ -117,7 +115,7 @@ void ESKBone::writeIndices(File *file)
 \-------------------------------------------------------------------------------*/
 void ESKBone::readMatrix(File *file)
 {
-	this->haveTransformMatrix = true;
+	this->haveAbsoluteMatrix = true;
 		
 	for (size_t i = 0; i < 16; i++)
 		file->readFloat32E(&absoluteMatrix[i]);
@@ -133,7 +131,7 @@ void ESKBone::writeMatrix(File *file)
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::readSkinningMatrix(File *file)
+void ESKBone::readRelativeTransform(File *file)
 {
 	for (size_t i = 0; i < 12; i++)
 		file->readFloat32E(&relativeTransform[i]);
@@ -141,7 +139,7 @@ void ESKBone::readSkinningMatrix(File *file)
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::writeSkinningMatrix(File *file)
+void ESKBone::writeRelativeTransform(File *file)
 {
 	for (size_t i = 0; i < 12; i++)
 		file->writeFloat32E(&relativeTransform[i]);
@@ -151,11 +149,11 @@ void ESKBone::writeSkinningMatrix(File *file)
 \-------------------------------------------------------------------------------*/
 void ESKBone::mergeMatrix(ESKBone *eskBone)
 {
-	if ((this->haveTransformMatrix) || (!eskBone->haveTransformMatrix))				//update transform matrix only if it isn't allready define
+	if ((this->haveAbsoluteMatrix) || (!eskBone->haveAbsoluteMatrix))				//update transform matrix only if it isn't allready define
 		return;
 
 	memcpy(&this->absoluteMatrix, &eskBone->absoluteMatrix, 16 * sizeof(float));
-	this->haveTransformMatrix = true;
+	this->haveAbsoluteMatrix = true;
 }
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
@@ -170,29 +168,29 @@ void ESKBone::mergeFilenameOrigin(ESKBone *eskBone)
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive)
+void ESKBone::test_calculAbsoluteMatrixFromRelativeTransform(std::vector<ESKBone *> &listBones, bool recursive)
 {
 		
-	//1st test: calcul TransformMatrix From SkinningMatrix and compare with the original on esk. => still have precision probleme on the Thumb bones
+	//1st test: calcul AbsoluteMatrix From RelativeTransform and compare with the original on esk. => still have precision probleme on the Thumb bones
 	double resultTransformMatrix[16];
 		
-	double skinning_matrix_a[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-	skinning_matrix_a[0] = relativeTransform[0];
-	skinning_matrix_a[1] = relativeTransform[1];
-	skinning_matrix_a[2] = relativeTransform[2];
-	skinning_matrix_a[3] = relativeTransform[3];
-	skinning_matrix_a[4] = relativeTransform[4];
-	skinning_matrix_a[5] = relativeTransform[5];
-	skinning_matrix_a[6] = relativeTransform[6];
-	skinning_matrix_a[7] = relativeTransform[7];
-	skinning_matrix_a[8] = relativeTransform[8];
-	skinning_matrix_a[9] = relativeTransform[9];
-	skinning_matrix_a[10] = relativeTransform[10];
-	skinning_matrix_a[11] = relativeTransform[11];
+	double relativeTransform_a[12];						//special tranformation from observation between RelativeTransform and AbsoluteMatrix
+	relativeTransform_a[0] = relativeTransform[0];
+	relativeTransform_a[1] = relativeTransform[1];
+	relativeTransform_a[2] = relativeTransform[2];
+	relativeTransform_a[3] = relativeTransform[3];
+	relativeTransform_a[4] = relativeTransform[4];
+	relativeTransform_a[5] = relativeTransform[5];
+	relativeTransform_a[6] = relativeTransform[6];
+	relativeTransform_a[7] = relativeTransform[7];
+	relativeTransform_a[8] = relativeTransform[8];
+	relativeTransform_a[9] = relativeTransform[9];
+	relativeTransform_a[10] = relativeTransform[10];
+	relativeTransform_a[11] = relativeTransform[11];
 
-	makeTransform4x4(&skinning_matrix_a[0], &resultTransformMatrix[0]);
+	makeTransform4x4(&relativeTransform_a[0], &resultTransformMatrix[0]);
 
-	printf("************ Bone : %s\nRelative information: : \n%s\n=> result makeTransform4x4 : \n", this->getName().c_str(), this->getSkinningMatrixDebug().c_str());
+	printf("************ Bone : %s\nRelative information: : \n%s\n=> result makeTransform4x4 : \n", this->getName().c_str(), this->getRelativeTransformDebug().c_str());
 		
 	transpose4x4(&resultTransformMatrix[0]); //in Ogre, position is in last colone, but in Esk, position is on the last row, so we will use Transpose transformation.
 	displayMatrix4x4(&resultTransformMatrix[0]);
@@ -208,13 +206,13 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 		double tmpTransformMatrix_b[16];
 		for (size_t i = 0; i < 16; i++)
 			tmpTransformMatrix_b[i] = parent->absoluteMatrix[i];
 
-		printf("Parent (%s) Relative information: : \n%s\n=> tranform : \n", parent->getName().c_str(), parent->getSkinningMatrixDebug().c_str());
+		printf("Parent (%s) Relative information: : \n%s\n=> tranform : \n", parent->getName().c_str(), parent->getRelativeTransformDebug().c_str());
 		displayMatrix4x4(&tmpTransformMatrix_b[0]);
 
 		printf("result makeTransform4x4 inversed: \n");
@@ -224,7 +222,7 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 	}
 
 
-	//this->haveTransformMatrix = true;
+	//this->haveAbsoluteMatrix = true;
 	bool alreadyMakeTheCompareson = false;
 	float compare_resultTransformMatrix[16];
 	for (size_t i = 0; i < 16; i++)
@@ -240,22 +238,22 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 			{
 				alreadyMakeTheCompareson = true;
 
-				printf("there is some differences between real transform matrix: \n%s\nand result :\n", this->getTransformMatrixDebug().c_str() );
+				printf("there is some differences between real transform matrix: \n%s\nand result :\n", this->getAbsoluteMatrixDebug().c_str() );
 				displayMatrix4x4(&resultTransformMatrix[0]);
 			}
 		}
 	}
 
 		
-	//2nd test, we make the inverse, to see if we come back on skinning matrix. => not one is good, it's a failer.
-	double skinning_matrix_b[12];
+	//2nd test, we make the inverse, to see if we come back on relativeTransform. => not one is good, it's a failer.
+	double relativeTransform_b[12];
 		
 		
 	if ((this->parent_index) && (this->parent_index<listBones.size()))
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 		double tmpTransformMatrix[16];
 		double tmpTransformMatrix2[16];
@@ -272,17 +270,17 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 
 
 	transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
-	decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
+	decomposition4x4(&resultTransformMatrix[0], &relativeTransform_b[0]);
 
-	float compare_skinning_matrix_b[12];
+	float compare_relativeTransform_b[12];
 
 	for (size_t i = 0; i < 12; i++)
 	{
-		compare_skinning_matrix_b[i] = (float)skinning_matrix_b[i];
+		compare_relativeTransform_b[i] = (float)relativeTransform_b[i];
 			
 		/*
 		//test to compare precision problem.
-		if (abs(compare_skinning_matrix_b[i] - skinning_matrix[i]) > 0.000001)
+		if (abs(compare_relativeTransform_b[i] - relativeTransform[i]) > 0.000001)
 			assert(false);
 		*/
 	}
@@ -290,7 +288,7 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 
 
 
-	//3nd test, we go from transformMatrix to build skining matrix (we have to look if precision problems on generated transformMatrix from skining amtrix could be ignored.)
+	//3nd test, we go from AbsoluteMatrix to build Relativetransform (we have to look if precision problems on generated AbsoluteMatrix from RelativeTransform could be ignored.)
 	for (size_t i = 0; i < 16; i++)
 		resultTransformMatrix[i] = this->absoluteMatrix[i];
 
@@ -298,7 +296,7 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 		double tmpTransformMatrix[16];
 		double tmpTransformMatrix2[16];
@@ -315,15 +313,15 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 
 
 	transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
-	decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
+	decomposition4x4(&resultTransformMatrix[0], &relativeTransform_b[0]);
 
 	for (size_t i = 0; i < 12; i++)
 	{
-		compare_skinning_matrix_b[i] = (float)skinning_matrix_b[i];
+		compare_relativeTransform_b[i] = (float)relativeTransform_b[i];
 
 		/*
 		//test to compare precision problem.
-		if (abs(compare_skinning_matrix_b[i] - skinning_matrix[i]) > 0.000001)
+		if (abs(compare_relativeTransform_b[i] - relativeTransform[i]) > 0.000001)
 			assert(false)
 		*/
 	}
@@ -331,25 +329,25 @@ void ESKBone::test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive)
+void ESKBone::calculAbsoluteMatrixFromRelativeTransform(std::vector<ESKBone *> &listBones, bool recursive)
 {
 	double resultTransformMatrix[16];
 
-	double skinning_matrix_a[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-	skinning_matrix_a[0] = relativeTransform[0];
-	skinning_matrix_a[1] = relativeTransform[1];
-	skinning_matrix_a[2] = relativeTransform[2];
-	skinning_matrix_a[3] = relativeTransform[3];
-	skinning_matrix_a[4] = relativeTransform[4];
-	skinning_matrix_a[5] = relativeTransform[5];
-	skinning_matrix_a[6] = relativeTransform[6];
-	skinning_matrix_a[7] = relativeTransform[7];
-	skinning_matrix_a[8] = relativeTransform[8];
-	skinning_matrix_a[9] = relativeTransform[9];
-	skinning_matrix_a[10] = relativeTransform[10];
-	skinning_matrix_a[11] = relativeTransform[11];
+	double relativeTransform_a[12];						//special tranformation from observation between relativeTransform and AbsoluteMatrix
+	relativeTransform_a[0] = relativeTransform[0];
+	relativeTransform_a[1] = relativeTransform[1];
+	relativeTransform_a[2] = relativeTransform[2];
+	relativeTransform_a[3] = relativeTransform[3];
+	relativeTransform_a[4] = relativeTransform[4];
+	relativeTransform_a[5] = relativeTransform[5];
+	relativeTransform_a[6] = relativeTransform[6];
+	relativeTransform_a[7] = relativeTransform[7];
+	relativeTransform_a[8] = relativeTransform[8];
+	relativeTransform_a[9] = relativeTransform[9];
+	relativeTransform_a[10] = relativeTransform[10];
+	relativeTransform_a[11] = relativeTransform[11];
 
-	makeTransform4x4(&skinning_matrix_a[0], &resultTransformMatrix[0]);
+	makeTransform4x4(&relativeTransform_a[0], &resultTransformMatrix[0]);
 	transpose4x4(&resultTransformMatrix[0]); //in Ogre, position is in last colone, but in Esk, position is on the last row, so we will use Transpose transformation.
 
 	double tmpTransformMatrix[16];
@@ -362,7 +360,7 @@ void ESKBone::calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &li
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 		double tmpTransformMatrix_b[16];
 		for (size_t i = 0; i < 16; i++)
@@ -374,12 +372,12 @@ void ESKBone::calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &li
 
 	for (size_t i = 0; i < 16; i++)
 		absoluteMatrix[i] = (float)(resultTransformMatrix[i]);
-	this->haveTransformMatrix = true;
+	this->haveAbsoluteMatrix = true;
 }
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive)
+void ESKBone::calculRelativeTransformFromAbsoluteMatrix(std::vector<ESKBone *> &listBones, bool recursive)
 {
 	double resultTransformMatrix[16];
 	double tmpTransformMatrix[16];
@@ -396,7 +394,7 @@ void ESKBone::calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &li
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 			
 		double tmpTransformMatrix2[16];
@@ -411,16 +409,16 @@ void ESKBone::calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &li
 	inverse4x4(&tmpTransformMatrix[0], &resultTransformMatrix[0]);
 
 	transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
-	double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-	decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
+	double relativeTransform_b[12];						//special tranformation from observation between relativeTransform and AbsoluteMatrix
+	decomposition4x4(&resultTransformMatrix[0], &relativeTransform_b[0]);
 
 	for (size_t i = 0; i < 12; i++)
-		relativeTransform[i] = (float)skinning_matrix_b[i];
+		relativeTransform[i] = (float)relativeTransform_b[i];
 }
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-void ESKBone::calculSkinningMatrixFromRelativeTransformMatrix(std::vector<double> relativeTransformMatrix)
+void ESKBone::calculRelativeTransformFromRelativeTransformMatrix(std::vector<double> relativeTransformMatrix)
 {
 	double resultTransformMatrix[16];
 	double tmpTransformMatrix[16];
@@ -434,16 +432,16 @@ void ESKBone::calculSkinningMatrixFromRelativeTransformMatrix(std::vector<double
 	inverse4x4(&tmpTransformMatrix[0], &resultTransformMatrix[0]);
 
 	transpose4x4(&resultTransformMatrix[0]);		//come back to Ogre matrice way
-	double skinning_matrix_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
-	decomposition4x4(&resultTransformMatrix[0], &skinning_matrix_b[0]);
+	double relativeTransform_b[12];						//special tranformation from observation between relativeTransform and AbsoluteMatrix
+	decomposition4x4(&resultTransformMatrix[0], &relativeTransform_b[0]);
 
 	for (size_t i = 0; i < 12; i++)
-		relativeTransform[i] = (float)skinning_matrix_b[i];
+		relativeTransform[i] = (float)relativeTransform_b[i];
 }
 /*-------------------------------------------------------------------------------\
-|                             calculRelativeMatrixFromTransformMatrix            |
+|                             calculRelativeMatrixFromAbsoluteMatrix            |
 \-------------------------------------------------------------------------------*/
-std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive)
+std::vector<double> ESKBone::calculRelativeMatrixFromAbsoluteMatrix(std::vector<ESKBone *> &listBones, bool recursive)
 {
 	double resultTransformMatrix[16];
 	double tmpTransformMatrix[16];
@@ -460,7 +458,7 @@ std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector
 	{
 		ESKBone *parent = listBones.at(this->parent_index);
 		if (recursive)
-			parent->calculTransformMatrixFromSkinningMatrix(listBones, recursive);
+			parent->calculAbsoluteMatrixFromRelativeTransform(listBones, recursive);
 
 
 		double tmpTransformMatrix2[16];
@@ -483,16 +481,16 @@ std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector
 	return relativeMatrix;
 }
 /*-------------------------------------------------------------------------------\
-|                             getSkinningMatrixDebug                             |
+|                             getRelativeTransformDebug                             |
 \-------------------------------------------------------------------------------*/
-string ESKBone::getSkinningMatrixDebug(void)
+string ESKBone::getRelativeTransformDebug(void)
 {
 	return ("\"Pos\" : [" + to_string_with_precision(relativeTransform[0], 12) + ",\t" + to_string_with_precision(relativeTransform[1], 12) + ",\t" + to_string_with_precision(relativeTransform[2], 12) + ",\t" + to_string_with_precision(relativeTransform[3], 12) + "],\n\"Quaternion\": [" + to_string_with_precision(relativeTransform[4], 12) + ",\t" + to_string_with_precision(relativeTransform[5], 12) + ",\t" + to_string_with_precision(relativeTransform[6], 12) + ",\t" + to_string_with_precision(relativeTransform[7], 12) + "],\n\"Scale\": [" + to_string_with_precision(relativeTransform[8], 12) + ",\t" + to_string_with_precision(relativeTransform[9], 12) + ",\t" + to_string_with_precision(relativeTransform[10], 12) + ",\t" + to_string_with_precision(relativeTransform[11], 12) + "]\n");
 }
 /*-------------------------------------------------------------------------------\
 |                             EMD					                             |
 \-------------------------------------------------------------------------------*/
-string ESKBone::getTransformMatrixDebug(void)
+string ESKBone::getAbsoluteMatrixDebug(void)
 {
 	return ("[" + to_string_with_precision(absoluteMatrix[0], 12) + ",\t" + to_string_with_precision(absoluteMatrix[1], 12) + ",\t" + to_string_with_precision(absoluteMatrix[2], 12) + ",\t" + to_string_with_precision(absoluteMatrix[3], 12) + ",\n" + to_string_with_precision(absoluteMatrix[4], 12) + ",\t" + to_string_with_precision(absoluteMatrix[5], 12) + ",\t" + to_string_with_precision(absoluteMatrix[6], 12) + ",\t" + to_string_with_precision(absoluteMatrix[7], 12) + ",\n" + to_string_with_precision(absoluteMatrix[8], 12) + ",\t" + to_string_with_precision(absoluteMatrix[9], 12) + ",\t" + to_string_with_precision(absoluteMatrix[10], 12) + ",\t" + to_string_with_precision(absoluteMatrix[11], 12) + ",\n" + to_string_with_precision(absoluteMatrix[12], 12) + ",\t" + to_string_with_precision(absoluteMatrix[13], 12) + ",\t" + to_string_with_precision(absoluteMatrix[14], 12) + ",\t" + to_string_with_precision(absoluteMatrix[15], 12) + "]\n");
 }

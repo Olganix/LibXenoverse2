@@ -357,7 +357,8 @@ void EMDOgre::createOgreMesh_EmdSubMesh(EMDSubmesh* submesh, string mesh_name, O
 					Ogre::Bone* mBone = ogre_skeleton->getBone(bone_name);
 					bone_table.at(j) = mBone->getHandle();
 				}else {
-					LOG_DEBUG("Couldn't find %s in ogre skeleton!\n", bone_name.c_str());
+					printf("Couldn't find %s in ogre skeleton!\n", bone_name.c_str());
+					notifyError();
 				}
 			}
 

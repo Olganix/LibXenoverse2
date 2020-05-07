@@ -469,7 +469,7 @@ bool Etr_Part::Load(const uint8_t *buf, size_t size, size_t offsetStartTextureUn
 			{
 				mListTextureUnit.push_back( listTextureUnit.at(indexTextureUnit) );
 			}else {
-				printf("Error : a TextureUnit (index %i from a Etr_part) is not found (adress matching). skipped.", j);
+				printf("Error : a TextureUnit (index %i from a Etr_part) is not found (adress matching). skipped.\n", j);
 				LibXenoverse::notifyError();
 			}
 		}
@@ -730,7 +730,7 @@ uint8_t* Etr::CreateFile(unsigned int *psize)
 	uint8_t *buf = new uint8_t[filesize];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
@@ -1665,7 +1665,8 @@ bool Etr::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!rootNode)
 	{
-		LOG_DEBUG("Cannot find\"Etr\" in xml.\n");
+		printf("Cannot find\"Etr\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -1681,14 +1682,16 @@ bool Etr::import_Xml(TiXmlElement* rootNode)
 	TiXmlElement* partsNode = rootNode->FirstChildElement("Parts");
 	if (!partsNode)
 	{
-		LOG_DEBUG("Cannot find\"Parts\" in xml.\n");
+		printf("Cannot find\"Parts\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
 	TiXmlElement* textureUnitsNode = rootNode->FirstChildElement("TextureUnits");
 	if (!textureUnitsNode)
 	{
-		LOG_DEBUG("Cannot find\"TextureUnits\" in xml.\n");
+		printf("Cannot find\"TextureUnits\" in xml.\n");
+		notifyError();
 		return false;
 	}
 

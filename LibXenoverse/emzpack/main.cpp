@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 			emz_pack->save(basefilename + ".emz");
 			delete emz_pack;
 		}else {
-			printf("Error on loading %s", filename);
+			printf("Error on loading %s\n", filename);
 			LibXenoverse::notifyError();
 		}
 	}

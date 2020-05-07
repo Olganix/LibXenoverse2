@@ -37,11 +37,8 @@ void EMDTriangles::read(File *file)
 	if (!face_table_address)
 		face_table_address = 16;
 
-	LOG_DEBUG("Reading Triangle List at %d\n", base_face_address);
-	LOG_DEBUG("Triangle List Face Count: %d\n", face_count);
-	LOG_DEBUG("Triangle List Bone Count: %d\n", face_name_count);
-	LOG_DEBUG("Reading faces at %d\n", base_face_address + face_table_address);
-
+	printf("%d FaceIndex, %d linkedBones\n", face_count, face_name_count);
+	
 	// Read Face Indices
 	faces.resize(face_count);
 
@@ -74,7 +71,6 @@ void EMDTriangles::read(File *file)
 	for (size_t n = 0; n < face_name_count; n++)
 	{
 		unsigned int address = 0;
-		LOG_DEBUG("Reading bone name address for triangle list at %d\n", base_face_address + face_name_table_address + n * 4);
 		file->goToAddress(base_face_address + face_name_table_address + n * 4);
 		file->readInt32E(&address);
 		file->goToAddress(base_face_address + address);
@@ -82,8 +78,6 @@ void EMDTriangles::read(File *file)
 		string face_name = "";
 		file->readString(&face_name);
 		bone_names.push_back(face_name);
-
-		LOG_DEBUG("Bone name %d for Triangle List: %s\n", n, face_name.c_str());
 	}
 }
 /*-------------------------------------------------------------------------------\

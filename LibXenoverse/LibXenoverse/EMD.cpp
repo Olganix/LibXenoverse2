@@ -35,6 +35,12 @@ EMD::~EMD(void)
 		delete models.at(i);
 	models.clear();
 }
+
+
+
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             load					                             |
 \-------------------------------------------------------------------------------*/
@@ -95,6 +101,11 @@ void EMD::save(File *file, bool big_endian)
 	file->goToAddress(startAdress);
 	write(file);
 }
+
+
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
@@ -122,19 +133,16 @@ void EMD::read(File *file)
 
 
 	unsigned short model_total = 0;
-	
-	file->readInt16E(&unknow_1);
-	file->readInt16E(&model_total);
-
-	LOG_DEBUG("Total Unknown: %d\n", unknow_1);
-	LOG_DEBUG("Total Models: %d\n", model_total);
-
 	unsigned int root_model_address = 0;
 	unsigned int root_names_address = 0;
 
+	file->readInt16E(&unknow_1);
+	file->readInt16E(&model_total);
 	file->readInt32E(&root_model_address);
 	file->readInt32E(&root_names_address);
+	
 
+	
 	// Root Model Section
 	unsigned int address = 0;
 	for (size_t i = 0; i < model_total; i++)
@@ -158,8 +166,6 @@ void EMD::read(File *file)
 		string name = "";
 		file->readString(&name);
 		models.at(i)->name = name;
-
-		printf("Found something with index %d and name %s\n", i, name.c_str());
 	}
 }
 /*-------------------------------------------------------------------------------\

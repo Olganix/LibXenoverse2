@@ -32,16 +32,16 @@ static_assert(sizeof(ESK_Header) == 0x20, "Incorrect structure size.");
 
 struct ESK_Skeleton_Section
 {
-	uint16_t number_bones;		// 0
-	uint16_t unknow_flag;		// 2
+	uint16_t number_bones;			// 0
+	uint16_t unknow_flag;			// 2
 	uint32_t offset_bonesHierarchy;	// 4	//parentIndex + childIndex + siblingINdex + unk_0
-	uint32_t offset_boneNames;	// 8
-	uint32_t offset_relTransforms; // C		//relative position, orientation (quaternion), scale (relative to parent)
-	uint32_t offset_absMatrices;// 10		//abslute matrix.
-	uint32_t offset_IKs;		// 14		//inverse cinematics
-	uint32_t offset_boneExtraInfo; // 18
-	uint32_t unknow_0;			// 1C
-	uint32_t unknow_1;			// 20
+	uint32_t offset_boneNames;		// 8
+	uint32_t offset_relTransforms;	// C	//relative position, orientation (quaternion), scale (relative to parent)
+	uint32_t offset_absMatrices;	// 10	//abslute matrix.
+	uint32_t offset_IKs;			// 14	//inverse cinematics
+	uint32_t offset_boneExtraInfo;	// 18
+	uint32_t skeletonUniqueId_p1;	// 1C
+	uint32_t skeletonUniqueId_p2;	// 20
 } PACKED;
 static_assert(sizeof(ESK_Skeleton_Section) == 0x24, "Incorrect structure size.");
 
@@ -118,7 +118,7 @@ static_assert(sizeof(ESK_Bone_extraInfo) == 0x8, "Incorrect structure size.");
 
 
 
-//case StreetFighters
+//case StreetFighters emg
 struct ESK_IK_2
 {
 	uint32_t number_bones;	// 0
@@ -207,7 +207,7 @@ public:
 	unsigned short child_index;
 	unsigned short sibling_index;
 	unsigned short ik_flag;						//index in Children
-	bool haveTransformMatrix;
+	bool haveAbsoluteMatrix;
 	bool mVisible;
 	float absoluteMatrix[16];
 	float relativeTransform[12];
@@ -239,20 +239,20 @@ public:
 	void	writeIndices(File *file);
 	void	readMatrix(File *file);
 	void	writeMatrix(File *file);
-	void	readSkinningMatrix(File *file);
-	void	writeSkinningMatrix(File *file);
+	void	readRelativeTransform(File *file);
+	void	writeRelativeTransform(File *file);
 	
 	void	mergeMatrix(ESKBone *eskBone);	
 	void	mergeFilenameOrigin(ESKBone *eskBone);
 	
-	void	test_calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
-	void	calculTransformMatrixFromSkinningMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
-	void	calculSkinningMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
-	void	calculSkinningMatrixFromRelativeTransformMatrix(std::vector<double> relativeTransformMatrix);
-	std::vector<double> ESKBone::calculRelativeMatrixFromTransformMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
+	void	test_calculAbsoluteMatrixFromRelativeTransform(std::vector<ESKBone *> &listBones, bool recursive = false);
+	void	calculAbsoluteMatrixFromRelativeTransform(std::vector<ESKBone *> &listBones, bool recursive = false);
+	void	calculRelativeTransformFromAbsoluteMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
+	void	calculRelativeTransformFromRelativeTransformMatrix(std::vector<double> relativeTransformMatrix);
+	std::vector<double> calculRelativeMatrixFromAbsoluteMatrix(std::vector<ESKBone *> &listBones, bool recursive = false);
 
-	string	getSkinningMatrixDebug(void);
-	string	getTransformMatrixDebug(void);
+	string	getRelativeTransformDebug(void);
+	string	getAbsoluteMatrixDebug(void);
 
 	
 	EskTreeNode*	importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBone*> &bones, EskTreeNode* treeParentNode, bool haveExtraBytesOnEachBone);
@@ -283,10 +283,6 @@ class ESK
 protected:
 	string name;
 	string version;
-	uint32_t unknow_0;
-	uint32_t unknow_1;
-	uint32_t unknow_2;
-	uint32_t unknow_3;
 	uint16_t flag;
 
 	uint64_t skeletonUniqueId;
@@ -294,6 +290,10 @@ protected:
 
 	vector<ESKBone*> bones;
 	std::vector<Esk_IK_Group> listInverseKinematic;
+
+	uint32_t unknow_0;
+	uint32_t unknow_1;
+	uint32_t unknow_2;
 
 public:
 			
@@ -306,10 +306,10 @@ public:
 	void	save(File *file, bool big_endian = false);
 
 	void	read(File *file);
-	unsigned int	getWriteSize(bool withTransformMatrix = true);					//size of byte to record skeleton with write function.
+	unsigned int	getWriteSize(bool withAbsoluteMatrix = true);					//size of byte to record skeleton with write function.
 	size_t	calculIksize();
 	void	setupBoneIkLinks();
-	void	write(File *file, bool withTransformMatrix = true);
+	void	write(File *file, bool withAbsoluteMatrix = true);
 
 	void	merge(ESK *esk);
 	void	merge_byAttach(ESK *esk);

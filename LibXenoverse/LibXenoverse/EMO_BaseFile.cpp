@@ -197,7 +197,8 @@ const char *EMO_BaseFile::FindString(const char *list, const char *str, unsigned
 		list += strlen(list) + 1;
 	}
 
-	LOG_DEBUG("Iiiiiiiiiiiiiiincoming crash.\n");
+	printf("Iiiiiiiiiiiiiiincoming crash.\n");
+	notifyError();
 	return NULL; // shouldn't happen... s h o u l d n ' t
 }
 
@@ -242,7 +243,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Decompilation of file \"%s\" failed.\n", path.c_str());
+			printf("Decompilation of file \"%s\" failed.\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -255,7 +256,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 		{
 			if (show_error)
 			{
-				LOG_DEBUG("Cannot create path for file \"%s\"\n", path.c_str());
+				printf("Cannot create path for file \"%s\"\n", path.c_str());
 				LibXenoverse::notifyError();
 			}
 
@@ -268,7 +269,7 @@ bool EMO_BaseFile::DecompileToFile(const std::string &path, bool show_error, boo
 
 	if (!ret && show_error)
 	{
-		LOG_DEBUG("Cannot create/write file \"%s\"\n", path.c_str());
+		printf("Cannot create/write file \"%s\"\n", path.c_str());
 		LibXenoverse::notifyError();
 	}
 
@@ -360,7 +361,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Cannot open file \"%s\" for reading.\n", path.c_str());
+			printf("Cannot open file \"%s\" for reading.\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -376,7 +377,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 	uint8_t *buf = new uint8_t[size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error.", FUNCNAME);
+		printf("%s: Memory allocation error.\n", FUNCNAME);
 		LibXenoverse::notifyError();
 		fclose(f);
 		return NULL;
@@ -389,7 +390,7 @@ uint8_t *EMO_BaseFile::ReadFile(const std::string &path, size_t *psize, bool sho
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Read failure on file \"%s\"\n", path.c_str());
+			printf("Read failure on file \"%s\"\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -408,7 +409,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Cannot open file \"%s\" for reading.\n", path.c_str());
+			printf("Cannot open file \"%s\" for reading.\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -422,7 +423,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 	uint8_t *buf = new uint8_t[size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error.", FUNCNAME);
+		printf("%s: Memory allocation error.\n", FUNCNAME);
 		LibXenoverse::notifyError();
 		fclose(f);
 		return NULL;
@@ -435,7 +436,7 @@ uint8_t *EMO_BaseFile::ReadFileFrom(const std::string &path, size_t from, size_t
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Read failure on file \"%s\"\n", path.c_str());
+			printf("Read failure on file \"%s\"\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -454,7 +455,7 @@ size_t EMO_BaseFile::WriteFile(const std::string &path, const uint8_t *buf, size
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Cannot open for write/create file \"%s\"\n", path.c_str());
+			printf("Cannot open for write/create file \"%s\"\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -478,7 +479,7 @@ bool EMO_BaseFile::WriteFileBool(const std::string &path, const uint8_t *buf, si
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Couldn't write same amount of bytes as requestedto file \"%s\" (disk full?)\n", path.c_str());
+			printf("Couldn't write same amount of bytes as requestedto file \"%s\" (disk full?)\n", path.c_str());
 			LibXenoverse::notifyError();
 		}
 
@@ -1879,7 +1880,7 @@ uint8_t *EMO_BaseFile::Base64Decode(const std::string &data, size_t *ret_size)
 	uint8_t *buf = new uint8_t[*ret_size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error 0x%x\n", FUNCNAME, *ret_size);
+		printf("%s: Memory allocation error 0x%x\n", FUNCNAME, *ret_size);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}

@@ -34,28 +34,15 @@ void EANKeyframedAnimation::read(File *file, unsigned char index_size, unsigned 
 	file->readInt32E(&indices_offset);
 	file->readInt32E(&keyframes_offset);
 
-	LOG_DEBUG("[%i] flag : %i, keyframes_count : %i, indices_offset : [%i], keyframes_offset : [%i]\n", base_keyframed_animation_address, flag, keyframes_count, indices_offset, keyframes_offset);
-
-
 	keyframes.resize(keyframes_count);
-	//LOG_DEBUG("Reading Keyframed Animation at %d\n", base_keyframed_animation_address);
-	//LOG_DEBUG("  Keyframed Animation Flag: %d\n", flag);
-
+	
 	file->goToAddress(base_keyframed_animation_address + indices_offset);
 	for (size_t i = 0; i < keyframes_count; i++)
-	{
-		LOG_DEBUG("KF %i : [%i] : ", i, file->getCurrentAddress());
 		keyframes[i].readFrame(file, index_size);
-	}
 
-	//LOG_DEBUG("  Keyframes (%d):\n", keyframes_count);
 	file->goToAddress(base_keyframed_animation_address + keyframes_offset);
 	for (size_t i = 0; i < keyframes_count; i++)
-	{
-		LOG_DEBUG("KF %i : [%i] : ", i, file->getCurrentAddress());
 		keyframes[i].read(file, keyframe_size);
-	}
-	//LOG_DEBUG("\n");
 }
 /*-------------------------------------------------------------------------------\
 |                             write												 |
@@ -74,19 +61,14 @@ size_t EANKeyframedAnimation::write(File *file, unsigned char index_size, unsign
 	file->writeUChar(&flag);
 	file->writeUChar(&unknow_0);
 	file->writeInt16E(&unknow_1);
-
 	file->writeInt32E(&keyframes_count);
 	file->writeInt32E(&indices_offset);
 	file->writeInt32E(&keyframes_offset);
 
-	LOG_DEBUG("[%i] flag : %i, keyframes_count : %i, indices_offset : [%i], keyframes_offset : [%i]\n", base_keyframed_animation_address, flag, keyframes_count, indices_offset, keyframes_offset);
-
+	
 	file->goToAddress(base_keyframed_animation_address + indices_offset);
 	for (size_t i = 0; i < keyframes_count; i++)
-	{
-		LOG_DEBUG("KF %i : [%i] : ", i, file->getCurrentAddress());
 		keyframes[i].writeFrame(file, index_size);
-	}
 
 	
 	//fill zero on end of 16 octets lines. that why we don't have the wright number.
@@ -98,10 +80,7 @@ size_t EANKeyframedAnimation::write(File *file, unsigned char index_size, unsign
 
 	file->goToAddress(base_keyframed_animation_address + keyframes_offset);
 	for (size_t i = 0; i < keyframes_count; i++)
-	{
-		LOG_DEBUG("KF %i : [%i] : ", i, file->getCurrentAddress());
 		keyframes[i].write(file, keyframe_size);
-	}
 
 	return keyframes_offset + keyframes_count * 4 * ((keyframe_size == 1) ? 2 : 4);
 }
@@ -118,6 +97,7 @@ void EANKeyframedAnimation::getFrame(EANKeyframe *keyframe, float &x, float &y, 
 |                             getInterpolatedFrame								 |
 \-------------------------------------------------------------------------------*/
 void EANKeyframedAnimation::getInterpolatedFrame(unsigned int frame, float &x, float &y, float &z, float &w) {
+
 	EANKeyframe *lower_keyframe = NULL;
 	EANKeyframe *upper_keyframe = NULL;
 
@@ -480,8 +460,6 @@ bool EANKeyframedAnimation::importFBXRotationAnimCurve(FbxNode *fbx_node, size_t
 
 	
 	bool haveNoNeutralPosition = false;
-
-	//printf("\n*******\n", rx, rz, ry);
 
 	nbMerged = list_fbxtime.size();
 	for (size_t i = 0; i < nbMerged; i++)

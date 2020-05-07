@@ -12,7 +12,7 @@ ESK::ESK(ESK* esk)
 {
 	name = "";
 	version = "192.146.0.0";
-	unknow_0 = unknow_1 = unknow_2 = unknow_3 = 0;
+	unknow_0 = unknow_1 = unknow_2 = 0;
 	flag = 0;
 	skeletonUniqueId = 0;
 
@@ -31,6 +31,11 @@ ESK::~ESK(void)
 {
 	clear();
 }
+
+
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             load					                             |
 \-------------------------------------------------------------------------------*/
@@ -79,11 +84,12 @@ bool ESK::load(File *file, std::string s_name)
 	file->readInt32E(&unknow_0);
 	
 	unsigned int address = 0;
-	file->readInt32E(&address);
+	size_t offset_nextPart = 0;						//only un nsk for target the emd start.
 
+	file->readInt32E(&address);
+	file->readInt32E(&offset_nextPart);
 	file->readInt32E(&unknow_1);
 	file->readInt32E(&unknow_2);
-	file->readInt32E(&unknow_3);
 
 	file->goToAddress(startAdress + address);
 	read(file);
@@ -137,11 +143,12 @@ void ESK::save(File *file, bool big_endian)
 	file->writeInt32E(&unknow_0);
 
 	unsigned int address = 0x20;
-	file->writeInt32E(&address);
+	size_t offset_nextPart = 0;						//only un nsk for target the emd start.
 
+	file->writeInt32E(&address);
+	file->writeInt32E(&offset_nextPart);
 	file->writeInt32E(&unknow_1);
 	file->writeInt32E(&unknow_2);
-	file->writeInt32E(&unknow_3);
 
 	file->goToAddress(startAdress + address);
 
@@ -150,7 +157,7 @@ void ESK::save(File *file, bool big_endian)
 /*-------------------------------------------------------------------------------\
 |                             getWriteSize			                             |
 \-------------------------------------------------------------------------------*/
-unsigned int ESK::getWriteSize(bool withTransformMatrix)
+unsigned int ESK::getWriteSize(bool withAbsoluteMatrix)
 {
 	size_t bone_count = bones.size();
 	unsigned int size = sizeof(ESK_Skeleton_Section) + bone_count * (sizeof(ESK_Bone_Hierarchy) + sizeof(uint32_t));
@@ -161,7 +168,7 @@ unsigned int ESK::getWriteSize(bool withTransformMatrix)
 	if (size % 16 !=0)												//padding.
 		size += (16 - (size % 16) );
 
-	size += bone_count * (sizeof(ESK_Bone_Relative_Transform) + ((withTransformMatrix) ? sizeof(ESK_Bone_Absolute_Matrix) : 0));
+	size += bone_count * (sizeof(ESK_Bone_Relative_Transform) + ((withAbsoluteMatrix) ? sizeof(ESK_Bone_Absolute_Matrix) : 0));
 
 	size += calculIksize() + ((mHaveExtraBytesOnEachBone) ? (bone_count * sizeof(ESK_Bone_extraInfo)) : 0);
 
@@ -196,6 +203,12 @@ size_t ESK::calculIksize()
 	}
 	return filesize;
 }
+
+
+
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
@@ -205,8 +218,8 @@ void ESK::read(File *file)
 	unsigned short bone_count = 0;
 	unsigned int bone_indices_offset = 0;
 	unsigned int bone_names_offset = 0;
-	unsigned int skinning_matrix_offset = 0;
-	unsigned int transform_matrix_offset = 0;
+	unsigned int relativeTransform_offset = 0;
+	unsigned int absoluteMatrix_offset = 0;
 	unsigned int ik_offset = 0;								//inverse Kinematic
 	unsigned int bone_extraInfo_offset = 0;
 		
@@ -214,13 +227,11 @@ void ESK::read(File *file)
 	file->readInt16E(&flag);		
 	file->readInt32E(&bone_indices_offset);
 	file->readInt32E(&bone_names_offset);
-	file->readInt32E(&skinning_matrix_offset);
-	file->readInt32E(&transform_matrix_offset);
+	file->readInt32E(&relativeTransform_offset);
+	file->readInt32E(&absoluteMatrix_offset);
 	file->readInt32E(&ik_offset);
 	file->readInt32E(&bone_extraInfo_offset);
 	file->readInt64E(&skeletonUniqueId);
-
-	LOG_DEBUG("--------------- read ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
 
 
 	bones.resize(bone_count);
@@ -234,8 +245,6 @@ void ESK::read(File *file)
 		file->goToAddress(base_skeleton_address + bone_indices_offset + i * 8);
 
 		bones[i]->readIndices(file);
-
-		LOG_DEBUG("bone %i : Indices - parent: %d, child: %d, sibling(next): %d, index4: %d\n", i, bones[i]->parent_index, bones[i]->child_index, bones[i]->sibling_index, bones[i]->ik_flag);
 	}
 
 	// Read Bone Names
@@ -248,30 +257,31 @@ void ESK::read(File *file)
 
 		bones[i]->readName(file);
 
-		LOG_DEBUG("bone %i: %s\n", i, bones[i]->getName().c_str() );
+		//LOG_DEBUG("bone %i: %s\n", i, bones[i]->getName().c_str() );
 	}
 
-	// Read Skinning Matrices
+	// Read Bone RelativeTransform (position quaternion and scale)
 	for (size_t i = 0; i < bone_count; i++)
 	{
 		unsigned int address = 0;
-		file->goToAddress(base_skeleton_address + skinning_matrix_offset + i * 48);
+		file->goToAddress(base_skeleton_address + relativeTransform_offset + i * 48);
 
-		bones[i]->readSkinningMatrix(file);
-		LOG_DEBUG("bone %i: Skinning matrix\n%s\n", i, bones[i]->getSkinningMatrixDebug().c_str());
+		bones[i]->readRelativeTransform(file);
+		
+		//LOG_DEBUG("bone %i: RelativeTransform\n%s\n", i, bones[i]->getRelativeTransformDebug().c_str());
 	}
 
-	// Read Bone Matrices
-	if (transform_matrix_offset)
+	// Read Bone absoluteMatrix
+	if (absoluteMatrix_offset)
 	{
 		for (size_t i = 0; i < bone_count; i++)
 		{
 			unsigned int address = 0;
-			file->goToAddress(base_skeleton_address + transform_matrix_offset + i * 64);
+			file->goToAddress(base_skeleton_address + absoluteMatrix_offset + i * 64);
 
 			bones[i]->readMatrix(file);
 
-			LOG_DEBUG("bone %i: TransForm matrix\n%s\n", i, bones[i]->getTransformMatrixDebug().c_str());
+			//LOG_DEBUG("bone %i: AbsoluteMatrix\n%s\n", i, bones[i]->getAbsoluteMatrixDebug().c_str());
 		}
 	}
 
@@ -427,7 +437,7 @@ void ESK::setupBoneIkLinks()											//to update Ik_flag on each bone concerne
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
 \-------------------------------------------------------------------------------*/
-void ESK::write(File *file, bool withTransformMatrix)
+void ESK::write(File *file, bool withAbsoluteMatrix)
 {
 	setupBoneIkLinks();							//to update Ik_flag on each bone concerned (first of IK)
 
@@ -439,16 +449,16 @@ void ESK::write(File *file, bool withTransformMatrix)
 	for (size_t i = 0; i < bone_count; i++)
 	{
 		name_size += bones.at(i)->getName().length() + 1;		// +1 for \0
-		withTransformMatrix = withTransformMatrix && (bones.at(i)->haveTransformMatrix);
+		withAbsoluteMatrix = withAbsoluteMatrix && (bones.at(i)->haveAbsoluteMatrix);
 	}
 
 	unsigned int bone_indices_offset = sizeof(ESK_Skeleton_Section);
 	unsigned int bone_names_offset = bone_indices_offset + bone_count * sizeof(ESK_Bone_Hierarchy);
-	unsigned int skinning_matrix_offset = (unsigned int)ceil((bone_names_offset + bone_count * sizeof(uint32_t) + name_size) / 16.0) * 16;
-	size_t offset = (skinning_matrix_offset + bone_count * sizeof(ESK_Bone_Relative_Transform));
+	unsigned int relativeTransform_offset = (unsigned int)ceil((bone_names_offset + bone_count * sizeof(uint32_t) + name_size) / 16.0) * 16;
+	size_t offset = (relativeTransform_offset + bone_count * sizeof(ESK_Bone_Relative_Transform));
 
-	unsigned int transform_matrix_offset = ((withTransformMatrix) ? offset : 0);
-	offset += (withTransformMatrix) ? (bone_count * sizeof(ESK_Bone_Absolute_Matrix)) : 0;
+	unsigned int absoluteMatrix_offset = ((withAbsoluteMatrix) ? offset : 0);
+	offset += (withAbsoluteMatrix) ? (bone_count * sizeof(ESK_Bone_Absolute_Matrix)) : 0;
 
 	size_t ikSize = calculIksize();
 	unsigned int ik_offset = (ikSize!=0) ? offset : 0;
@@ -463,14 +473,13 @@ void ESK::write(File *file, bool withTransformMatrix)
 	file->writeInt16E(&flag);
 	file->writeInt32E(&bone_indices_offset);
 	file->writeInt32E(&bone_names_offset);
-	file->writeInt32E(&skinning_matrix_offset);
-	file->writeInt32E(&transform_matrix_offset);
+	file->writeInt32E(&relativeTransform_offset);
+	file->writeInt32E(&absoluteMatrix_offset);
 	file->writeInt32E(&ik_offset);
 	file->writeInt32E(&bone_extraInfo_offset);
 	file->writeInt64E(&skeletonUniqueId);
 
-	LOG_DEBUG("--------------- write ESK \n[%i] bone_count : %i, flag : %i, bone_indices_offset : [%i], bone_names_offset : [%i], skinning_matrix_offset : [%i], transform_matrix_offset : [%i], ik_offset : [%i], bone_extraInfo_offset : [%i]\n", base_skeleton_address, bone_count, flag, bone_indices_offset, bone_names_offset, skinning_matrix_offset, transform_matrix_offset, ik_offset, bone_extraInfo_offset);
-
+	
 	// Write Bone Indices
 	for (size_t i = 0; i < bone_count; i++)
 	{
@@ -491,20 +500,20 @@ void ESK::write(File *file, bool withTransformMatrix)
 		name_size += bones[i]->getName().length() + 1;		//+1 for \0
 		bones[i]->writeName(file);
 	}
-
-	// Write Skinning Matrices
+	
+	// Write Bone relativeTransform  (position quaternion and scale)
 	for (size_t i = 0; i < bone_count; i++)
 	{
-		file->goToAddress(base_skeleton_address + skinning_matrix_offset + i * 48);
-		bones[i]->writeSkinningMatrix(file);
+		file->goToAddress(base_skeleton_address + relativeTransform_offset + i * 48);
+		bones[i]->writeRelativeTransform(file);
 	}
 
-	// Write Bone Matrices
-	if (transform_matrix_offset)
+	// Write Bone absoluteMatrix
+	if (absoluteMatrix_offset)
 	{
 		for (size_t i = 0; i < bone_count; i++)
 		{
-			file->goToAddress(base_skeleton_address + transform_matrix_offset + i * 64);
+			file->goToAddress(base_skeleton_address + absoluteMatrix_offset + i * 64);
 			bones[i]->writeMatrix(file);
 		}
 	}
@@ -543,7 +552,7 @@ void ESK::write(File *file, bool withTransformMatrix)
 				if (nbrelations > 1)
 					nbrelations--;
 
-				file->writeNull(1);
+				file->writeNull(ik.unknow_0);
 				file->writeUChar((unsigned char*)&nbrelations);
 
 				for (size_t k = 0; k <= nbrelations; k++)
@@ -801,7 +810,6 @@ void ESK::clone(ESK *esk)
 	this->unknow_0 = esk->unknow_0;
 	this->unknow_1 = esk->unknow_1;
 	this->unknow_2 = esk->unknow_2;
-	this->unknow_3 = esk->unknow_3;
 	this->flag = esk->flag;
 	this->skeletonUniqueId = esk->skeletonUniqueId;
 	this->mHaveExtraBytesOnEachBone = esk->mHaveExtraBytesOnEachBone;
@@ -1354,7 +1362,7 @@ string EskTreeNode::getJsonStr(size_t indent, bool havePrevious)
 	bool isfirst = true;
 	if (mBone)
 	{
-		str += "\"index\" : " + std::to_string(mIndex) + ",\"parentIndex\" : " + ((mBone->parent_index != 65535) ? std::to_string(mBone->parent_index) : "null") + ",\"name\": \"" + mBone->getName() + "\",\"skinningMatrix\": {" + mBone->getSkinningMatrixDebug() + "},\"transformMatrix\": " + mBone->getTransformMatrixDebug();
+		str += "\"index\" : " + std::to_string(mIndex) + ",\"parentIndex\" : " + ((mBone->parent_index != 65535) ? std::to_string(mBone->parent_index) : "null") + ",\"name\": \"" + mBone->getName() + "\",\"RelativeTransform\": {" + mBone->getRelativeTransformDebug() + "},\"AbsoluteMatrix\": " + mBone->getAbsoluteMatrixDebug();
 		isfirst = false;
 	}
 

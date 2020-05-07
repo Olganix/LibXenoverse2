@@ -30,7 +30,8 @@ int main(int argc, char** argv)
 	if (argc < 2)
 	{
 		printf("Usage: 'XenoWxHexEditorColorMaker.exe [-noEndWait] FILE.EXT FILE2.EXT ...' or 'XenoXmlConverter.exe FILE.EXT.xml FILE2.EXT.xml ...'\nFor Now, we only support map, etr and emp files. Please considere that result as some debug.\n");
-		getchar();
+		LibXenoverse::notifyError();
+		LibXenoverse::waitOnEnd();
 		return 1;
 	}
 

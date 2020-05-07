@@ -57,7 +57,7 @@ bool AUR::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'AUR' tags. skip.'\n", filename);
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -66,7 +66,7 @@ bool AUR::loadXml(string filename)
 	if (!auraTypeNode)
 	{
 		printf("%s don't have 'AURAuraTypes' tags. skip.'\n", filename);
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -74,7 +74,7 @@ bool AUR::loadXml(string filename)
 	if (!auraNode)
 	{
 		printf("%s don't have 'AURAuras' tags. skip.'\n", filename);
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -82,7 +82,7 @@ bool AUR::loadXml(string filename)
 	if (!auraCharacNode)
 	{
 		printf("%s don't have 'AURCharacs' tags. skip.'\n", filename);
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -408,7 +408,7 @@ bool AURAura::readXML(TiXmlElement* xmlCurrentNode, std::vector<string> &listAur
 	if (!auraColorNode)
 	{
 		printf("don't have 'Effects' tags. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 

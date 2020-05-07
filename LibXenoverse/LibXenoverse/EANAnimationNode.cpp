@@ -25,8 +25,6 @@ void EANAnimationNode::read(File *file, unsigned char index_size, unsigned char 
 	file->readInt16E(&keyframed_animation_count);
 	file->readInt32E(&keyframed_animation_offset);
 
-	LOG_DEBUG("[%i] bone_index : %i, keyframed_animation_count : %i, keyframed_animation_offset : [%i]\n", base_animation_node_address, bone_index, keyframed_animation_count, keyframed_animation_offset);
-
 	keyframed_animations.resize(keyframed_animation_count);
 	for (size_t i = 0; i < keyframed_animation_count; i++) 
 	{
@@ -35,7 +33,6 @@ void EANAnimationNode::read(File *file, unsigned char index_size, unsigned char 
 		file->readInt32E(&address);
 		file->goToAddress(base_animation_node_address + address);
 
-		LOG_DEBUG("-- KFanim %i : [%i] = %i => [%i]\n", i, base_animation_node_address + keyframed_animation_offset + i * 4, address, base_animation_node_address + address);
 		keyframed_animations[i].read(file, index_size, keyframe_size);
 	}
 }
@@ -52,8 +49,6 @@ size_t EANAnimationNode::write(File *file, unsigned char index_size, unsigned ch
 	file->writeInt16E(&keyframed_animation_count);
 	file->writeInt32E(&keyframed_animation_offset);
 
-	LOG_DEBUG("[%i] bone_index : %i, keyframed_animation_count : %i, keyframed_animation_offset : [%i]\n", base_animation_node_address, bone_index, keyframed_animation_count, keyframed_animation_offset);
-
 	size_t keyframedAnim_size = 0;
 	for (size_t i = 0; i < keyframed_animation_count; i++)
 	{
@@ -62,7 +57,6 @@ size_t EANAnimationNode::write(File *file, unsigned char index_size, unsigned ch
 		file->writeInt32E(&address);
 		file->goToAddress(base_animation_node_address + address);
 
-		LOG_DEBUG("-- KFanim %i : [%i] = %i => [%i]\n", i, base_animation_node_address + keyframed_animation_offset + i * 4, address, base_animation_node_address + address);
 		keyframedAnim_size += keyframed_animations[i].write(file, index_size, keyframe_size);
 	}
 	

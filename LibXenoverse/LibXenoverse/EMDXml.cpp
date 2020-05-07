@@ -15,7 +15,7 @@ bool EMD::loadXml(string filename)
 	if(!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -25,7 +25,7 @@ bool EMD::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'EMD' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -58,16 +58,15 @@ void EMD::saveXml(string filename)
 \-------------------------------------------------------------------------------*/
 bool EMD::importXml(TiXmlElement* xmlCurrentNode)
 {
+	size_t tmp = 0;
+	string str = "";
+
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
 	xmlCurrentNode->QueryStringAttribute("version", &version);
-	//xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &unknow_0);			//always 0
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &unknow_0);			//always 0
+	xmlCurrentNode->QueryUnsignedAttribute("unk_1", &tmp); unknow_1 = (uint16_t)tmp;		//always 0
 
-	//size_t tmp = 0;
-	//xmlCurrentNode->QueryUnsignedAttribute("unknow_1", &tmp);					//always 0
-	//unknow_1 = (uint16_t)tmp;
-
-	string str = "";
 	xmlCurrentNode->QueryStringAttribute("paddingForCompressedVertex", &str); paddingForCompressedVertex = EMO_BaseFile::GetUnsigned(str);
 	
 
@@ -75,7 +74,7 @@ bool EMD::importXml(TiXmlElement* xmlCurrentNode)
 	if (!modelsNode)
 	{
 		printf("No 'EmdModels' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -97,16 +96,16 @@ bool EMDModel::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	//size_t unknow_total_tmp = 0;
-	//xmlCurrentNode->QueryUnsignedAttribute("unknow_total", &unknow_total_tmp);
-	//unknow_total = (unsigned short)unknow_total_tmp;
+	size_t tmp = 0;
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp);
+	unknow_0 = (unsigned short)tmp;
 
 
 	TiXmlElement* meshNode = xmlCurrentNode->FirstChildElement("Meshes");
 	if (!meshNode)
 	{
 		printf("No 'EmdMeshs' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -128,9 +127,9 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
 
-	//size_t unknow_total_tmp = 0;
-	//xmlCurrentNode->QueryUnsignedAttribute("unknow_total", &unknow_total_tmp);
-	//unknow_total = (unsigned short)unknow_total_tmp;
+	size_t tmp = 0;
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp);
+	unknow_0 = (unsigned short)tmp;
 
 	TiXmlElement* aabb = xmlCurrentNode->FirstChildElement("AABB");			//axis boundingBox
 	if (aabb)
@@ -170,7 +169,7 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 	if (!submeshNode)
 	{
 		printf("No 'EmdSubMeshs' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -191,16 +190,16 @@ bool EMDMesh::importXml(TiXmlElement* xmlCurrentNode)
 bool EMDSubmesh::importXml(TiXmlElement* xmlCurrentNode)
 {
 	xmlCurrentNode->QueryStringAttribute("name", &name);
-	//unsigned int tmp = 0;
-	//xmlCurrentNode->QueryUnsignedAttribute("unknow_0", &tmp);
-	//unknow_0 = (uint8_t)tmp;
+	size_t tmp = 0;
+	xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp);
+	unknow_0 = (uint8_t)tmp;
 
 	// Vertex Definition
 	TiXmlElement* flagsNode = xmlCurrentNode->FirstChildElement("VertexDefinition");
 	if (!flagsNode)
 	{
 		printf("No 'VertexDefinition' tags find. Please take a look at a '.emd.xml' file or document about Emd.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -273,21 +272,21 @@ bool EMDSubmesh::importXml(TiXmlElement* xmlCurrentNode)
 	if (!definitionNode)
 	{
 		printf("No 'TextureDefinitions' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	TiXmlElement* vertexNode = xmlCurrentNode->FirstChildElement("Vertices");
 	if (!vertexNode)
 	{
 		printf("No 'Vertices' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	TiXmlElement* triangleNode = xmlCurrentNode->FirstChildElement("TriangleList");
 	if (!triangleNode)
 	{
 		printf("No 'TriangleList' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	
@@ -408,14 +407,14 @@ bool EMDTriangles::importXml(TiXmlElement* xmlCurrentNode, vector<EMDVertex> &ve
 	if (!bonesNode)
 	{
 		printf("No 'Bones' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	TiXmlElement* facesNode = xmlCurrentNode->FirstChildElement("Faces");
 	if (!facesNode)
 	{
 		printf("No 'Faces' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -523,7 +522,7 @@ bool EMDTextureUnitState::importXml(TiXmlElement* xmlCurrentNode)
 			break;
 	}
 	
-	if (xmlCurrentNode->QueryUnsignedAttribute("unknow0", &tmp) == TIXML_SUCCESS)
+	if (xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp) == TIXML_SUCCESS)
 		flag0 = (unsigned char)tmp;
 
 	return true;
@@ -543,9 +542,10 @@ TiXmlElement* EMD::exportXml(void)
 
 	xmlCurrentNode->SetAttribute("name", name);
 	xmlCurrentNode->SetAttribute("version", version);
-	//xmlCurrentNode->SetAttribute("unknow_0", unknow_0);							//always 0
-	//xmlCurrentNode->SetAttribute("unknow_1", (size_t)unknow_1);					//always 0
 	xmlCurrentNode->SetAttribute("paddingForCompressedVertex", EMO_BaseFile::UnsignedToString(paddingForCompressedVertex, true));
+
+	xmlCurrentNode->SetAttribute("unk_0", unknow_0);							//always 0
+	xmlCurrentNode->SetAttribute("unk_1", (size_t)unknow_1);					//always 0
 
 	TiXmlElement* modelsNode = new TiXmlElement("EmdModels");
 	size_t nbmodel = models.size();
@@ -565,7 +565,7 @@ TiXmlElement* EMDModel::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("EmdModel");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	//xmlCurrentNode->SetAttribute("unknow_total", (size_t)unknow_total);
+	xmlCurrentNode->SetAttribute("unk_0", (size_t)unknow_0);
 
 	TiXmlElement* meshNode = new TiXmlElement("Meshes");
 	size_t nbMesh = meshes.size();
@@ -585,7 +585,7 @@ TiXmlElement* EMDMesh::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("Mesh");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	//xmlCurrentNode->SetAttribute("unknow_total", (size_t)unknow_total);
+	xmlCurrentNode->SetAttribute("unk_0", (size_t)unknow_0);
 	
 
 
@@ -636,7 +636,7 @@ TiXmlElement* EMDSubmesh::exportXml(void)
 	TiXmlElement* xmlCurrentNode = new TiXmlElement("Submesh");
 
 	xmlCurrentNode->SetAttribute("name", name);
-	//xmlCurrentNode->SetAttribute("unknow_0", unknow_0);
+	xmlCurrentNode->SetAttribute("unk_0", unknow_0);
 	
 
 
@@ -868,7 +868,7 @@ TiXmlElement* EMDTextureUnitState::exportXml(void)
 	xmlCurrentNode->SetAttribute("textScale_uv", FloatToString(textScale_u) +" "+ FloatToString(textScale_v));
 	xmlCurrentNode->SetAttribute("adressMode_uv", string((adressMode_u & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_u & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) +" "+ ((adressMode_v & EMD_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_v & EMD_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) );
 	xmlCurrentNode->SetAttribute("filtering_min_mag", string((filtering_minification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_minification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_minification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_minification)))) +" "+ ((filtering_magnification & EMD_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_magnification & EMD_TUS_FILTERING_POINT) ? "Point" : ((filtering_magnification == EMD_TUS_FILTERING_NONE) ? "None" : ToString(filtering_magnification)))));
-	xmlCurrentNode->SetAttribute("unknow0", flag0);
+	xmlCurrentNode->SetAttribute("unk_0", flag0);
 
 	return xmlCurrentNode;
 }
@@ -927,7 +927,7 @@ bool EMD::loadTextureDefXml(string filename)
 	if (!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -937,7 +937,7 @@ bool EMD::loadTextureDefXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'EMD' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -975,7 +975,7 @@ bool EMD::importTextureDefXml(TiXmlElement* xmlCurrentNode)
 	if (!modelsNode)
 	{
 		printf("No 'EmdModels' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -1001,7 +1001,7 @@ bool EMDModel::importTextureDefXml(TiXmlElement* xmlCurrentNode)
 	if (!meshNode)
 	{
 		printf("No 'EmdMeshs' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -1027,7 +1027,7 @@ bool EMDMesh::importTextureDefXml(TiXmlElement* xmlCurrentNode)
 	if (!submeshNode)
 	{
 		printf("No 'EmdSubMeshs' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -1054,7 +1054,7 @@ bool EMDSubmesh::importTextureDefXml(TiXmlElement* xmlCurrentNode)
 	if (!flagsNode)
 	{
 		printf("No 'VertexDefinition' tags find. Please take a look at a '.emd.xml' file or document about Emd.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -1095,7 +1095,7 @@ bool EMDSubmesh::importTextureDefXml(TiXmlElement* xmlCurrentNode)
 	if (!definitionNode)
 	{
 		printf("No 'TextureDefinitions' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	

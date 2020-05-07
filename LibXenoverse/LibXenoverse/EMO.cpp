@@ -59,7 +59,8 @@ bool EMO::Load(const uint8_t *buf, unsigned int size)							//read
 
 	if (!EMO_Skeleton::Load(GetOffsetPtr(buf, hdr->skeleton_offset), size - val32(hdr->skeleton_offset)))
 	{
-		LOG_DEBUG("%s: Bad file, Skeleton sub file couldn't be loaded\n", FUNCNAME);
+		printf("%s: Bad file, Skeleton sub file couldn't be loaded\n", FUNCNAME);
+		notifyError();
 	}
 
 	for (EMO_Bone &b : this->bones)
@@ -101,10 +102,7 @@ bool EMO::Load(const uint8_t *buf, unsigned int size)							//read
 			uint8_t *emg_buf = GetOffsetPtr(phdr, phdr->offsets, j);
 
 			if (!part.Load(emg_buf, EMO_BaseFile::DifPointer(buf + size, emg_buf), this))
-			{
-				LOG_DEBUG("%s: Bad file, #EMG sub file couldn't be loaded (in group %s, part %04x)\n", FUNCNAME, group.name.c_str(), j);
 				continue;
-			}
 
 			group.parts.push_back(part);
 		}
@@ -206,8 +204,8 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 	uint8_t *buf = new uint8_t[file_size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
-		LibXenoverse::notifyError();
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		notifyError();
 		return nullptr;
 	}
 
@@ -240,8 +238,16 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 
 	EMO_PartsGroupHeader *pghdr = (EMO_PartsGroupHeader *)GetOffsetPtr(buf, offset, true);
 
-	assert(groups.size() < 65536);
-	pghdr->groups_count = val16(groups.size());
+	int16_t nbGroups = groups.size();
+	if (nbGroups > 65535)
+	{
+		printf("Error: the number of groups is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+		notifyError();
+
+		nbGroups = (uint16_t)65535;
+	}
+
+	pghdr->groups_count = val16(nbGroups);
 
 
 	std::vector<std::string> listEmm;
@@ -249,17 +255,26 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 	pghdr->material_count = val16(material_count);
 
 	offset += sizeof(EMO_PartsGroupHeader);
-	if (groups.size() != 0)
-		offset += (groups.size() - 1) * sizeof(uint32_t);
+	if (nbGroups != 0)
+		offset += (nbGroups - 1) * sizeof(uint32_t);
 
-	for (size_t i = 0; i < groups.size(); i++)
+	for (uint16_t i = 0; i < nbGroups; i++)
 	{
-		EMO_PartsGroup &pg = groups[i];
+		EMO_PartsGroup &pg = groups.at(i);
 		
+		int16_t nbParts = pg.parts.size();
+		if (nbParts > 65535)
+		{
+			printf("Error: the number of parts is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+			notifyError();
+
+			nbParts = (uint16_t)65535;
+		}
+
 		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
 		std::vector<EMG*> orderedByInc;
-		for (EMG &emg : pg.parts)
-			orderedByInc.push_back(&emg);
+		for (uint16_t j = 0; j < nbParts; j++)
+			orderedByInc.push_back(&pg.parts.at(j));
 
 		std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
 
@@ -271,12 +286,15 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 
 
 		EMO_PartHeader *phdr = (EMO_PartHeader *)GetOffsetPtr(buf, offset, true);
-		assert(pg.parts.size() < 65536);
-		phdr->emg_count = val32(pg.parts.size());
+
+
+		
+
+		phdr->emg_count = val32(nbParts);
 		offset += sizeof(EMO_PartHeader);
 
-		if (pg.parts.size() != 0)
-			offset += (pg.parts.size() - 1) * sizeof(uint32_t);
+		if (nbParts != 0)
+			offset += (nbParts - 1) * sizeof(uint32_t);
 
 
 		
@@ -297,7 +315,7 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 				offset += (0x10 - (offset & 0xF));
 
 			// phdr->offsets[X] is ordered for the respect of emg inside partgroup, so we need to find the real index for offests.
-			for (size_t k = 0; k < pg.parts.size(); k++)
+			for (uint16_t k = 0; k < nbParts; k++)
 			{
 				if (part == &pg.parts.at(k))
 				{
@@ -325,7 +343,7 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 
 			offset += part->CreatePart(buf + offset, this, startOffsetVertices, offset, &vertex_start, vertexInside);
 
-			if ((j + 1 != pg.parts.size()) && (vertex_start & 0xF))
+			if ((j + 1 != nbParts) && (vertex_start & 0xF))
 				vertex_start += (0x10 - (vertex_start & 0xF));
 
 			if (vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
@@ -346,15 +364,15 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 		offset += (0x10 - (offset & 0xF));
 
 
-	pghdr->names_offset = (groups.size() != 0) ? val32(offset - sizeof(EMO_Header)) : 0;
+	pghdr->names_offset = (nbGroups != 0) ? val32(offset - sizeof(EMO_Header)) : 0;
 
 	uint32_t *names_table = (uint32_t *)GetOffsetPtr(buf, offset, true);
-	offset += groups.size() * sizeof(uint32_t);
+	offset += nbGroups * sizeof(uint32_t);
 
 	std::vector<string> listEMG;
-	for (size_t i = 0; i < groups.size(); i++)
+	for (uint16_t i = 0; i < nbGroups; i++)
 	{
-		EMO_PartsGroup &pg = groups[i];
+		EMO_PartsGroup &pg = groups.at(i);
 
 		names_table[i] = val32(offset - sizeof(EMO_Header));
 
@@ -368,7 +386,7 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 		offset += (0x40 - (offset & 0x3F));
 
 	unsigned int skl_size;
-	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, listEMG, EMA_TYPE_ANIM_Object_or_Camera, ((groups.size() != 0)&&(!vertexInside)));
+	uint8_t *skl = EMO_Skeleton::CreateFile(&skl_size, listEMG, EMA_TYPE_ANIM_Object_or_Camera, ((nbGroups != 0)&&(!vertexInside)));
 	if (!skl)
 	{
 		delete[] buf;
@@ -385,15 +403,24 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 	hdr->vertex_offset = 0;
 	if (!vertexInside)											//case sdbh pos_har.emo : vertex are inside EMG.
 	{
-		hdr->vertex_offset = (groups.size() != 0) ? val32(offset) : val32(((size_t)ceil((double)offset / 16)) * 16);			//case Ibm_Crg.light.emo: same if there is no group, so no vertex, the vertex offset is as there is paading (same if in binaries there is no add lastpadding for skeleton)
+		hdr->vertex_offset = (nbGroups != 0) ? val32(offset) : val32(((size_t)ceil((double)offset / 16)) * 16);			//case Ibm_Crg.light.emo: same if there is no group, so no vertex, the vertex offset is as there is paading (same if in binaries there is no add lastpadding for skeleton)
 
 		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
 		first = true;
 		for (EMO_PartsGroup &pg : groups)
 		{
+			int16_t nbParts = pg.parts.size();
+			if (nbParts > 65535)
+			{
+				printf("Error: the number of parts is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+				notifyError();
+
+				nbParts = (uint16_t)65535;
+			}
+
 			std::vector<EMG*> orderedByInc;
-			for (EMG &emg : pg.parts)
-				orderedByInc.push_back(&emg);
+			for (uint16_t j = 0; j < nbParts; j++)
+				orderedByInc.push_back(&pg.parts.at(j));
 
 			std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
 
@@ -409,7 +436,11 @@ uint8_t *EMO::CreateFile(unsigned int *psize)							//write
 			}
 		}
 	}
-	assert(offset == file_size);
+	if (offset != file_size)
+	{
+		printf("Error: the size of the final file is not the same as allocated memory. so there certainly is a mistake. please contact the dev team and send them yours current sample.\n");
+		notifyError();
+	}
 
 	*psize = file_size;
 	return buf;
@@ -430,23 +461,36 @@ unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 	file_size = sizeof(EMO_Header);
 	file_size += sizeof(EMO_PartsGroupHeader);
 
-	if (groups.size() != 0)
-		file_size += (groups.size() - 1) * sizeof(uint32_t);
+	int16_t nbGroups = groups.size();
+	if (nbGroups > 65535)
+		nbGroups = (uint16_t)65535;
 
-	for (EMO_PartsGroup &pg : groups)
+	if (nbGroups != 0)
+		file_size += (nbGroups - 1) * sizeof(uint32_t);
+
+	for (uint16_t i=0;i< nbGroups;i++)
 	{
+		EMO_PartsGroup &pg = groups.at(i);
+
+		int16_t nbParts = pg.parts.size();
+		if (nbParts > 65535)
+		{
+			printf("Error: the number of parts is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+			notifyError();
+
+			nbParts = (uint16_t)65535;
+		}
+
 		// we need to order by partGroup and unknow_inc. case SSSSSS HYG_08.emo
 		std::vector<EMG*> orderedByInc;
-		for (EMG &emg : pg.parts)
-			orderedByInc.push_back(&emg);
+		for (uint16_t j = 0; j < nbParts; j++)
+			orderedByInc.push_back(&pg.parts.at(j));
 
 		std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
 
 
 		if (file_size & 0xF)
 			file_size += (0x10 - (file_size & 0xF));
-
-		//LOG_DEBUG("file size before part %s: %x\n", pg.name.c_str(), file_size);
 
 		file_size += sizeof(EMO_PartHeader);
 		if (pg.parts.size() != 0)
@@ -481,19 +525,14 @@ unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 		file_size += (0x10 - (file_size & 0xF));
 	}
 
-	//LOG_DEBUG("file_size before names table %x\n", file_size);
-
-	file_size += groups.size() * sizeof(uint32_t);
+	file_size += nbGroups * sizeof(uint32_t);
 	for (EMO_PartsGroup &pg : groups)
 		file_size += (pg.name.length() + 1);
 
 	if (file_size & 0x3F)
 		file_size += (0x40 - (file_size & 0x3F));
 
-
-	//LOG_DEBUG("file size before skeleton: %x\n", file_size);
-
-	file_size += EMO_Skeleton::CalculateFileSize((groups.size() != 0)&&(!vertexInside));
+	file_size += EMO_Skeleton::CalculateFileSize((nbGroups != 0)&&(!vertexInside));
 
 
 	*vertex_start = 0;
@@ -502,11 +541,22 @@ unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 		*vertex_start = file_size;
 
 		bool first = true;
-		for (EMO_PartsGroup &pg : groups)
+		for (uint16_t i = 0; i < nbGroups; i++)
 		{
+			EMO_PartsGroup &pg = groups.at(i);
+
+			int16_t nbParts = pg.parts.size();
+			if (nbParts > 65535)
+			{
+				printf("Error: the number of parts is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+				notifyError();
+
+				nbParts = (uint16_t)65535;
+			}
+
 			std::vector<EMG*> orderedByInc;
-			for (EMG &emg : pg.parts)
-				orderedByInc.push_back(&emg);
+			for (uint16_t j = 0; j < nbParts; j++)
+				orderedByInc.push_back(&pg.parts.at(j));
 
 			std::sort(orderedByInc.begin(), orderedByInc.end(), sortEmg);
 
@@ -523,7 +573,6 @@ unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 		}
 	}
 
-	//LOG_DEBUG("File size = %x\n", file_size);
 	return file_size;
 }
 
@@ -558,13 +607,10 @@ unsigned int EMO::CalculateFileSize(uint32_t *vertex_start)
 \-------------------------------------------------------------------------------*/
 bool EMO::DecompileToFile(const std::string &path, bool show_error, bool build_path)	//save
 {
-	LOG_DEBUG("Emo is being saved to .xml file. This process may take several seconds.\n");
+	printf("Emo is being saved to .xml file. This process may take several seconds.\n");
 	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
 
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been saved to .xml.\n");
-	}
+	if (ret) { printf("Emo has been saved to .xml.\n"); }
 
 	return ret;
 }
@@ -582,8 +628,8 @@ TiXmlDocument *EMO::Decompile() const
 	TiXmlElement *root = new TiXmlElement("EMO");
 	root->SetAttribute("version", version);
 	root->SetAttribute("vertexInside", vertexInside ? "true" : "false");
-	root->SetAttribute("unknow_0", unknow_0);					//always 0
-	root->SetAttribute("unknow_1", unknow_1);					//always 0
+	root->SetAttribute("unk_0", unknow_0);					//always 0
+	root->SetAttribute("unk_1", unknow_1);					//always 0
 
 	EMO_Skeleton::Decompile(root);
 
@@ -623,13 +669,10 @@ void EMO_PartsGroup::Decompile(TiXmlNode *root, size_t &emg_inc) const
 \-------------------------------------------------------------------------------*/
 bool EMO::CompileFromFile(const std::string &path, bool show_error, bool big_endian)		//load
 {
-	LOG_DEBUG("Emo is being loaded from .xml file. This process may take several seconds.\n");
+	printf("Emo is being loaded from .xml file. This process may take several seconds.\n");
 	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
 
-	if (ret)
-	{
-		LOG_DEBUG("Emo has been loaded from .xml.\n");
-	}
+	if (ret) { printf("Emo has been loaded from .xml.\n"); }
 
 	return ret;
 }
@@ -647,18 +690,23 @@ bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
 	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMO");
 	if (!root)
 	{
-		LOG_DEBUG("Cannot find\"EMO\" in xml.\n");
+		printf("Cannot find\"EMO\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
 	if (!EMO_Skeleton::Compile(root->FirstChildElement("Skeleton")))
+	{
+		printf("Cannot load Skeleton in xml.\n");
+		notifyError();
 		return false;
+	}
 
 
 	root->QueryStringAttribute("version", &version);
 	root->QueryBoolAttribute("vertexInside", &vertexInside);
-	root->QueryUnsignedAttribute("unknow_0", &unknow_0);			//always 0
-	root->QueryUnsignedAttribute("unknow_1", &unknow_1);			//always 0
+	root->QueryUnsignedAttribute("unk_0", &unknow_0);			//always 0
+	root->QueryUnsignedAttribute("unk_1", &unknow_1);			//always 0
 	
 
 	for (const TiXmlElement *elem = root->FirstChildElement("PartsGroup"); elem; elem = elem->NextSiblingElement("PartsGroup"))
@@ -667,7 +715,8 @@ bool EMO::Compile(TiXmlDocument *doc, bool big_endian)
 
 		if (!pg.Compile(elem, this))
 		{
-			LOG_DEBUG("%s: PartsGroup compilation failed.\n", FUNCNAME);
+			printf("%s: PartsGroup compilation failed.\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -686,7 +735,8 @@ bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 	if (root->QueryStringAttribute("name", &name) != TIXML_SUCCESS)
 	{
-		LOG_DEBUG("%s: Cannot get name of PartsGroup\n", FUNCNAME);
+		printf("%s: Cannot get name of PartsGroup\n", FUNCNAME);
+		notifyError();
 		return false;
 	}
 
@@ -699,7 +749,8 @@ bool EMO_PartsGroup::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 		if (!emg.Compile(elem, skl))
 		{
-			LOG_DEBUG("%s: Compilation of EMG failed.\n", FUNCNAME);
+			printf("%s: Compilation of EMG failed.\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -987,7 +1038,8 @@ bool EMO::InjectFbx(FbxScene *scene, bool normal_parts, bool edges, bool use_fbx
 	{
 		if (groups[i].parts.size() == 0 || groups[i].parts[0].IsEmpty())
 		{
-			LOG_DEBUG("Parts group \"%s\" has become empty. We will delete it.\n", groups[i].name.c_str());
+			printf("Parts group \"%s\" has become empty. We will delete it.\n", groups[i].name.c_str());
+			notifyWarning();
 			groups.erase(groups.begin() + i);
 			i--;
 		}
@@ -1026,7 +1078,8 @@ bool EMO_PartsGroup::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_
 	{
 		if (parts[i].IsEmpty())
 		{
-			LOG_DEBUG("Part \"%s\" has become empty. We will delete it.\n", parts[i].meta_name.c_str());
+			printf("Part \"%s\" has become empty. We will delete it.\n", parts[i].meta_name.c_str());
+			notifyWarning();
 			parts.erase(parts.begin() + i);
 			i--;
 			first_empty--;
@@ -1054,6 +1107,7 @@ void EMO::oldSaveFbx(string filename)	//test because of saintSeya work well with
 	if (!ExportFbx(scene, true, false))
 	{
 		printf("ExportFbx failed.\n");
+		notifyError();
 		return;
 	}
 
@@ -1131,6 +1185,7 @@ void EMO::oldSaveFbx(string filename)	//test because of saintSeya work well with
 				if (!emo->ExportFbx(sp.GetMetaName(), scene))
 				{
 					printf("ExportFbx failed on subpart \"%s\"\n", sp.GetMetaName().c_str());
+					notifyError();
 					return;
 				}
 
@@ -1355,16 +1410,15 @@ bool EMO_PartsSorter::operator()(const EMG &part1, const EMG &part2)
 	{
 		if (!part2.IsEmpty())
 			return false;
-	}
-	else if (part2.IsEmpty()){
+	}else if (part2.IsEmpty()){
 		return true;
 	}
 
 	uint16_t idx1 = GetIdx(part1);
 	uint16_t idx2 = GetIdx(part2);
 
-	assert(idx1 != 0xFFFF);
-	assert(idx2 != 0xFFFF);
+	//assert(idx1 != 0xFFFF);
+	//assert(idx2 != 0xFFFF);
 
 	return (idx1 < idx2);
 }
@@ -1594,7 +1648,7 @@ bool EMO::RemovePart(const std::string &part_name)
 		return false;
 
 	bool ret = PartPtrToIndex(part, &group_idx, &part_idx);
-	assert(ret);
+	//assert(ret);
 
 	groups[group_idx].parts.erase(groups[group_idx].begin() + part_idx);
 	return ret;
@@ -1698,8 +1752,7 @@ size_t EMO::GetNextObjSubPart(const std::string &content, size_t *pos, std::stri
 				{
 					if (show_error)
 					{
-						LOG_DEBUG("%s: Next group found but part name had not been set, "
-							"I can't understand this .obj, faulting line: \"%s\"\n", FUNCNAME, line.c_str());
+						printf("%s: Next group found but part name had not been set, I can't understand this .obj, faulting line: \"%s\"\n", FUNCNAME, line.c_str());
 						LibXenoverse::notifyError();
 					}
 
@@ -1806,7 +1859,7 @@ bool EMO::RemoveSubPart(const std::string &subpart_name)
 		return false;
 
 	bool ret = SubPartPtrToIndex(subpart, &group_idx, &part_idx, &subpart_idx);
-	assert(ret);
+	//assert(ret);
 
 	groups[group_idx][part_idx].subparts.erase(groups[group_idx][part_idx].begin() + subpart_idx);
 	return ret;
@@ -1949,8 +2002,7 @@ size_t EMO::InjectObj(const std::string &obj, bool do_uv, bool do_normal, bool s
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("Number of vertex in obj is different to the one used in the .emo, cannot proceed "
-				"(obj=%u, emo=%u)\n", vertex.size(), total_vertex);
+			LOG_DEBUG("Number of vertex in obj is different to the one used in the .emo, cannot proceed (obj=%u, emo=%u)\n", vertex.size(), total_vertex);
 			LibXenoverse::notifyError();
 		}
 
@@ -2061,7 +2113,6 @@ size_t EMO::InjectObjBySubParts(const std::string &obj, bool do_uv, bool do_norm
 void EMO::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
 {
     EMO_Skeleton::RebuildSkeleton(old_bones_ptr);
-    //LOG_DEBUG("Rebuild skeleton.\n");
 
     for (EMO_PartsGroup &pg : groups)
     {
@@ -2073,15 +2124,15 @@ void EMO::RebuildSkeleton(const std::vector<EMO_Bone *> &old_bones_ptr)
                 {
                     for (EMO_Bone *&b : sm.linked_bones)
                     {
-                        assert(b != nullptr);
+						if (b == nullptr)
+							continue;
+
                         uint16_t id = FindBone(old_bones_ptr, b, false);
 
                         if (id != 0xFFFF)
                         {
                             b = &bones[id];
-                        }
-                        else
-                        {
+                        }else{
                             // In this case, this is a bone from other emo that hasn't still been resolved
                             //LOG_DEBUG("Not resolved yet: %s\n", b->GetName().c_str());
                         }
@@ -2112,7 +2163,9 @@ size_t EMO::CloneLinkedBones(const EMO &other, EMO_PartsGroup &group, EMO_Bone *
                 // First check that all bone exists
                 for (EMO_Bone *b : sm.linked_bones)
                 {
-                    assert(b != nullptr);
+					if (b == nullptr)
+						continue;
+
 
                     if (!other.BoneExists(b->name))
                     {

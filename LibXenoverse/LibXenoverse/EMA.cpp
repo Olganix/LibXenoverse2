@@ -45,8 +45,6 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 	{
 		EmaAnimation &animation = animations[i];
 		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
-		
-		//printf(("startAnimOffset : " + UnsignedToString(anim_offsets[i], true) + "\n").c_str());		//todo test remove
 
 		animation.duration = val16(ahdr->duration);
 		
@@ -70,17 +68,14 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 			EMAAnimationNode &node = animation.nodes[j];
 			EMAAnimationAnimNodeHeader *chdr = (EMAAnimationAnimNodeHeader *)GetOffsetPtr(ahdr, ahdr->animNode_offsets, j);
 
-			//printf(("startAnimNodeOffset : " + UnsignedToString(anim_offsets[i] + ahdr->animNode_offsets[j], true) + "\n").c_str());		//todo test remove
-
 			if (HasSkeleton())
 			{
-
 				if (val16(chdr->bone_idx) >= GetNumBones())					//ex: some case on SSSS mat.ema
 				{
 					node.bone = nullptr;
-					LOG_DEBUG("Bone idx 0x%x out of bounds, in animation \"%s\", in node 0x%x\n", chdr->bone_idx, animation.name.c_str(), j);
-					//return false;
-				}else {
+					printf("Bone idx 0x%x out of bounds, in animation \"%s\", in node 0x%x. that could happen on material animation (we don't know why yet).\n", chdr->bone_idx, animation.name.c_str(), j);
+					notifyWarning();
+				}else{
 					node.bone = &bones[val16(chdr->bone_idx)];
 				}
 			}else{
@@ -133,8 +128,7 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 		float* values = (float *)GetOffsetPtr(ahdr, ahdr->values_offset);
 		uint16_t* values_uint6 = (uint16_t*)values;
 
-		//printf(("startoffsetFloatValues : " + UnsignedToString(anim_offsets[i] + ahdr->values_offset, true) + "\n").c_str());		//todo test remove
-
+		
 
 		
 
@@ -167,19 +161,28 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, file_size);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
 
 	memset(buf, 0, file_size);
-	assert(animations.size() < 65536);
+
+
+	uint16_t nbAnimations = animations.size();
+	if (nbAnimations > 65535)
+	{
+		printf("Error: the number of animation is up to 65535, witch is not possible. skipped after the limit.\n");
+		notifyError();
+
+		nbAnimations = 65535;
+	}
 
 	EMAHeader *hdr = (EMAHeader *)buf;
 	hdr->signature = EMA_SIGNATURE;
 	hdr->endianess_check = val16(0xFFFE);
 	hdr->header_size = val16(sizeof(EMAHeader));
-	hdr->anim_count = val16(animations.size());
+	hdr->anim_count = val16(nbAnimations);
 	hdr->type = val16(type);
 	hdr->unknow_0 = val32(unknow_0);
 	hdr->unknow_1 = val32(unknow_1);
@@ -201,9 +204,9 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 	offset = sizeof(EMAHeader);
 	uint32_t *anim_offsets = (uint32_t *)GetOffsetPtr(buf, offset, true);
 
-	offset += animations.size() * sizeof(uint32_t);
+	offset += nbAnimations * sizeof(uint32_t);
 
-	for (size_t i = 0; i < animations.size(); i++)
+	for (uint16_t i = 0; i < nbAnimations; i++)
 	{
 		if (offset & 3)
 			offset += (4 - (offset & 3));
@@ -212,13 +215,20 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, offset, true);
 		anim_offsets[i] = val32(offset);
 
-		//printf(("startAnimOffset : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
+		
 
+		
+		int16_t nbAnimationNodes = animation.nodes.size();
+		if (nbAnimationNodes > 65535)
+		{
+			printf("Error: the number of animationNodes is up to 65535, witch is not possible. skipped after the limit.\n");
+			notifyError();
 
-		assert(animation.nodes.size() < 65536);
+			nbAnimationNodes = (int16_t)65535;
+		}
 
 		ahdr->duration = val16(animation.duration);
-		ahdr->cmd_count = val16(animation.nodes.size());
+		ahdr->cmd_count = val16(nbAnimationNodes);
 		ahdr->value_count = val32(animation.values.size());
 		ahdr->type = animation.type;
 		ahdr->light_unknow = animation.light_unknow;
@@ -229,21 +239,25 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 
 
 		offset += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
-		offset += animation.nodes.size() * sizeof(uint32_t);
+		offset += nbAnimationNodes * sizeof(uint32_t);
 
-		for (size_t j = 0; j < animation.nodes.size(); j++)
+		for (uint16_t j = 0; j < nbAnimationNodes; j++)
 		{
 			if (offset & 3)
 				offset += (4 - (offset & 3));
 
-			//printf(("startAnimNodeOffset : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
-
-
-			const EMAAnimationNode &node = animation.nodes[j];
+			const EMAAnimationNode &node = animation.nodes.at(j);
 			EMAAnimationAnimNodeHeader *chdr = (EMAAnimationAnimNodeHeader *)GetOffsetPtr(buf, offset, true);
 			ahdr->animNode_offsets[j] = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
 
-			assert(node.keyframes.size() < 65536);
+			int16_t nbKfs = node.keyframes.size();
+			if (nbKfs > 65535)
+			{
+				printf("Error: the number of keyframes is up to 65535, witch is not possible. skipped after the limit (except we take the lastIndex, because is needed).\n");
+				notifyError();
+
+				nbKfs = (uint16_t)65535;
+			}
 
 			if ((HasSkeleton())&&(node.bone != nullptr))
 				chdr->bone_idx = val16(BoneToIndex(node.bone));
@@ -254,15 +268,17 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			
 			chdr->transform = node.transform;
 			chdr->transformComponent = (node.transformComponent & 0x3) | ((node.noInterpolation) ? 0x4 : 0) | node.unknow_0 | node.unknow_1 | timesByteSize | indexesByteSize;
-			chdr->keyframe_count = val16(node.keyframes.size());
+			chdr->keyframe_count = val16(nbKfs);
 			offset += sizeof(EMAAnimationAnimNodeHeader);
 
 			if (!timesByteSize)
 			{
 				uint8_t *timing = GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < node.keyframes.size(); k++)
+				for (uint16_t k = 0; k < nbKfs; k++)
 				{
-					assert(node.keyframes[k].time < 256);
+					if ((k + 1 == nbKfs) && (nbKfs != node.keyframes.size()))
+						k = node.keyframes.size() - 1;										//the lastIndex is neeeded, to not carsh the game (need duration -1)
+
 					timing[k] = (uint8_t)node.keyframes[k].time;
 					offset += sizeof(uint8_t);
 				}
@@ -270,8 +286,11 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			}else {
 
 				uint16_t *timing = (uint16_t *)GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < node.keyframes.size(); k++)
+				for (uint16_t k = 0; k < nbKfs; k++)
 				{
+					if ((k + 1 == nbKfs) && (nbKfs != node.keyframes.size()))
+						k = node.keyframes.size() - 1;										//the lastIndex is neeeded, to not carsh the game (need duration -1)
+
 					timing[k] = val16(node.keyframes[k].time);
 					offset += sizeof(uint16_t);
 				}
@@ -289,8 +308,11 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			if (!indexesByteSize)
 			{
 				uint16_t *indices = (uint16_t *)GetOffsetPtr(buf, offset, true);
-				for (size_t k = 0; k < node.keyframes.size(); k++)
+				for (uint16_t k = 0; k < nbKfs; k++)
 				{
+					if ((k + 1 == nbKfs) && (nbKfs != node.keyframes.size()))
+						k = node.keyframes.size() - 1;										//the lastIndex is neeeded, to not carsh the game (need duration -1)
+
 					indices[k] = val16(node.keyframes[k].index | ( ((uint16_t)node.keyframes[k].interpolation) << 12) );
 					offset += sizeof(uint16_t);
 				}
@@ -298,8 +320,11 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			}else {
 				uint32_t *indices = (uint32_t *)GetOffsetPtr(buf, offset, true);
 
-				for (size_t k = 0; k < node.keyframes.size(); k++)
+				for (uint16_t k = 0; k < nbKfs; k++)
 				{
+					if ((k + 1 == nbKfs) && (nbKfs != node.keyframes.size()))
+						k = node.keyframes.size() - 1;										//the lastIndex is neeeded, to not carsh the game (need duration -1)
+
 					indices[k] = val32(node.keyframes[k].index | (((uint32_t)node.keyframes[k].interpolation) << 28));
 					offset += sizeof(uint32_t);
 				}
@@ -309,7 +334,6 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 		if (offset & 3)
 			offset += (4 - (offset & 3));
 
-		//printf(("startoffsetFloatValues : " + UnsignedToString(offset, true) + "\n").c_str());		//todo test remove
 
 		if (animation.frame_float_size == 0)
 		{
@@ -357,7 +381,8 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 
 	}
 
-	for (size_t i = 0; i < animations.size(); i++)
+	string name;
+	for (uint16_t i = 0; i < nbAnimations; i++)
 	{
 		const EmaAnimation &animation = animations[i];
 		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
@@ -374,11 +399,25 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 		emaAnimationName->nbChar = animation.name.length();
 		offset += sizeof(EMAAnimationName);
 
-		strcpy((char *)buf + offset, animation.name.c_str());
-		offset += animation.name.length() + 1;
+
+		name = animation.name;
+		if (name.length() >= 256)
+		{
+			printf("Error: a animation's name is too long (limit to 255). it will be cropped : %s\n", name.c_str());
+			notifyError();
+
+			name = name.substr(0, 255);
+		}
+
+		strcpy((char *)buf + offset, name.c_str());
+		offset += name.length() + 1;
 	}
 
-	assert(offset == file_size);
+	if (offset != file_size)
+	{
+		printf("Error: the size of the final file is not the same as allocated memory. so there certainly is a mistake. please contact the dev team and send them yours current sample.\n");
+		notifyError();
+	}
 
 	*psize = file_size;
 	return buf;
@@ -389,22 +428,39 @@ unsigned int EMA::CalculateFileSize() const
 {
 	unsigned int file_size = sizeof(EMAHeader);
 
-	file_size += animations.size() * sizeof(uint32_t);
 
-	for (const EmaAnimation &a : animations)
+	uint16_t nbAnimations = animations.size();
+	if ((nbAnimations > 65535))
+		nbAnimations = (uint16_t)65535;
+
+	file_size += nbAnimations * sizeof(uint32_t);
+
+	for (uint16_t i=0;i< nbAnimations;i++)
 	{
+		const EmaAnimation &a = animations.at(i);
+
+		int16_t nbAnimationNodes = a.nodes.size();
+		if ((nbAnimationNodes > 65535))
+			nbAnimationNodes = (uint16_t)65535;
+
 		if (file_size & 3)
 			file_size += (4 - (file_size & 3));
 
 		file_size += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
-		file_size += a.nodes.size() * sizeof(uint32_t);
+		file_size += nbAnimationNodes * sizeof(uint32_t);
 
 		size_t timesByteSize = (a.duration > 0xFF) ? 0x20 : 0x0;
 		size_t indexesByteSize = (a.values.size() > 0x3FFF) ? 0x40 : 0x0;
 
-
-		for (const EMAAnimationNode &c : a.nodes)
+		for (uint16_t j = 0; j < nbAnimationNodes; j++)
 		{
+			const EMAAnimationNode &c = a.nodes.at(j);
+
+			int16_t nbKfs = c.keyframes.size();
+			if (nbKfs > 65535)
+				nbKfs = (uint16_t)65535;
+
+
 			if (file_size & 3)
 				file_size += (4 - (file_size & 3));
 
@@ -412,17 +468,17 @@ unsigned int EMA::CalculateFileSize() const
 
 			timesByteSize = (a.duration > 0xFF) ? 0x20 : c.timesByteSize;
 			if (!timesByteSize)
-				file_size += c.keyframes.size();					//uint8
+				file_size += nbKfs;					//uint8
 			else
-				file_size += c.keyframes.size() * sizeof(uint16_t);
+				file_size += nbKfs * sizeof(uint16_t);
 
 			if (file_size & 3)
 				file_size += (4 - (file_size & 3));
 
 			if (!indexesByteSize)
-				file_size += c.keyframes.size() * sizeof(uint16_t);
+				file_size += nbKfs * sizeof(uint16_t);
 			else
-				file_size += c.keyframes.size() * sizeof(uint32_t);
+				file_size += nbKfs * sizeof(uint32_t);
 		}
 
 		if (file_size & 3)
@@ -441,13 +497,19 @@ unsigned int EMA::CalculateFileSize() const
 	if (HasSkeleton())
 		file_size += EMO_Skeleton::CalculateFileSize();
 
-	for (const EmaAnimation &a : animations)
+	string name;
+	for (uint16_t i = 0; i < nbAnimations; i++)
 	{
+		const EmaAnimation &a = animations.at(i);
+
 		if (file_size & 3)
 			file_size += (4 - (file_size & 3));
 
-		assert(a.name.length() < 256);
-		file_size += 11 + a.name.length() + 1;
+		name = a.name;
+		if (name.length() >= 256)
+			name = name.substr(0, 255);
+
+		file_size += 11 + name.length() + 1;
 	}
 
 	return file_size;
@@ -486,10 +548,10 @@ unsigned int EMA::CalculateFileSize() const
 
 bool EMA::DecompileToFile(const std::string &path, bool show_error, bool build_path)
 {
-	LOG_DEBUG("Ema is being saved to .xml file. This process may take a while.\n");
+	printf("Ema is being saved to .xml file. This process may take a while.\n");
 	bool ret = EMO_BaseFile::DecompileToFile(path, show_error, build_path);
 
-	if (ret) { LOG_DEBUG("Ema has been saved to .xml.\n"); }
+	if (ret) { printf("Ema has been saved to .xml.\n"); }
 
 	return ret;
 }
@@ -504,9 +566,9 @@ TiXmlDocument *EMA::Decompile() const
 
 	root->SetAttribute("version", version);
 	root->SetAttribute("type", ((type == EMA_TYPE_ANIM_Object_or_Camera) ? "Object" : ((type == EMA_TYPE_ANIM_Light) ? "Light" : ((type == EMA_TYPE_ANIM_Material) ? "Material" : EMO_BaseFile::UnsignedToString(type, true)))));
-	root->SetAttribute("unknow_0", unknow_0);
-	root->SetAttribute("unknow_1", unknow_1);
-	root->SetAttribute("unknow_2", unknow_2);
+	root->SetAttribute("unk_0", unknow_0);
+	root->SetAttribute("unk_1", unknow_1);
+	root->SetAttribute("unk_2", unknow_2);
 
 	if (HasSkeleton())
 		EMO_Skeleton::Decompile(root);
@@ -517,9 +579,52 @@ TiXmlDocument *EMA::Decompile() const
 	for (size_t i = 0; i < animations.size(); i++)
 	{
 		emaAnimsNode->LinkEndChild(new TiXmlComment((string(" Index :") + ToString(i) +" nbVertex: "+ ToString(animations[i].values.size()) ).c_str()));
-		animations[i].Decompile(emaAnimsNode);
+		animations.at(i).Decompile(emaAnimsNode);
 	}
 	root->LinkEndChild(emaAnimsNode);
+
+
+
+	{						//test todo remove
+		bool hyp_haveFirstKeyframe = true;
+		bool hyp_haveLastKeyframe = true;
+		bool hyp_haveKeyframeOrdered = true;
+
+		for (size_t i = 0; i < animations.size(); i++)
+		{
+			const EmaAnimation &anim = animations.at(i);
+			for (size_t j = 0; j < anim.nodes.size(); j++)
+			{
+				const EMAAnimationNode &animNode = anim.nodes.at(j);
+
+				size_t lastIndex = (size_t)-1;
+				for (size_t k = 0; k < animNode.keyframes.size(); k++)
+				{
+					const EMAKeyframe &kf = animNode.keyframes.at(k);
+					
+					if (k == 0)
+					{
+						if (kf.time != 0)
+							hyp_haveFirstKeyframe = false;
+
+						lastIndex = kf.time;
+					}else {
+
+						if(kf.time < lastIndex)
+							hyp_haveKeyframeOrdered = false;
+					}
+
+					if((k + 1 == animNode.keyframes.size()) && (kf.time + 1 != anim.duration))			//the last
+						hyp_haveLastKeyframe = false;
+				}
+			}
+		}
+		root->SetAttribute("hyp_haveFirstKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
+		root->SetAttribute("hyp_haveLastKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
+		root->SetAttribute("hyp_haveKeyframeOrdered", hyp_haveFirstKeyframe ? "true" : "false");
+	}
+
+
 
 	doc->LinkEndChild(root);
 	return doc;
@@ -534,9 +639,9 @@ void EmaAnimation::Decompile(TiXmlNode *root) const
 	entry_root->SetAttribute("light_unk", light_unknow);
 	entry_root->SetAttribute("floatSize", ((frame_float_size==0) ? "32bits" : ((frame_float_size == 1) ? "16bits" : ToString(frame_float_size))) );
 	
-	entry_root->SetAttribute("name_unk0", name_unknow_0);
-	entry_root->SetAttribute("name_unk1", name_unknow_1);
-	entry_root->SetAttribute("name_unk2", name_unknow_2);
+	entry_root->SetAttribute("name_unk_0", name_unknow_0);
+	entry_root->SetAttribute("name_unk_1", name_unknow_1);
+	entry_root->SetAttribute("name_unk_2", name_unknow_2);
 
 	for (size_t i = 0; i < nodes.size(); i++)
 		nodes[i].Decompile(entry_root, values, type, duration);
@@ -689,8 +794,8 @@ void EMAAnimationNode::Decompile(TiXmlNode *root, const std::vector<float> &valu
 	entry_root->SetAttribute("transform", transformStr);
 	entry_root->SetAttribute("component", transformComponentStr);
 	entry_root->SetAttribute("noInterpolation", noInterpolation ? "true" : "false");
-	entry_root->SetAttribute("unknow_0", unknow_0);
-	entry_root->SetAttribute("unknow_1", unknow_1);
+	entry_root->SetAttribute("unk_0", unknow_0);
+	entry_root->SetAttribute("unk_1", unknow_1);
 	
 	for(size_t i=0,nb= keyframes.size();i<nb;i++)
 		keyframes.at(i).Decompile(entry_root, values, (i+1<nb) ? &keyframes.at(i+1) : 0);
@@ -746,13 +851,10 @@ void EMAKeyframe::Decompile(TiXmlNode *root, const std::vector<float> &values, c
 
 bool EMA::CompileFromFile(const std::string &path, bool show_error, bool big_endian)
 {
-	LOG_DEBUG("Ema is being loaded from .xml file. This process may take a while.\n");
+	printf("Ema is being loaded from .xml file. This process may take a while.\n");
 	bool ret = EMO_BaseFile::CompileFromFile(path, show_error, big_endian);
 
-	if (ret)
-	{
-		LOG_DEBUG("Ema has been loaded from .xml.\n");
-	}
+	if (ret){ printf("Ema has been loaded from .xml.\n"); }
 
 	return ret;
 }
@@ -766,7 +868,8 @@ bool EMA::Compile(TiXmlDocument *doc, bool big_endian)
 	const TiXmlElement *root = EMO_BaseFile::FindRoot(&handle, "EMA");
 	if (!root)
 	{
-		LOG_DEBUG("Cannot find\"EMA\" in xml.\n");
+		printf("Cannot find\"EMA\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -781,9 +884,9 @@ bool EMA::Compile(TiXmlDocument *doc, bool big_endian)
 	context = (type == EMA_TYPE_ANIM_Material) ? ContextUse::MaterialAnimation : ContextUse::ObjectAnimation;
 
 
-	root->QueryUnsignedAttribute("unknow_0", &unknow_0);
-	root->QueryUnsignedAttribute("unknow_1", &unknow_1);
-	root->QueryUnsignedAttribute("unknow_2", &unknow_2);
+	root->QueryUnsignedAttribute("unk_0", &unknow_0);
+	root->QueryUnsignedAttribute("unk_1", &unknow_1);
+	root->QueryUnsignedAttribute("unk_2", &unknow_2);
 
 
 	mHaveExtraBytesOnEachBone = (type == EMA_TYPE_ANIM_Object_or_Camera);
@@ -796,7 +899,8 @@ bool EMA::Compile(TiXmlDocument *doc, bool big_endian)
 		EmaAnimation emaAnim;
 		if (!emaAnim.Compile(elem, *this))
 		{
-			LOG_DEBUG("%s: Compilation of Animation failed.\n", FUNCNAME);
+			printf("%s: Compilation of Animation failed.\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -825,9 +929,9 @@ bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 	root->QueryStringAttribute("floatSize", &str);
 	frame_float_size = ((str == "32bits") ? 0 : ((str == "16bits") ? 1 : std::stoi(str)));
 
-	root->QueryUnsignedAttribute("name_unk0", &name_unknow_0);
-	root->QueryUnsignedAttribute("name_unk1", &name_unknow_1);
-	root->QueryUnsignedAttribute("name_unk2", &tmp); name_unknow_2 = (uint16_t)tmp;
+	root->QueryUnsignedAttribute("name_unk_0", &name_unknow_0);
+	root->QueryUnsignedAttribute("name_unk_1", &name_unknow_1);
+	root->QueryUnsignedAttribute("name_unk_2", &tmp); name_unknow_2 = (uint16_t)tmp;
 
 
 	for (const TiXmlElement *elem = root->FirstChildElement("AnimationNode"); elem; elem = elem->NextSiblingElement("AnimationNode"))
@@ -835,7 +939,8 @@ bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 		EMAAnimationNode emaAnimNode;
 		if (!emaAnimNode.Compile(elem, skl))
 		{
-			LOG_DEBUG("%s: Compilation of node failed.\n", FUNCNAME);
+			printf("%s: Compilation of node failed.\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -899,8 +1004,8 @@ bool EMAAnimationNode::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 
 
 	root->QueryStringAttribute("noInterpolation", &str); noInterpolation = (str == "true");
-	root->QueryUnsignedAttribute("unknow_0", &tmp); unknow_0 = (uint8_t)tmp;
-	root->QueryUnsignedAttribute("unknow_1", &tmp); unknow_1 = (uint8_t)tmp;
+	root->QueryUnsignedAttribute("unk_0", &tmp); unknow_0 = (uint8_t)tmp;
+	root->QueryUnsignedAttribute("unk_1", &tmp); unknow_1 = (uint8_t)tmp;
 
 
 	for (const TiXmlElement *elem = root->FirstChildElement("Keyframe"); elem; elem = elem->NextSiblingElement("Keyframe"))
@@ -1543,7 +1648,7 @@ void EmaAnimation::writeEANAnimation(EANAnimation* ean, ESK* esk)
 				case 2: flag_tmp = LIBXENOVERSE_EAN_KEYFRAMED_ANIMATION_FLAG_SCALE_or_CAMERA; break;
 				default:
 				{
-					printf("Warning: unknow flag %s (different position/rotation/scale)", EMO_BaseFile::UnsignedToString(flag_tmp, true));
+					printf("Warning: unknow flag %s (different position/rotation/scale)\n", EMO_BaseFile::UnsignedToString(flag_tmp, true));
 					LibXenoverse::notifyWarning();
 				}
 			}
@@ -1943,13 +2048,8 @@ void EMA::Copy(const EMA &other)
 	if (HasSkeleton())
 	{
 		for (EmaAnimation &a : animations)
-		{
 			for (EMAAnimationNode &c : a.nodes)
-			{
 				c.bone = GetBone(c.bone->GetName());
-				assert(c.bone != nullptr);
-			}
-		}
 	}
 }
 

@@ -141,10 +141,13 @@ struct EMDTriangles_Section
 } PACKED;
 static_assert(sizeof(EMDTriangles_Section) == 0x10, "Incorrect structure size.");
 
-
-
-
 //vertex struct depend of flags.
+
+
+
+
+
+
 
 
 
@@ -275,7 +278,6 @@ protected:
 	string name;									//it's also the materialName
 	unsigned int vertex_type_flag;
 	unsigned int vertex_size;
-	uint8_t unknow_0;
 
 	vector<EMDVertex> vertices;
 	vector<EMDTriangles> triangles;
@@ -293,6 +295,8 @@ protected:
 	float aabb_max_y;
 	float aabb_max_z;
 	float aabb_max_w;
+
+	uint8_t unknow_0;
 
 public:
 	string uniqName;									//for instance
@@ -354,7 +358,6 @@ class EMDMesh
 
 protected:
 	string name;
-	unsigned short unknow_total;
 	vector<EMDSubmesh*> submeshes;
 	
 	float aabb_center_x;
@@ -370,7 +373,7 @@ protected:
 	float aabb_max_z;
 	float aabb_max_w;
 	
-
+	unsigned short unknow_0;
 
 public:
 	EMDMesh(EMDMesh* emdMesh = 0);
@@ -419,8 +422,9 @@ class EMDModel
 
 protected:
 	string name;
-	unsigned short unknow_total;
 	vector<EMDMesh*> meshes;
+
+	unsigned short unknow_0;
 
 public:
 	EMDModel(EMDModel* emdModel = 0);

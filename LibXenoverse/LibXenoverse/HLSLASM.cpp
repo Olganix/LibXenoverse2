@@ -20,6 +20,7 @@ namespace LibXenoverse {
 		if (hr != D3D_OK) 
 		{
 			printf("Failed compiling pixel shader %08X\n", hr);
+			notifyError();
 
 			data_size = errorBuffer->GetBufferSize();
 			char *mdata = new char[data_size];

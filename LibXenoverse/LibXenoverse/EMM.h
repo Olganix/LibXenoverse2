@@ -55,7 +55,7 @@ struct EMM_Parameter_Section
 {
 	char name[32];				// 0
 	uint16_t type;				// 20	// 0: Float, 1: uint.
-	uint16_t unknow_0;			// 22
+	uint16_t level;				// 22   //0: directShaderEntries, 1: gameSystem (Material , TextureUNitState, pass composition)
 	uint32_t value;				// 24	//could also be a Float32, depend of type.
 } PACKED;
 static_assert(sizeof(EMM_Parameter_Section) == 0x28, "Incorrect structure size.");

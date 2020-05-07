@@ -27,7 +27,8 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 
 	if (memcmp(&emgc->signature, "#EMG", 4) != 0)
 	{
-		//LOG_DEBUG("%s: Bad file, #EMG signature was not found where expected (in group %s)\n", __PRETTY_FUNCTION__, group.name.c_str());
+		printf("#EMG signature was not found\n");
+		notifyError();
 		return false;
 	}
 
@@ -36,10 +37,11 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 
 	for (uint16_t i = 0; i < val16(emgc->subparts_count); i++)
 	{
+		if (emgc->offsets[i] == 0)
+			continue;
+		
 		EMG_SubPart subpart;
 		EMG_SubPart_Section *ehdr = (EMG_SubPart_Section *)GetOffsetPtr(emgc, emgc->offsets, i);
-
-		assert(emgc->offsets[i] != 0);
 
 		if (meta_name != "")
 		{
@@ -102,10 +104,12 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 
 		for (uint16_t j = 0; j < val16(ehdr->submesh_count); j++)
 		{
+			if (smtable[j] == 0)
+				continue;
+			
 			EMG_SubMesh submesh;
 			EMG_EMG_SubMeshHeader *shdr = (EMG_EMG_SubMeshHeader *)GetOffsetPtr(ehdr, smtable, j);
 
-			assert(smtable[j] != 0);
 
 			if (subpart.meta_name != "")
 			{
@@ -134,7 +138,8 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 			{
 				if (val16(bones_idx[k]) >= skl->GetNumBones())
 				{
-					LOG_DEBUG("%s: bone 0x%x out of bounds in subpart %04x\n", FUNCNAME, k, i);
+					printf("%s: bone 0x%x out of bounds in subpart %04x\n", FUNCNAME, k, i);
+					notifyWarning();
 					continue;
 				}
 
@@ -146,7 +151,8 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 
 		if (ehdr->vertex_count == 0)
 		{
-			LOG_DEBUG("Number of vertex can't be 0!\n");
+			printf("Number of vertex can't be 0!\n");
+			notifyError();
 			return false;
 		}
 
@@ -157,8 +163,7 @@ bool EMG::Load(uint8_t *buf, unsigned int size, EMO_Skeleton *skl)							//read
 		if ((vertex_size != EMG_SubPart::getSizeFromFlags(subpart.vertex_type_flag, true)))
 		{
 			printf("%s: vertex size: %d is not compatible with flag : 0x%04x\n", FUNCNAME, vertex_size, subpart.vertex_type_flag);
-
-			LOG_DEBUG("%s: vertex size: %d is not compatible with flag : 0x%04x\n", FUNCNAME, vertex_size, subpart.vertex_type_flag);
+			notifyError();
 			return false;
 		}
 
@@ -366,6 +371,11 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 
 	for (size_t i = 0; i < this->subparts.size(); i++)
 	{
+		EMG_SubPart &subpart = subparts[i];
+
+		if (subpart.vertex.size() == 0)
+			continue;
+		
 		if (offset & 0xF)
 			offset += (0x10 - (offset & 0xF));
 
@@ -373,24 +383,37 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 		emgc->offsets[i] = val32(offset);
 
 		EMG_SubPart_Section *ehdr = (EMG_SubPart_Section *)GetOffsetPtr(buf, offset, true);
-		EMG_SubPart &subpart = this->subparts[i];
+		
 
-		assert(subpart.textures_lists.size() < 65536);
-		assert(subpart.submeshes.size() < 65536);
+		uint16_t nbTextureList = subpart.textures_lists.size();
+		if (nbTextureList > 65535)
+		{
+			printf("Error: the number of TextureList is up to 65535, witch is not possible. skipped after the limit.\n");
+			notifyError();
 
-		if (subpart.vertex.size() == 0)
-			continue;
-		assert(subpart.vertex.size() > 0);
+			nbTextureList = 65535;
+		}
+
+		uint16_t nbSubmeshes = subpart.submeshes.size();
+		if (nbSubmeshes > 65535)
+		{
+			printf("Error: the number of Submeshes is up to 65535, witch is not possible. skipped after the limit.\n");
+			notifyError();
+
+			nbSubmeshes = 65535;
+		}
+
+		
 
 
 		ehdr->vertex_type_flag = val32(subpart.vertex_type_flag);
-		ehdr->textures_lists_count = val32(subpart.textures_lists.size());
+		ehdr->textures_lists_count = val32(nbTextureList);
 		ehdr->unknow_0 = val32(subpart.unknow_0);
 
 		ehdr->vertex_count = val16(subpart.vertex.size());
 		ehdr->vertex_size = val16(subpart.vertex[0].VertexUnion.getSizeFromFlags(true));
 		ehdr->strips = val16(subpart.strips);
-		ehdr->submesh_count = val16(subpart.submeshes.size());
+		ehdr->submesh_count = val16(nbSubmeshes);
 		
 		ehdr->vertex_offset = (!vertexInside) ? val32(*vertex_start - (startOffsetEmg + startSubpart)) : val32(startVertexForVertexInside - startSubpart);
 		*vertex_start += (subpart.vertex.size() * subpart.vertex[0].VertexUnion.getSizeFromFlags(true));
@@ -412,12 +435,12 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 
 
 		offset += sizeof(EMG_SubPart_Section);
-		ehdr->textures_lists_offset = (subpart.textures_lists.size()!=0) ? val32(EMO_BaseFile::DifPointer(buf + offset, ehdr)) : 0;
+		ehdr->textures_lists_offset = (nbTextureList!=0) ? val32(EMO_BaseFile::DifPointer(buf + offset, ehdr)) : 0;
 
 		uint32_t *ttable = (uint32_t *)GetOffsetPtr(buf, offset, true);
-		offset += subpart.textures_lists.size() * sizeof(uint32_t);
+		offset += nbTextureList * sizeof(uint32_t);
 
-		for (size_t j = 0; j < subpart.textures_lists.size(); j++)
+		for (size_t j = 0; j < nbTextureList; j++)
 		{
 			ttable[j] = val32(EMO_BaseFile::DifPointer(buf + offset, ehdr));
 
@@ -446,9 +469,9 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 		ehdr->submesh_list_offset = val32(EMO_BaseFile::DifPointer(buf + offset, ehdr));
 
 		uint32_t *smtable = (uint32_t *)GetOffsetPtr(buf, offset, true);
-		offset += subpart.submeshes.size() * sizeof(uint32_t);
+		offset += nbSubmeshes * sizeof(uint32_t);
 
-		for (size_t j = 0; j < subpart.submeshes.size(); j++)
+		for (size_t j = 0; j < nbSubmeshes; j++)
 		{
 			if (offset & 0xF)
 				offset += (0x10 - (offset & 0xF));
@@ -458,9 +481,26 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 			EMG_EMG_SubMeshHeader *shdr = (EMG_EMG_SubMeshHeader *)GetOffsetPtr(buf, offset, true);
 			EMG_SubMesh &submesh = subpart.submeshes[j];
 
-			assert(submesh.emm_material.length() < 32);
-			assert(submesh.faces.size() < 65536);
-			assert(submesh.linked_bones.size() < 65536);
+			
+			
+			uint16_t nbFaces = submesh.faces.size();
+			if (nbFaces > 65535)
+			{
+				printf("Error: the number of Faces is up to 65535, witch is not possible. skipped after the limit.\n");
+				notifyError();
+
+				nbFaces = 65535;
+			}
+
+			uint16_t nbLinkedBones = submesh.linked_bones.size();
+			if (nbLinkedBones > 65535)
+			{
+				printf("Error: the number of LinkedBones is up to 65535, witch is not possible. skipped after the limit.\n");
+				notifyError();
+
+				nbLinkedBones = 65535;
+			}
+
 
 			copy_float(&shdr->barycenter[0], submesh.barycenter[0]);
 			copy_float(&shdr->barycenter[1], submesh.barycenter[1]);
@@ -468,14 +508,23 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 			copy_float(&shdr->barycenter[3], submesh.barycenter[3]);
 
 			shdr->textureList_index = val16(submesh.textureList_index);
-			shdr->face_count = val16(submesh.faces.size());
-			shdr->linked_bones_count = val16(submesh.linked_bones.size());
-			strcpy(shdr->emm_material_name, submesh.emm_material.c_str());
+			shdr->face_count = val16(nbFaces);
+			shdr->linked_bones_count = val16(nbLinkedBones);
+
+			string name_tmp = submesh.emm_material;
+			if (name_tmp.length() >= 0x20)
+			{
+				printf("Error: the submesh's name (= materialName) is too long (limit to 0x20 = 32). it will be cropped : %s\n", name_tmp.c_str());
+				notifyError();
+
+				name_tmp = name_tmp.substr(0, 32);
+			}
+			strcpy(shdr->emm_material_name, name_tmp.c_str());
 
 			offset += sizeof(EMG_EMG_SubMeshHeader);
 			uint16_t *faces = (uint16_t *)GetOffsetPtr(buf, offset, true);
 
-			for (size_t k = 0; k < submesh.faces.size(); k++)
+			for (size_t k = 0; k < nbFaces; k++)
 			{
 				faces[k] = val16(submesh.faces[k]);
 				offset += sizeof(uint16_t);
@@ -483,10 +532,9 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 
 			uint16_t *bones_idx = (uint16_t *)GetOffsetPtr(buf, offset, true);
 
-			for (size_t k = 0; k < submesh.linked_bones.size(); k++)
+			for (size_t k = 0; k < nbLinkedBones; k++)
 			{
 				uint16_t idx = skl->BoneToIndex(submesh.linked_bones[k]);
-				assert(idx != 0xFFFF);
 
 				bones_idx[k] = val16(idx);
 				offset += sizeof(uint16_t);
@@ -494,7 +542,6 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 		}
 	}
 
-	//LOG_DEBUG("offset = %x, file_size = %x\n", offset, file_size);
 
 	if ((offset & 0xF) && (!vertexInside))
 		offset += (0x10 - (offset & 0xF));
@@ -502,8 +549,12 @@ unsigned int EMG::CreatePart(uint8_t *buf, EMO_Skeleton *skl, uint32_t startOffs
 		offset += (0x4 - (offset & 0x3));
 
 
+	if (offset != file_size)
+	{
+		printf("Error: the size of the final file is not the same as allocated memory. so there certainly is a mistake. please contact the dev team and send them yours current sample.\n");
+		notifyError();
+	}
 
-	assert(offset == file_size);
 	return file_size;
 }
 
@@ -517,32 +568,51 @@ unsigned int EMG::CalculatePartSize(bool vertexInside)
 
 	for (EMG_SubPart &sp : this->subparts)
 	{
+		if (sp.vertex.size() == 0)
+			continue;
+
 		if (file_size & 0xF)
 			file_size += (0x10 - (file_size & 0xF));
 
-		//LOG_DEBUG("File size in this subpart: %x\n", file_size);
+		uint16_t nbTextureList = sp.textures_lists.size();
+		if (nbTextureList > 65535)
+			nbTextureList = 65535;
+
+		uint16_t nbSubmeshes = sp.submeshes.size();
+		if (nbSubmeshes > 65535)
+			nbSubmeshes = 65535;
 
 		file_size += sizeof(EMG_SubPart_Section);
-		file_size += sp.textures_lists.size() * sizeof(uint32_t);
+		file_size += nbTextureList * sizeof(uint32_t);
 
-		for (EMG_TexturesList &tl : sp.textures_lists)
+		for(uint16_t i=0; i < nbTextureList; i++)
 		{
+			EMG_TexturesList &tl = sp.textures_lists.at(i);
+
 			file_size += sizeof(uint32_t);
 			file_size += tl.textures.size() * sizeof(EMGTextureDef_Section);
 		}
 
-		file_size += sp.submeshes.size() * sizeof(uint32_t);
+		file_size += nbSubmeshes * sizeof(uint32_t);
 
-		for (EMG_SubMesh &sm : sp.submeshes)
+		for (uint16_t i = 0; i < nbTextureList; i++)
 		{
+			EMG_SubMesh &sm = sp.submeshes.at(i);
+
 			if (file_size & 0xF)
 				file_size += (0x10 - (file_size & 0xF));
 
-			//LOG_DEBUG("File_size in submesh: %x\n", file_size);
+			uint16_t nbFaces = sm.faces.size();
+			if (nbFaces > 65535)
+				nbFaces = 65535;
+
+			uint16_t nbLinkedBones = sm.linked_bones.size();
+			if (nbLinkedBones > 65535)
+				nbLinkedBones = 65535;
 
 			file_size += sizeof(EMG_EMG_SubMeshHeader);
-			file_size += sm.faces.size() * sizeof(uint16_t);
-			file_size += sm.linked_bones.size() * sizeof(uint16_t);
+			file_size += nbFaces * sizeof(uint16_t);
+			file_size += nbLinkedBones * sizeof(uint16_t);
 		}
 	}
 
@@ -742,7 +812,12 @@ unsigned int EMG::CreateVertex(uint8_t *buf, size_t startOffset)
 		}
 	}
 
-	assert(offset == file_size);
+	if (offset != file_size)
+	{
+		printf("Error: the size of the final file is not the same as allocated memory. so there certainly is a mistake. please contact the dev team and send them yours current sample.\n");
+		notifyError();
+	}
+
 	return file_size;
 }
 
@@ -883,7 +958,7 @@ void EMG::Decompile(TiXmlNode *root, uint16_t id, size_t &emg_inc) const
 {
 	root->LinkEndChild(new TiXmlComment( string(" Index: " + ToString(emg_inc)).c_str() )); 				//test todo remove.
 	TiXmlElement *entry_root = new TiXmlElement("EMG");
-	entry_root->SetAttribute("unknow_inc", unknow_inc);
+	entry_root->SetAttribute("unk_inc", unknow_inc);
 
 
 	size_t nbSubpart = subparts.size();
@@ -901,7 +976,7 @@ void EMG_SubPart::Decompile(TiXmlNode *root) const
 	TiXmlElement *entry_root = new TiXmlElement("Mesh");
 	entry_root->SetAttribute("faces_strip", strips);
 	entry_root->SetAttribute("paddingForCompressedVertex", EMO_BaseFile::UnsignedToString(paddingForCompressedVertex, true));
-	entry_root->SetAttribute("unknow_0", unknow_0);
+	entry_root->SetAttribute("unk_0", unknow_0);
 
 
 	entry_root->SetAttribute("fuckingDebug_vertex_offset", EMO_BaseFile::UnsignedToString(fuckingDebug_vertex_offset, true));
@@ -1011,7 +1086,7 @@ void EMGTextureUnitState::Decompile(TiXmlNode *root) const
 	xmlCurrentNode->SetAttribute("textScale_uv", FloatToString(textScale_u) + " " + FloatToString(textScale_v));
 	xmlCurrentNode->SetAttribute("adressMode_uv", string((adressMode_u & EMG_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_u & EMG_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")) + " " + ((adressMode_v & EMG_TUS_ADRESSMODE_CLAMP) ? "Clamp" : ((adressMode_v & EMG_TUS_ADRESSMODE_MIRROR) ? "Mirror" : "Wrap")));
 	xmlCurrentNode->SetAttribute("filtering_min_mag", string((filtering_minification & EMG_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_minification & EMG_TUS_FILTERING_POINT) ? "Point" : ((filtering_minification == EMG_TUS_FILTERING_NONE) ? "None" : ToString(filtering_minification)))) + " " + ((filtering_magnification & EMG_TUS_FILTERING_LINEAR) ? "Linear" : ((filtering_magnification & EMG_TUS_FILTERING_POINT) ? "Point" : ((filtering_magnification == EMG_TUS_FILTERING_NONE) ? "None" : ToString(filtering_magnification)))));
-	xmlCurrentNode->SetAttribute("unknow0", flag0);
+	xmlCurrentNode->SetAttribute("unk_0", flag0);
 
 	root->LinkEndChild(xmlCurrentNode);
 }
@@ -1178,7 +1253,7 @@ bool EMG::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 	size_t tmp = 0;
 	string str = "";
-	root->QueryUnsignedAttribute("unknow_inc", &tmp); unknow_inc = tmp;
+	root->QueryUnsignedAttribute("unk_inc", &tmp); unknow_inc = tmp;
 
 
 	for (const TiXmlElement *elem = root->FirstChildElement("Mesh"); elem; elem = elem->NextSiblingElement("Mesh"))
@@ -1187,7 +1262,8 @@ bool EMG::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 		if (!subpart.Compile(elem, skl))
 		{
-			LOG_DEBUG("%s: compilation of Mesh failed.\n", FUNCNAME);
+			printf("%s: compilation of Mesh failed.\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -1215,7 +1291,7 @@ bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 	root->QueryUnsignedAttribute("faces_strip", &tmp);
 	root->QueryStringAttribute("paddingForCompressedVertex", &str); paddingForCompressedVertex = EMO_BaseFile::GetUnsigned(str);
 	strips = tmp;
-	root->QueryUnsignedAttribute("unknow_0", &unknow_0);
+	root->QueryUnsignedAttribute("unk_0", &unknow_0);
 
 	root->QueryStringAttribute("fuckingDebug_vertex_offset", &str); fuckingDebug_vertex_offset = EMO_BaseFile::GetUnsigned(str);
 
@@ -1261,7 +1337,7 @@ bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 	if (!flagsNode)
 	{
 		printf("No 'VertexDefinition' tags find. Please take a look at a '.emo.xml' file or document about Emo.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 	string vertexDefintion = string(flagsNode->GetText());
@@ -1301,7 +1377,8 @@ bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 		if (!submesh.Compile(elem, skl))
 		{
-			LOG_DEBUG("%s: Compilation of SubMesh failed.\n", FUNCNAME);
+			printf("%s: Compilation of SubMesh failed. skipped\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 
@@ -1319,7 +1396,8 @@ bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 		if (!textList.Compile(elem))
 		{
-			LOG_DEBUG("%s: Compilation of TextureDefinitions failed.\n", FUNCNAME);
+			printf("%s: Compilation of TextureDefinitions failed. skipped\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 		textures_lists.push_back(textList);
@@ -1333,7 +1411,8 @@ bool EMG_SubPart::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 		if (!vd.Compile(elem))
 		{
-			LOG_DEBUG("%s: Compilation of Vertex failed.\n", FUNCNAME);
+			printf("%s: Compilation of Vertex failed. skipped\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 		vertex.push_back(vd);
@@ -1353,7 +1432,8 @@ bool EMG_TexturesList::Compile(const TiXmlElement *root)
 
 		if (!t.Compile(elem))
 		{
-			LOG_DEBUG("%s: Compilation of TextureUnitState failed.\n", FUNCNAME);
+			printf("%s: Compilation of TextureUnitState failed. skipped\n", FUNCNAME);
+			notifyError();
 			continue;
 		}
 		textures.push_back(t);
@@ -1437,7 +1517,7 @@ bool EMGTextureUnitState::Compile(const TiXmlElement *xmlCurrentNode)
 			break;
 	}
 
-	if (xmlCurrentNode->QueryUnsignedAttribute("unknow0", &tmp) == TIXML_SUCCESS)
+	if (xmlCurrentNode->QueryUnsignedAttribute("unk_0", &tmp) == TIXML_SUCCESS)
 		flag0 = (unsigned char)tmp;
 
 	return true;
@@ -1450,7 +1530,8 @@ bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 	root->QueryStringAttribute("name", &emm_material);
 	if (emm_material.length() > 31)
 	{
-		LOG_DEBUG("%s: EMMMaterial can't have more than 31 characters. (faulting value = %s). cropped.\n", FUNCNAME, emm_material.c_str());
+		printf("%s: EMMMaterial can't have more than 31 characters. (faulting value = %s). cropped.\n", FUNCNAME, emm_material.c_str());
+		notifyError();
 		emm_material = emm_material.substr(0, 31);
 	}
 
@@ -1459,7 +1540,8 @@ bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 	EMO_BaseFile::GetParamUnsigned(root, "textureList_index", &tl_index);
 	if (tl_index > 0xFFFF)
 	{
-		LOG_DEBUG("%s: textureList_index must be a 16 bits value.\n", FUNCNAME);
+		printf("%s: textureList_index must be a 16 bits value (limit to 65535). skipped up to the limit\n", FUNCNAME);
+		notifyError();
 		tl_index = tl_index & 0xFFFF;
 	}
 	this->textureList_index = tl_index;
@@ -1479,7 +1561,8 @@ bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 
 	if (!EMO_BaseFile::GetParamMultipleUnsigned(root, "faces_index_list", faces))
 	{
-		LOG_DEBUG("%s: No faces indices detected. is it normal ? \"faces_index_list\"\n", FUNCNAME);
+		printf("%s: No faces indices detected. is it normal ? \"faces_index_list\"\n", FUNCNAME);
+		notifyError();
 	}
 
 
@@ -1493,7 +1576,8 @@ bool EMG_SubMesh::Compile(const TiXmlElement *root, EMO_Skeleton *skl)
 		EMO_Bone *bone = skl->GetBone(str);
 		if (!bone)
 		{
-			LOG_DEBUG("%s: bone \"%s\" doesn't exist in skeleton.\n", FUNCNAME, str.c_str());
+			printf("%s: bone \"%s\" doesn't exist in skeleton. skipped.\n", FUNCNAME, str.c_str());
+			notifyError();
 			continue;
 		}
 		linked_bones.push_back(bone);
@@ -2007,7 +2091,8 @@ bool EMG::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tangent)
 	{
 		if (subparts[i].submeshes.size() == 0)
 		{
-			LOG_DEBUG("Subpart \"%s\" has become empty. We will delete it.\n", subparts[i].meta_name.c_str());
+			printf("Subpart \"%s\" has become empty. We will delete it.\n", subparts[i].meta_name.c_str());
+			notifyWarning();
 			subparts.erase(subparts.begin() + i);
 			i--;
 		}
@@ -2019,9 +2104,18 @@ bool EMG::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tangent)
 
 bool EMG_SubPart::ExportSubMeshFbx(const EMO_Skeleton &skl, uint16_t submesh_idx, const std::vector<FbxNode *> &fbx_bones, FbxScene *scene) const
 {
-	assert(vertex.size() > 0);
-	assert(vertex[0].size == (unsigned int)vertex[0].VertexUnion.getSizeFromFlags(true));
-
+	if (vertex.size() == 0)
+	{
+		printf("Error: a part don't have any Vertex. Skipped\n");
+		notifyError();
+		return false;
+	}
+	if(vertex[0].size != (unsigned int)vertex[0].VertexUnion.getSizeFromFlags(true))
+	{
+		printf("Error: the size into the verex is not the same as calculated with flag. Contact dev team. Skipped\n");
+		notifyError();
+		return false;
+	}
 	if (submesh_idx >= submeshes.size())
 		return false;
 
@@ -2032,7 +2126,6 @@ bool EMG_SubPart::ExportSubMeshFbx(const EMO_Skeleton &skl, uint16_t submesh_idx
 
 	GetSubMeshVertexAndTriangles(submesh_idx, sm_vertex, sm_triangles);
 
-	//LOG_DEBUG("%s: Vertex = %x, triangles = %x\n", submeshes[submesh_idx].meta_name.c_str(), sm_vertex.size(), sm_triangles.size());
 
 	FbxMesh *fbx_mesh = FbxMesh::Create(scene, submesh.meta_name.c_str());
 	if (!fbx_mesh)
@@ -2142,9 +2235,13 @@ bool EMG_SubPart::ExportSubMeshFbx(const EMO_Skeleton &skl, uint16_t submesh_idx
 
 	}
 
-	assert((sm_triangles.size() % 3) == 0);
+	if ((sm_triangles.size() % 3) != 0)
+	{
+		printf("Error: the number of faceIndex is not a multiple of 3. but we deal with only triangles. so the last will be Skipped. but it's certainly have problem on the result.\n");
+		notifyError();
+	}
 
-	for (size_t i = 0; i < sm_triangles.size(); i += 3)
+	for (size_t i = 0; i+2 < sm_triangles.size(); i += 3)
 	{
 		//fbx_mesh->BeginPolygon(fbx_material_index);
 		fbx_mesh->BeginPolygon(fbx_material_index);
@@ -2278,7 +2375,12 @@ void EMG_SubPart::ExportSubMeshFbxSkin(const EMO_Skeleton &skl, const EMG_SubMes
 			}
 		}
 
-		assert(fbx_bone);
+		if (fbx_bone == nullptr)
+		{
+			printf("Error: the bone %s is not found. Skipped\n", bone->GetName().c_str());
+			notifyError();
+			continue;
+		}
 
 		FbxCluster *cluster = FbxCluster::Create(scene, fbx_bone->GetName());
 
@@ -2313,22 +2415,20 @@ void EMG_SubPart::ExportSubMeshFbxSkin(const EMO_Skeleton &skl, const EMG_SubMes
 				this_weight = ((j != 3) ? blend_weight[j] : (1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2])));	//hack for having a sum(blend_weight) = 1.0 with the four, so rewrite the fourth
 			}
 
-			//if (this_weight > 0.0f)
 			if (blend)
 			{
 				uint8_t linked_bone_index = blend[j];
+				EMO_Bone *bone = (linked_bone_index < submesh.linked_bones.size()) ? submesh.linked_bones.at(linked_bone_index) : 0;
 
-				assert(linked_bone_index < submesh.linked_bones.size());
-				EMO_Bone *bone = submesh.linked_bones[linked_bone_index];
+				if (bone)
+				{
+					/*bone_index = skl.EMO_BoneToIndex(bone);
 
-				/*bone_index = skl.EMO_BoneToIndex(bone);
-
-				assert(bone->GetName() == skin_clusters[bone_index]->GetName().Buffer());
-				skin_clusters[bone_index]->AddControlPointIndex(i, this_weight);*/
-				//assert(bone->GetName() == skin_clusters[linked_bone_index]->GetName().Buffer());		//TODO
-				skin_clusters[linked_bone_index]->AddControlPointIndex(i, this_weight);
-
-				UNUSED(bone); // Stupid compiler doesn't see bone is used in assert.
+					assert(bone->GetName() == skin_clusters[bone_index]->GetName().Buffer());
+					skin_clusters[bone_index]->AddControlPointIndex(i, this_weight);*/
+					//assert(bone->GetName() == skin_clusters[linked_bone_index]->GetName().Buffer());		//TODO
+					skin_clusters.at(linked_bone_index)->AddControlPointIndex(i, this_weight);
+				}
 			}
 		}
 	}
@@ -2350,12 +2450,8 @@ bool EMG_SubPart::ExportFbx(const EMO_Skeleton &skl, const std::vector<FbxNode *
 
 bool EMG_SubPart::LoadFbxUV(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly, int control_point_index, EMG_VertexData *v)
 {
-
 	if (fbx_mesh->GetElementUVCount() <= 0)
-	{
-		LOG_DEBUG("%s: No UV!\n", FUNCNAME);
 		return false;
-	}
 
 	FbxGeometryElementUV* uv = fbx_mesh->GetElementUV(0);
 
@@ -2380,9 +2476,9 @@ bool EMG_SubPart::LoadFbxUV(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly, 
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode.\n", FUNCNAME);
+			printf("%s: Unsupported reference mode.\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
 
 		break;
@@ -2400,17 +2496,17 @@ bool EMG_SubPart::LoadFbxUV(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly, 
 			break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			printf("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
 	}
 	break;
 
 	default:
-		LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
+		printf("%s: Unsupported mapping mode.\n", FUNCNAME);
+		notifyError();
 		return false;
-		break;
 	}
 
 	v->VertexUnion.text_u = v->VertexUnion.text_u;
@@ -2421,12 +2517,8 @@ bool EMG_SubPart::LoadFbxUV(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly, 
 
 bool EMG_SubPart::LoadFbxUV2(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly, int control_point_index, EMG_VertexData *v)
 {
-
 	if (fbx_mesh->GetElementUVCount() <= 1)
-	{
-		LOG_DEBUG("%s: No UV!\n", FUNCNAME);
 		return false;
-	}
 
 	FbxGeometryElementUV* uv = fbx_mesh->GetElementUV(1);
 
@@ -2451,9 +2543,9 @@ bool EMG_SubPart::LoadFbxUV2(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly,
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode.\n", FUNCNAME);
+			printf("%s: Unsupported reference mode.\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
 
 		break;
@@ -2471,17 +2563,17 @@ bool EMG_SubPart::LoadFbxUV2(FbxMesh *fbx_mesh, int poly_index, int pos_in_poly,
 			break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			printf("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
 	}
 	break;
 
 	default:
-		LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
+		printf("%s: Unsupported mapping mode.\n", FUNCNAME);
+		notifyError();
 		return false;
-		break;
 	}
 
 	v->VertexUnion.text2_u = v->VertexUnion.text2_u;
@@ -2495,10 +2587,7 @@ bool EMG_SubPart::LoadFbxNormal(FbxNode *fbx_node, int vertex_index, int control
 	FbxMesh *fbx_mesh = fbx_node->GetMesh();
 
 	if (fbx_mesh->GetElementNormalCount() <= 0)
-	{
-		LOG_DEBUG("%s: no normals!\n", FUNCNAME);
 		return false;
-	}
 
 	FbxGeometryElementNormal* normal = fbx_mesh->GetElementNormal(0);
 	FbxGeometryElement::EMappingMode mapping_mode = normal->GetMappingMode();
@@ -2520,9 +2609,9 @@ bool EMG_SubPart::LoadFbxNormal(FbxNode *fbx_node, int vertex_index, int control
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsuuported reference mode.\n", FUNCNAME);
+			printf("%s: Unsuuported reference mode.\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
 	}
 	else if (mapping_mode == FbxGeometryElement::eByPolygonVertex)
@@ -2543,29 +2632,21 @@ bool EMG_SubPart::LoadFbxNormal(FbxNode *fbx_node, int vertex_index, int control
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			printf("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
-	}
-	else
-	{
-		LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
+	}else{
+		printf("%s: Unsupported mapping mode.\n", FUNCNAME);
+		notifyError();
 		return false;
 	}
 
-	/*FbxAMatrix rotation_matrix = fbx_node->EvaluateGlobalTransform();
-	rotation_matrix.SetT(FbxVector4(0.0, 0.0, 0.0, 0.0));
-	rotation_matrix.SetS(FbxVector4(1.0, 1.0, 1.0, 1.0));
-
-	vec4 = rotation_matrix.MultT(vec4);*/
 
 	// +++ --- -++ --+ -+- ++- +-+ +--
 	v->VertexUnion.norm_x = (float)vec4[0];
 	v->VertexUnion.norm_y = (float)vec4[1];
 	v->VertexUnion.norm_z = (float)vec4[2];
-
-	//normal->GetDirectArray().SetAt(control_point_index, vec4);
 
 	return true;
 }
@@ -2573,10 +2654,7 @@ bool EMG_SubPart::LoadFbxNormal(FbxNode *fbx_node, int vertex_index, int control
 bool EMG_SubPart::LoadFbxVertexColor(FbxMesh *fbx_mesh, int vertex_index, int control_point_index, uint32_t *color)
 {
 	if (fbx_mesh->GetElementVertexColorCount() <= 0)
-	{
-		LOG_DEBUG("%s: no vertex colors!\n", FUNCNAME);
 		return false;
-	}
 
 	FbxGeometryElementVertexColor* vertex_color = fbx_mesh->GetElementVertexColor(0);
 	FbxGeometryElement::EMappingMode mapping_mode = vertex_color->GetMappingMode();
@@ -2600,13 +2678,14 @@ bool EMG_SubPart::LoadFbxVertexColor(FbxMesh *fbx_mesh, int vertex_index, int co
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsuuported reference mode.\n", FUNCNAME);
+			printf("%s: Unsuuported reference mode.\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
-	}
-	else if (mapping_mode == FbxGeometryElement::eByPolygonVertex)
-	{
+
+
+	}else if (mapping_mode == FbxGeometryElement::eByPolygonVertex){
+
 		switch (vertex_color->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -2625,14 +2704,14 @@ bool EMG_SubPart::LoadFbxVertexColor(FbxMesh *fbx_mesh, int vertex_index, int co
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			printf("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
-	}
-	else
-	{
-		LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
+
+	}else{
+		printf("%s: Unsupported mapping mode.\n", FUNCNAME);
+		notifyError();
 		return false;
 	}
 
@@ -2644,10 +2723,7 @@ bool EMG_SubPart::LoadFbxTangent(FbxMesh *fbx_mesh, int vertex_index, int contro
 	FbxVector4 vec4;
 
 	if (fbx_mesh->GetElementTangentCount() <= 0)
-	{
-		LOG_DEBUG("%s: no tangents!\n", FUNCNAME);
 		return false;
-	}
 
 	FbxGeometryElementTangent* tangent = fbx_mesh->GetElementTangent(0);
 	FbxGeometryElement::EMappingMode mapping_mode = tangent->GetMappingMode();
@@ -2669,13 +2745,13 @@ bool EMG_SubPart::LoadFbxTangent(FbxMesh *fbx_mesh, int vertex_index, int contro
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsuuported reference mode.\n", FUNCNAME);
+			printf("%s: Unsuuported reference mode.\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
-	}
-	else if (mapping_mode == FbxGeometryElement::eByPolygonVertex)
-	{
+
+	}else if (mapping_mode == FbxGeometryElement::eByPolygonVertex){
+
 		switch (tangent->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -2692,14 +2768,14 @@ bool EMG_SubPart::LoadFbxTangent(FbxMesh *fbx_mesh, int vertex_index, int contro
 		break;
 
 		default:
-			LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			printf("%s: Unsupported reference mode (2)\n", FUNCNAME);
+			notifyError();
 			return false;
-			break;
 		}
-	}
-	else
-	{
-		LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
+
+	}else{
+		printf("%s: Unsupported mapping mode.\n", FUNCNAME);
+		notifyError();
 		return false;
 	}
 
@@ -2717,84 +2793,7 @@ bool EMG_SubPart::LoadFbxTangent(FbxMesh *fbx_mesh, int vertex_index, int contro
 	return true;
 }
 
-// No binormals in emo, tex2 are tangent...
-/*bool EMG_SubPart::LoadFbxBinormal(FbxMesh *fbx_mesh, int vertex_index, int control_point_index, EMG_VertexData *v)
-{
-FbxVector4 vec4;
-
-if (fbx_mesh->GetElementBinormalCount() <= 0)
-{
-LOG_DEBUG("%s: no binormals!\n", FUNCNAME);
-return false;
-}
-
-FbxGeometryElementBinormal* binormal = fbx_mesh->GetElementBinormal(0);
-FbxGeometryElement::EMappingMode mapping_mode = binormal->GetMappingMode();
-if (mapping_mode == FbxGeometryElement::eByControlPoint)
-{
-switch (binormal->GetReferenceMode())
-{
-case FbxGeometryElement::eDirect:
-{
-vec4 = binormal->GetDirectArray().GetAt(control_point_index);
-}
-break;
-
-case FbxGeometryElement::eIndexToDirect:
-{
-int id = binormal->GetIndexArray().GetAt(control_point_index);
-vec4 = binormal->GetDirectArray().GetAt(id);
-}
-break;
-
-default:
-LOG_DEBUG("%s: Unsuuported reference mode.\n", FUNCNAME);
-return false;
-break;
-}
-}
-else if (mapping_mode == FbxGeometryElement::eByPolygonVertex)
-{
-switch (binormal->GetReferenceMode())
-{
-case FbxGeometryElement::eDirect:
-{
-vec4 = binormal->GetDirectArray().GetAt(vertex_index);
-}
-break;
-
-case FbxGeometryElement::eIndexToDirect:
-{
-int id = binormal->GetIndexArray().GetAt(vertex_index);
-vec4 = binormal->GetDirectArray().GetAt(id);
-}
-break;
-
-default:
-LOG_DEBUG("%s: Unsupported reference mode (2)\n", FUNCNAME);
-return false;
-break;
-}
-}
-else
-{
-LOG_DEBUG("%s: Unsupported mapping mode.\n", FUNCNAME);
-return false;
-}
-
-v->VertexUnion.vertex64.tex2[0] = -(float)vec4[0];
-v->VertexUnion.vertex64.tex2[1] = -(float)vec4[1];
-v->VertexUnion.vertex64.tex2[2] = -(float)vec4[2];
-
-if (vec4[3] < 0) // direction
-{
-v->VertexUnion.vertex64.tex2[0] = -v->VertexUnion.vertex64.tex2[0];
-v->VertexUnion.vertex64.tex2[1] = -v->VertexUnion.vertex64.tex2[1];
-v->VertexUnion.vertex64.tex2[2] = -v->VertexUnion.vertex64.tex2[2];
-}
-
-return true;
-}*/
+// No binormals in emg or emd.
 
 bool EMG_SubPart::LoadFbxBlendData(EMO_Skeleton &skl, const std::vector<EMO_Bone *> &linked_bones, const std::vector<std::pair<double, FbxNode *> > &vertex_weights, uint8_t *blend, float *blend_weight)
 {
@@ -2802,7 +2801,8 @@ bool EMG_SubPart::LoadFbxBlendData(EMO_Skeleton &skl, const std::vector<EMO_Bone
 
 	if (size > 4)
 	{
-		LOG_DEBUG("blend_weight has more than 4 elements (%d)! Not allowed.\n", size);
+		printf("Error: blend_weight has more than 4 elements(%d)!Not allowed.\n", size);
+		notifyError();
 		return false;
 	}
 
@@ -2811,22 +2811,28 @@ bool EMG_SubPart::LoadFbxBlendData(EMO_Skeleton &skl, const std::vector<EMO_Bone
 
 	for (size_t i = 0; i < size; i++)
 	{
-
 		FbxNode *fbx_bone = vertex_weights[i].second;
-		assert(fbx_bone != nullptr);
+		if (fbx_bone == nullptr)
+		{
+			printf("Error: fbx_bone empty\n", size);
+			notifyError();
+			return false;
+		}
 
 		const char *bone_name = fbx_bone->GetName();
 		EMO_Bone *b = skl.GetBone(bone_name);
 		if (!b)
 		{
-			LOG_DEBUG("%s: Cannot find bone \"%s\"\n", bone_name);
+			printf("Error: Cannot find bone \"%s\"\n", bone_name);
+			notifyError();
 			return false;
 		}
 
 		const std::vector<EMO_Bone *>::const_iterator it = std::find(linked_bones.begin(), linked_bones.end(), b);
 		if (it == linked_bones.end())
 		{
-			LOG_DEBUG("%s: EMO_Bone is not in linked bones. Weird.\n", FUNCNAME);
+			printf("Error: EMO_Bone is not in linked bones. Weird.\n", bone_name);
+			notifyError();
 			return false;
 		}
 
@@ -2850,21 +2856,21 @@ bool EMG_SubPart::LoadFbxBlendWeights(FbxMesh *fbx_mesh, std::vector<std::vector
 
 	if (fbx_mesh->GetDeformerCount() == 0)
 	{
-		LOG_DEBUG("ERROR: deformer count is zero! (in submesh %s)\n", fbx_mesh->GetName());
+		printf("ERROR: deformer count is zero! (in submesh %s)\n", fbx_mesh->GetName());
 		LibXenoverse::notifyError();
 		return false;
 	}
 
 	if (fbx_mesh->GetDeformerCount() != 1)
 	{
-		LOG_DEBUG("WARNING: deformer count is different than 1 (in submesh %s)\n", fbx_mesh->GetName());
+		printf("WARNING: deformer count is different than 1 (in submesh %s)\n", fbx_mesh->GetName());
 		LibXenoverse::notifyWarning();
 	}
 
 	FbxDeformer* deformer = fbx_mesh->GetDeformer(0);
 	if (deformer->GetDeformerType() != FbxDeformer::eSkin)
 	{
-		LOG_DEBUG("Invalid deformer type.\n");
+		printf("Invalid deformer type.\n");
 		LibXenoverse::notifyError();
 		return false;
 	}
@@ -2993,7 +2999,8 @@ bool EMG_SubPart::InjectSubMeshFbx(EMO_Skeleton &skl, EMG_SubMesh &submesh, FbxN
 				EMO_Bone *b = skl.GetBone(bone_name);
 				if (!b)
 				{
-					LOG_DEBUG("Cannot find bone \"%s\" in skeleton.\n", bone_name);
+					printf("Cannot find bone \"%s\" in skeleton.\n", bone_name);
+					notifyError();
 					return false;
 				}
 
@@ -3020,7 +3027,8 @@ bool EMG_SubPart::InjectSubMeshFbx(EMO_Skeleton &skl, EMG_SubMesh &submesh, FbxN
 
 		if (polygon_size != 3)
 		{
-			LOG_DEBUG("Unsupported polygin_size: %d\n", polygon_size);
+			printf("Unsupported polygin_size: %d, only 3 allowed for triangles.\n", polygon_size);
+			notifyError();
 			return false;
 		}
 
@@ -3088,23 +3096,26 @@ bool EMG_SubPart::InjectSubMeshFbx(EMO_Skeleton &skl, EMG_SubMesh &submesh, FbxN
 
 bool EMG_SubPart::InjectFbx(EMO_Skeleton &skl, const std::vector<FbxNode *> fbx_nodes, bool use_fbx_tangent)
 {
-	LOG_DEBUG("Injecting subpart %s\n", meta_name.c_str());
-
 	if (fbx_nodes.size() != submeshes.size())
 	{
-		LOG_DEBUG("%s: function usage error, number of fbx_meshes must be same as nuber of submeshes.\n", FUNCNAME);
+		printf("%s: function usage error, number of fbx_meshes must be same as nuber of submeshes.\n", FUNCNAME);
 		LibXenoverse::notifyError();
 		return false;
 	}
+	if (vertex.size() == 0)
+	{
+		printf("Error: a part don't have any Vertex. Skipped\n");
+		notifyError();
+		return false;
+	}
+
 
 	if (submeshes.size() == 0)
 		return true; // yes, true
 
-	assert(vertex.size() > 0);
 	const int vertex_size = vertex[0].size;
 
 	size_t v_start = 0;
-	//LOG_DEBUG("Vertex before: %d\n", vertex.size());
 	vertex.clear();
 
 	for (size_t i = 0; i < submeshes.size(); i++)
@@ -3125,7 +3136,6 @@ bool EMG_SubPart::InjectFbx(EMO_Skeleton &skl, const std::vector<FbxNode *> fbx_
 	}
 
 	SetStrips(false);
-	//LOG_DEBUG("Vertex after: %d\n", vertex.size());
 	return true;
 }
 
@@ -3159,7 +3169,8 @@ bool EMG_SubPart::InjectFbx(EMO_Skeleton &skl, FbxScene *scene, bool use_fbx_tan
 
 		if (!found)
 		{
-			LOG_DEBUG("EMG_SubMesh \"%s\" not found in fbx, we will delete it from .emo.\n", submeshes[i].meta_name.c_str());
+			printf("EMG_SubMesh \"%s\" not found in fbx, we will delete it from .emo.\n", submeshes[i].meta_name.c_str());
+			notifyError();
 			submeshes.erase(submeshes.begin() + i);
 			i--;
 		}
@@ -3212,13 +3223,24 @@ bool EMG_SubPart::InjectVertex(const std::vector<EMG_VertexCommon> &new_vertex, 
 {
 	if (vertex.size() != new_vertex.size())
 	{
-		LOG_DEBUG("ERROR: When injecting, number of vertex must be the same than existing ones! (tried: %Iu, existing: %u), on subpart \"%s\"\n", new_vertex.size(), vertex.size(), meta_name.c_str());
+		printf("ERROR: When injecting, number of vertex must be the same than existing ones! (tried: %Iu, existing: %u), on subpart \"%s\"\n", new_vertex.size(), vertex.size(), meta_name.c_str());
 		LibXenoverse::notifyError();
 		return false;
 	}
+	if (vertex.size() == 0)
+	{
+		printf("Error: a part don't have any Vertex. Skipped\n");
+		notifyError();
+		return false;
+	}
+	if (vertex[0].size != (unsigned int)vertex[0].VertexUnion.getSizeFromFlags())
+	{
+		printf("Error: the size into the verex is not the same as calculated with flag. Contact dev team. Skipped\n");
+		notifyError();
+		return false;
+	}
 
-	assert(vertex.size() > 0);
-	assert(vertex[0].size == vertex[0].VertexUnion.getSizeFromFlags());
+
 
 	for (size_t i = 0; i < vertex.size(); i++)
 	{
@@ -3281,17 +3303,20 @@ void EMG_SubPart::GetSubMeshVertexAndTriangles(uint16_t submesh_idx, std::vector
 	sm_triangles = GetTriangles(submesh_idx);
 	sm_vertex.clear();
 
-	for (uint16_t &id : sm_triangles)
+	size_t nbTriangleIndexes = sm_triangles.size();
+	nbTriangleIndexes = (nbTriangleIndexes / 3) * 3;
+
+	for (size_t i=0;i< nbTriangleIndexes;i++)
 	{
+		uint16_t &id = sm_triangles.at(i);
+
 		std::vector<uint16_t>::iterator it = std::find(map.begin(), map.end(), id);
 		if (it == map.end())
 		{
 			sm_vertex.push_back(vertex[id]);
 			map.push_back(id);
 			id = sm_vertex.size() - 1;
-		}
-		else
-		{
+		}else{
 			id = it - map.begin();
 		}
 	}
@@ -3308,7 +3333,7 @@ size_t EMG_SubPart::GetTrianglesInternal(size_t submesh_idx, std::vector<uint16_
 
 	if (!strips)
 	{
-		assert((submesh.faces.size() % 3) == 0);
+		//assert((submesh.faces.size() % 3) == 0);
 
 		if (tri_faces)
 			*tri_faces = submesh.faces;
@@ -3328,9 +3353,10 @@ size_t EMG_SubPart::GetTrianglesInternal(size_t submesh_idx, std::vector<uint16_
 
 	for (size_t i = 0; i < submesh.faces.size(); i++, strip_size++)
 	{
-		assert(f_index < submesh.faces.size());
+		if (f_index >= submesh.faces.size())
+			continue;
 
-		uint16_t idx = submesh.faces[f_index];
+		uint16_t idx = submesh.faces.at(f_index);
 		f_index++;
 
 		if (idx == idx1)
@@ -3395,8 +3421,6 @@ std::vector<uint16_t> EMG_SubPart::GetTriangles(size_t submesh_idx) const
 size_t EMG_SubPart::GetNumberOfPolygons(size_t submesh_idx) const
 {
 	size_t faces_num = GetTrianglesInternal(submesh_idx, nullptr);
-
-	assert((faces_num % 3) == 0);
 	return (faces_num / 3);
 }
 
@@ -3778,9 +3802,9 @@ std::vector<uint16_t> EMG_SubMesh::getRealFaceIndex(bool strips)
 
 	if (!strips)
 	{
-		assert((faces.size() % 3) == 0);
-
 		size_t nbfaces = faces.size();
+		nbfaces = (nbfaces / 3) * 3;
+
 		for (size_t i = 0; i < nbfaces; i++)
 			realFaces.push_back(faces.at(i));
 		
@@ -3794,7 +3818,8 @@ std::vector<uint16_t> EMG_SubMesh::getRealFaceIndex(bool strips)
 
 	for (size_t i = 0; i < faces.size(); i++, strip_size++)
 	{
-		assert(f_index < faces.size());
+		if (f_index >= faces.size())
+			continue;
 
 		uint16_t idx = faces[f_index];
 		f_index++;
@@ -3823,9 +3848,7 @@ std::vector<uint16_t> EMG_SubMesh::getRealFaceIndex(bool strips)
 				realFaces.push_back(idx);
 				realFaces.push_back(idx2);
 				realFaces.push_back(idx1);
-			}
-			else
-			{
+			}else{
 				realFaces.push_back(idx1);
 				realFaces.push_back(idx2);
 				realFaces.push_back(idx);
@@ -3867,7 +3890,10 @@ bool EMG_SubMesh::operator==(const EMG_SubMesh &rhs) const
 
 	for (size_t i = 0; i < this->linked_bones.size(); i++)
 	{
-		assert(this->linked_bones[i] != nullptr && rhs.linked_bones[i] != nullptr);
+		if ((this->linked_bones[i] == nullptr) && (rhs.linked_bones[i] == nullptr))
+			continue;
+		if ((this->linked_bones[i] == nullptr) || (rhs.linked_bones[i] == nullptr))
+			return false;
 
 		if (*this->linked_bones[i] != *rhs.linked_bones[i])
 			return false;
@@ -4140,7 +4166,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("No geometry vertex in input file!\n");
+			printf("No geometry vertex in input file!\n");
 			LibXenoverse::notifyError();
 		}
 
@@ -4151,7 +4177,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("ERROR: Number of uv coordinates can't be greater than number of geometry vertex.\n");
+			printf("ERROR: Number of uv coordinates can't be greater than number of geometry vertex.\n");
 			LibXenoverse::notifyError();
 		}
 
@@ -4162,7 +4188,7 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 	{
 		if (show_error)
 		{
-			LOG_DEBUG("ERROR: Number of vertex normals can't be greater than number of geometry vertex.\n");
+			printf("ERROR: Number of vertex normals can't be greater than number of geometry vertex.\n");
 			LibXenoverse::notifyError();
 		}
 
@@ -4196,21 +4222,21 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 
 						if (v_idx >= vertex.size())
 						{
-							LOG_DEBUG("ERROR: vertex index out of bounds (%u) at line \"%s\"\n", v_idx, line.c_str());
+							printf("ERROR: vertex index out of bounds (%u) at line \"%s\"\n", v_idx, line.c_str());
 							LibXenoverse::notifyError();
 							return false;
 						}
 
 						if (uv_idx >= *uv_count && *uv_count != 0)
 						{
-							LOG_DEBUG("ERROR: texture coordinate index out of bounds (%u) at line \"%s\"\n", uv_idx, line.c_str());
+							printf("ERROR: texture coordinate index out of bounds (%u) at line \"%s\"\n", uv_idx, line.c_str());
 							LibXenoverse::notifyError();
 							return false;
 						}
 
 						if (n_idx >= *n_count && *n_count != 0)
 						{
-							LOG_DEBUG("ERROR: vertex normal index out of bounds (%u) at line \"%s\"\n", n_idx, line.c_str());
+							printf("ERROR: vertex normal index out of bounds (%u) at line \"%s\"\n", n_idx, line.c_str());
 							LibXenoverse::notifyError();
 							return false;
 						}
@@ -4229,19 +4255,18 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 						}
 
 						count++;
-					}
-					else
-					{
+
+
+					}else{
+
 						if (count == 0)
 						{
-							LOG_DEBUG("WARNING: this line is being ignored: \"%s\"\n", line.c_str());
+							printf("WARNING: this line is being ignored: \"%s\"\n", line.c_str());
 							LibXenoverse::notifyWarning();
 							count = 3; // To skip warning
 							break;
-						}
-						else
-						{
-							LOG_DEBUG("WARNING: this line is being partially ignored: \"%s\"\n", line.c_str());
+						}else{
+							printf("WARNING: this line is being partially ignored: \"%s\"\n", line.c_str());
 							LibXenoverse::notifyWarning();
 							count = 3; // To skip warning
 							break;
@@ -4259,9 +4284,9 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 							{
 								in_space = true;
 							}
-						}
-						else
-						{
+
+						}else{
+
 							if (current[i] > ' ')
 							{
 								next = current.substr(i);
@@ -4275,12 +4300,8 @@ bool EMG::ReadObj(const std::string &obj, std::vector<EMG_VertexCommon> &vertex,
 
 				if (count < 3)
 				{
-					LOG_DEBUG("WARNING: it was expected 3 groups or more, at line \"%s\"\n", line.c_str());
+					printf("WARNING: it was expected 3 groups or more, at line \"%s\"\n", line.c_str());
 					LibXenoverse::notifyWarning();
-				}
-				else if (count > 3)
-				{
-
 				}
 			}
 		}

@@ -15,7 +15,7 @@ bool ESK::loadXml(string filename)
 	if(!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -25,7 +25,7 @@ bool ESK::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'ESK' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -65,10 +65,9 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	xmlCurrentNode->QueryStringAttribute("flag", &str); flag = EMO_BaseFile::GetUnsigned(str);
 	xmlCurrentNode->QueryStringAttribute("skeletonUniqueId", &str); skeletonUniqueId = EMO_BaseFile::GetUnsigned64(str);
 
-	xmlCurrentNode->QueryStringAttribute("unknow_0", &str); unknow_0 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknow_1", &str); unknow_1 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknow_2", &str); unknow_2 = EMO_BaseFile::GetUnsigned(str);
-	xmlCurrentNode->QueryStringAttribute("unknow_3", &str); unknow_3 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unk_0", &str); unknow_0 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unk_1", &str); unknow_1 = EMO_BaseFile::GetUnsigned(str);
+	xmlCurrentNode->QueryStringAttribute("unk_2", &str); unknow_2 = EMO_BaseFile::GetUnsigned(str);
 	
 
 
@@ -76,7 +75,7 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	if (!bonesNode)
 	{
 		printf("No 'Bones' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -116,13 +115,13 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 			{
 				listInverseKinematic.back().mListIK.push_back(Esk_IK_Relation());
 				Esk_IK_Relation &ik = listInverseKinematic.back().mListIK.back();				
-				node_ik->QueryUnsignedAttribute("unknow_0", &tmp); ik.unknow_0 = (uint8_t)tmp;
+				node_ik->QueryUnsignedAttribute("unk_0", &tmp); ik.unknow_0 = (uint8_t)tmp;
 				
 				TiXmlElement* node_influenced = node_ik->FirstChildElement("BoneInfluenced");
 				if (!node_influenced)
 				{
 					printf("No 'BoneInfluenced' tags find. skip.'\n");
-					getchar();
+					notifyError();
 					listInverseKinematic.pop_back();
 					continue;
 				}
@@ -150,7 +149,7 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 					ik.mListBones.push_back(Esk_IK_Relation::IKR_Bone(eskBone, (float)value));
 				}else {
 					printf("'BoneInfluenced' not found in bones declaration. skip.'\n");
-					getchar();
+					notifyError();
 					listInverseKinematic.pop_back();
 					continue;
 				}
@@ -228,8 +227,8 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 
 
 	TiXmlElement* absoluteTransformMatrixNode = xmlCurrentNode->FirstChildElement("AbsoluteTransformMatrix");
-	haveTransformMatrix = (absoluteTransformMatrixNode != 0);
-	if (haveTransformMatrix)
+	haveAbsoluteMatrix = (absoluteTransformMatrixNode != 0);
+	if (haveAbsoluteMatrix)
 	{
 		TiXmlElement* lineNode0 = absoluteTransformMatrixNode->FirstChildElement("Line");
 		TiXmlElement* lineNode1 = (lineNode0) ? lineNode0->NextSiblingElement("Line") : 0;
@@ -239,7 +238,7 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 		if (!lineNode3)
 		{
 			printf("AbsoluteTransformMatrix incomplete number of 'Line'. skip.'\n");
-			getchar();
+			notifyError();
 		}else{
 
 			string str = "";
@@ -338,10 +337,9 @@ TiXmlElement* ESK::exportXml(void)
 
 	xmlCurrentNode->SetAttribute("skeletonUniqueId", EMO_BaseFile::Unsigned64ToString(skeletonUniqueId, true));
 
-	xmlCurrentNode->SetAttribute("unknow_0", EMO_BaseFile::UnsignedToString(unknow_0, true));
-	xmlCurrentNode->SetAttribute("unknow_1", EMO_BaseFile::UnsignedToString(unknow_1, true));
-	xmlCurrentNode->SetAttribute("unknow_2", EMO_BaseFile::UnsignedToString(unknow_2, true));
-	xmlCurrentNode->SetAttribute("unknow_3", EMO_BaseFile::UnsignedToString(unknow_3, true));
+	xmlCurrentNode->SetAttribute("unk_0", EMO_BaseFile::UnsignedToString(unknow_0, true));
+	xmlCurrentNode->SetAttribute("unk_1", EMO_BaseFile::UnsignedToString(unknow_1, true));
+	xmlCurrentNode->SetAttribute("unk_2", EMO_BaseFile::UnsignedToString(unknow_2, true));
 
 
 
@@ -403,7 +401,7 @@ TiXmlElement* ESK::exportXml(void)
 			{
 				Esk_IK_Relation &ik = group.mListIK.at(j);
 				TiXmlElement* node_ik = new TiXmlElement("IK");
-				node_ik->SetAttribute("unknow_0", ik.unknow_0);
+				node_ik->SetAttribute("unk_0", ik.unknow_0);
 				node_group->LinkEndChild(node_ik);
 
 				size_t nbBones = ik.mListBones.size();
@@ -450,7 +448,7 @@ TiXmlElement* ESKBone::exportXml(EskTreeNode* treeNode, bool haveExtraBytesOnEac
 	
 
 
-	if (haveTransformMatrix)
+	if (haveAbsoluteMatrix)
 	{
 		TiXmlElement* absoluteTransformMatrixNode = new TiXmlElement("AbsoluteTransformMatrix");
 

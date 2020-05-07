@@ -223,6 +223,7 @@ bool EMDSubmesh::importFBX_OldMethode(FbxNode* fbxNode, FbxMesh *fbxMesh, int ma
 		if (!lMaterialIndice)
 		{
 			printf("Mesh has no material index element. skip.\n");
+			notifyError();
 			return false;
 		}
 			
@@ -230,12 +231,14 @@ bool EMDSubmesh::importFBX_OldMethode(FbxNode* fbxNode, FbxMesh *fbxMesh, int ma
 		if (lMaterialMappingMode != FbxGeometryElement::eByPolygon)						// the material mpping index must be on polygone mode
 		{
 			printf("material index element of Mesh isn't on eByPolygon. skip.\n");
+			notifyError();
 			return false;
 		}
 		
 		if(lMaterialIndice->GetCount() != lPolygonCount)					//and on all polygones
 		{
 			printf("material index element of Mesh isn't on all polygone. skip.\n");
+			notifyError();
 			return false;
 		}
 	}

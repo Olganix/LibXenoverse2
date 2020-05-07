@@ -85,7 +85,7 @@ class EANAnimation;
 class EANKeyframe
 {
 public:
-	unsigned int frame;
+	size_t frame;
 	float x;
 	float y;
 	float z;

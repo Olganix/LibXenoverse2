@@ -2,7 +2,6 @@
 
 
 
-
 #include "LibXenoverse.h"
 #include "Shader_vs_5_0.h"
 
@@ -17,7 +16,8 @@ std::string readFile(std::string filename)
 	fopen_s(&f, filename.c_str(), "rb");
 	if (!f)
 	{
-		LOG_DEBUG("Cannot open file \"%s\" for reading.\n", filename.c_str());
+		printf("Cannot open file \"%s\" for reading.\n", filename.c_str());
+		LibXenoverse::notifyError();
 		return "";
 	}
 
@@ -29,7 +29,8 @@ std::string readFile(std::string filename)
 	uint8_t *buf = new uint8_t[size];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error.", FUNCNAME);
+		printf("%s: Memory allocation error.\n", FUNCNAME);
+		LibXenoverse::notifyError();
 		fclose(f);
 		return "";
 	}
@@ -39,7 +40,8 @@ std::string readFile(std::string filename)
 
 	if (rd != size)
 	{
-		LOG_DEBUG("Read failure on file \"%s\"\n", path.c_str());
+		printf("Read failure on file \"%s\"\n", filename.c_str());
+		LibXenoverse::notifyError();
 		delete[] buf;
 		return "";
 	}
@@ -61,7 +63,8 @@ void writeFile(std::string filename, std::string str)
 
 	if (!f)
 	{
-		LOG_DEBUG("Cannot open for write/create file \"%s\"\n", path.c_str());
+		printf("Cannot open for write/create file \"%s\"\n", filename.c_str());
+		LibXenoverse::notifyError();
 		return;
 	}
 

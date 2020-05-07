@@ -2590,7 +2590,7 @@ uint8_t* FmpFile::CreateFile(unsigned int *psize)
 	uint8_t *buf = new uint8_t[filesize];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
@@ -5047,7 +5047,8 @@ bool FmpFile::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!rootNode)
 	{
-		LOG_DEBUG("Cannot find\"Fmp\" in xml.\n");
+		printf("Cannot find\"Fmp\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -5064,7 +5065,8 @@ bool FmpFile::import_Xml(TiXmlElement* rootNode)
 	TiXmlElement* node_Settings = rootNode->FirstChildElement("Settings");
 	if (!node_Settings)
 	{
-		LOG_DEBUG("Cannot find\"Settings\" in xml.\n");
+		printf("Cannot find\"Settings\" in xml.\n");
+		notifyError();
 		return false;
 	}
 
@@ -5571,6 +5573,7 @@ bool FMP_Parameter::import_Xml(TiXmlElement* node)
 
 	}else {
 		printf("unknow Type Data %s for parameters. skipped.\n", typeValue_str.c_str());
+		notifyError();
 		return false;
 	}
 
@@ -9203,9 +9206,6 @@ void FmpFile::write_Coloration_Tag(string paramName, string paramType, string pa
 			LibXenoverse::notifyError();
 			continue;
 		}
-
-		if (index == 0x11ac)			//for test
-			int aa = 42;
 
 		if ((checkAllreadyTaggued) && (listBytesAllreadyTagged.at(index)))
 		{

@@ -15,7 +15,7 @@ bool ESK::loadXml(string filename)
 	if(!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -25,7 +25,7 @@ bool ESK::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'ESK' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -75,7 +75,7 @@ bool ESK::importXml(TiXmlElement* xmlCurrentNode)
 	if (!bonesNode)
 	{
 		printf("No 'ESKBones' tags find. skip.'\n");
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -165,8 +165,8 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 
 
 	TiXmlElement* absoluteTransformMatrixNode = xmlCurrentNode->FirstChildElement("AbsoluteTransformMatrix");
-	haveTransformMatrix = (absoluteTransformMatrixNode != 0);
-	if (haveTransformMatrix)
+	haveAbsoluteMatrix = (absoluteTransformMatrixNode != 0);
+	if (haveAbsoluteMatrix)
 	{
 		TiXmlElement* lineNode0 = absoluteTransformMatrixNode->FirstChildElement("Line");
 		TiXmlElement* lineNode1 = (lineNode0) ? lineNode0->NextSiblingElement("Line") : 0;
@@ -176,28 +176,28 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 		if (!lineNode3)
 		{
 			printf("AbsoluteTransformMatrix incomplete number of 'Line'. skip.'\n");
-			getchar();
+			notifyError();
 		}else{
 
-			lineNode0->QueryFloatAttribute("x", &transform_matrix[0]);
-			lineNode0->QueryFloatAttribute("y", &transform_matrix[1]);
-			lineNode0->QueryFloatAttribute("z", &transform_matrix[2]);
-			lineNode0->QueryFloatAttribute("w", &transform_matrix[3]);
+			lineNode0->QueryFloatAttribute("x", &absoluteMatrix[0]);
+			lineNode0->QueryFloatAttribute("y", &absoluteMatrix[1]);
+			lineNode0->QueryFloatAttribute("z", &absoluteMatrix[2]);
+			lineNode0->QueryFloatAttribute("w", &absoluteMatrix[3]);
 
-			lineNode1->QueryFloatAttribute("x", &transform_matrix[4]);
-			lineNode1->QueryFloatAttribute("y", &transform_matrix[5]);
-			lineNode1->QueryFloatAttribute("z", &transform_matrix[6]);
-			lineNode1->QueryFloatAttribute("w", &transform_matrix[7]);
+			lineNode1->QueryFloatAttribute("x", &absoluteMatrix[4]);
+			lineNode1->QueryFloatAttribute("y", &absoluteMatrix[5]);
+			lineNode1->QueryFloatAttribute("z", &absoluteMatrix[6]);
+			lineNode1->QueryFloatAttribute("w", &absoluteMatrix[7]);
 
-			lineNode2->QueryFloatAttribute("x", &transform_matrix[8]);
-			lineNode2->QueryFloatAttribute("y", &transform_matrix[9]);
-			lineNode2->QueryFloatAttribute("z", &transform_matrix[10]);
-			lineNode2->QueryFloatAttribute("w", &transform_matrix[11]);
+			lineNode2->QueryFloatAttribute("x", &absoluteMatrix[8]);
+			lineNode2->QueryFloatAttribute("y", &absoluteMatrix[9]);
+			lineNode2->QueryFloatAttribute("z", &absoluteMatrix[10]);
+			lineNode2->QueryFloatAttribute("w", &absoluteMatrix[11]);
 
-			lineNode3->QueryFloatAttribute("x", &transform_matrix[12]);
-			lineNode3->QueryFloatAttribute("y", &transform_matrix[13]);
-			lineNode3->QueryFloatAttribute("z", &transform_matrix[14]);
-			lineNode3->QueryFloatAttribute("w", &transform_matrix[15]);
+			lineNode3->QueryFloatAttribute("x", &absoluteMatrix[12]);
+			lineNode3->QueryFloatAttribute("y", &absoluteMatrix[13]);
+			lineNode3->QueryFloatAttribute("z", &absoluteMatrix[14]);
+			lineNode3->QueryFloatAttribute("w", &absoluteMatrix[15]);
 		}
 	}
 
@@ -211,24 +211,24 @@ EskTreeNode* ESKBone::importXml(TiXmlElement* xmlCurrentNode, std::vector<ESKBon
 
 		if (positionNode)
 		{
-			positionNode->QueryFloatAttribute("x", &skinning_matrix[0]);
-			positionNode->QueryFloatAttribute("y", &skinning_matrix[1]);
-			positionNode->QueryFloatAttribute("z", &skinning_matrix[2]);
-			positionNode->QueryFloatAttribute("w", &skinning_matrix[3]);
+			positionNode->QueryFloatAttribute("x", &relativeTransform[0]);
+			positionNode->QueryFloatAttribute("y", &relativeTransform[1]);
+			positionNode->QueryFloatAttribute("z", &relativeTransform[2]);
+			positionNode->QueryFloatAttribute("w", &relativeTransform[3]);
 		}
 		if (orientationNode)
 		{
-			orientationNode->QueryFloatAttribute("x", &skinning_matrix[4]);
-			orientationNode->QueryFloatAttribute("y", &skinning_matrix[5]);
-			orientationNode->QueryFloatAttribute("z", &skinning_matrix[6]);
-			orientationNode->QueryFloatAttribute("w", &skinning_matrix[7]);
+			orientationNode->QueryFloatAttribute("x", &relativeTransform[4]);
+			orientationNode->QueryFloatAttribute("y", &relativeTransform[5]);
+			orientationNode->QueryFloatAttribute("z", &relativeTransform[6]);
+			orientationNode->QueryFloatAttribute("w", &relativeTransform[7]);
 		}
 		if (scaleNode)
 		{
-			scaleNode->QueryFloatAttribute("x", &skinning_matrix[8]);
-			scaleNode->QueryFloatAttribute("y", &skinning_matrix[9]);
-			scaleNode->QueryFloatAttribute("z", &skinning_matrix[10]);
-			scaleNode->QueryFloatAttribute("w", &skinning_matrix[11]);
+			scaleNode->QueryFloatAttribute("x", &relativeTransform[8]);
+			scaleNode->QueryFloatAttribute("y", &relativeTransform[9]);
+			scaleNode->QueryFloatAttribute("z", &relativeTransform[10]);
+			scaleNode->QueryFloatAttribute("w", &relativeTransform[11]);
 		}
 	}
 	
@@ -295,7 +295,7 @@ TiXmlElement* ESKBone::exporFpftXml(size_t index, std::vector<ESKBone *> &listBo
 	xmlCurrentNode->SetAttribute("Index", index);
 
 
-	std::vector<double> relativeBone = calculRelativeMatrixFromTransformMatrix(listBones);
+	std::vector<double> relativeBone = calculRelativeMatrixFromAbsoluteMatrix(listBones);
 
 	TiXmlElement* node = 0;
 	TiXmlElement* valueNode = 0;

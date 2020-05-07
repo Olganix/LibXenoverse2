@@ -763,7 +763,7 @@ bool Uexp::loadXml(string filename)
 	if (!doc.LoadFile())
 	{
 		printf("Loading xml %s fail. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -773,7 +773,7 @@ bool Uexp::loadXml(string filename)
 	if (!rootNode)
 	{
 		printf("%s don't have 'Uexp' tags. skip.'\n", filename.c_str());
-		getchar();
+		notifyError();
 		return false;
 	}
 
@@ -1059,7 +1059,7 @@ void Uexp::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint
 	if (name_tmp.substr(0, string(LIBXENOVERSE_BNDFLL_SIGNATURE).length()) != LIBXENOVERSE_BNDFLL_SIGNATURE)
 		return;
 	
-	LOG_DEBUG("Have BNDFLL : \n");
+	printf("Have BNDFLL : \n");
 
 	incSection++;
 	incParam = 0;

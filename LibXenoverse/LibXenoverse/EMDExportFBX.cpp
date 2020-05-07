@@ -340,6 +340,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 			if ((faces.at(j) >= nbVertex) || (faces.at(j+1) >= nbVertex) || (faces.at(j+2) >= nbVertex))
 			{
 				printf("Problem on submesh %s : triangle/face/polygone/IndexBuffer target a wrong index %i (or %i or %i) into the vertexlist (nbvertex: %i). may be corrupt file. just skip polygone.\n", name.c_str(), faces.at(j), faces.at(j+1), faces.at(j+2), nbVertex);
+				notifyError();
 				continue;
 			}
 
@@ -378,6 +379,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 					if(bone_index >= triangle_shortBoneListCluster.size())
 					{
 						printf("Invalid Bone Index %d compared to Bone FBX Index Map size %d. just skip.\n", bone_index, triangle_shortBoneListCluster.size());
+						notifyError();
 						continue;
 					}
 
@@ -398,6 +400,7 @@ void EMDSubmesh::exportFBX(FbxScene *scene, std::vector<ESK::FbxBonesInstance_DB
 					if (bone_index >= triangle_shortBoneListCluster.size())
 					{
 						printf("Invalid Bone Index %d compared to Bone FBX Index Map size %d. just skip.\n", bone_index, triangle_shortBoneListCluster.size());
+						notifyError();
 						continue;
 					}
 					float blend_weight = ((m != 3) ? v.blend_weight[m] : (1.0f - (v.blend_weight[0] + v.blend_weight[1] + v.blend_weight[2])));					
@@ -486,7 +489,7 @@ void CustomTextureProp(FbxScene *scene, FbxSurfaceMaterial* lMaterial, FbxBindin
 		if (LibXenoverse::fileCheck(filename))
 			lTexture->SetFileName(filename.c_str());
 		else
-			printf("Image %s not found", filename.c_str());
+			printf("Image %s not found\n", filename.c_str());
 	}
 	lTexture->SetTextureUse(FbxTexture::eStandard);
 	lTexture->SetMappingType(FbxTexture::eUV);
@@ -602,9 +605,12 @@ FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string materi
 		if (filename.size() != 0)
 		{
 			if (LibXenoverse::fileCheck(filename))
+			{
 				lTexture->SetFileName(filename.c_str());
-			else
-				printf("Image %s not found", filename.c_str());
+			}else {
+				printf("Image %s not found\n", filename.c_str());
+				notifyError();
+			}
 		}
 		lTexture->SetTextureUse(FbxTexture::eStandard);
 		lTexture->SetMappingType(FbxTexture::eUV);
@@ -670,9 +676,12 @@ FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string materi
 			if (filename.size() != 0)
 			{
 				if (LibXenoverse::fileCheck(filename))
+				{
 					lTexture->SetFileName(filename.c_str());
-				else
+				}else {
 					printf("Image %s not found", filename.c_str());
+					notifyError();
+				}
 			}
 			lTexture->SetTextureUse(FbxTexture::eStandard);
 			lTexture->SetMappingType(FbxTexture::eUV);
@@ -696,8 +705,10 @@ FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string materi
 					fbxMaterial->DisplacementColor.ConnectSrcObject(lTexture);
 				else if (i == 5)
 					fbxMaterial->VectorDisplacementColor.ConnectSrcObject(lTexture);
-				else
+				else {
 					printf("Definition up to 6. skipped");
+					notifyError();
+				}
 			}
 		}
 		
@@ -714,6 +725,7 @@ FbxSurfaceMaterial* EMDSubmesh::exportFBXMaterial(FbxScene *scene, string materi
 	if (isFound == (size_t)-1)						//default case if there is a problem.
 	{
 		printf("DBX Material %s not found. Put a default material in fbx.\n", material_name.c_str());
+		notifyError();
 
 		FbxSurfacePhong* fbxMaterial = FbxSurfacePhong::Create(scene, FbxString(material_name.c_str()).Buffer());
 

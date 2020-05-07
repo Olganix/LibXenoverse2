@@ -46,11 +46,11 @@ struct SkeletonHeader
 	uint32_t offset_boneExtraInfo; // 0x18   EMO_Ske_Bone_extraInfo
 	uint32_t offset_absMatrices;// 0x1C   EMO_Ske_Bone_Absolute_Matrix
 	uint32_t ik_data_offset;	// 0x20
-	uint32_t unknow_2;			// 0x24
-	uint32_t unknow_3;			// 0x28
-	uint32_t unknow_4;			// 0x2C
-	uint32_t unknow_5;			// 0x30
-	uint32_t unknow_6;			// 0x34
+	uint32_t unknow_0;			// 0x24
+	uint32_t unknow_1;			// 0x28
+	uint32_t unknow_2;			// 0x2C
+	uint32_t unknow_3;			// 0x30
+	uint32_t unknow_4;			// 0x34
 	uint64_t skeletonUniqueId;  // 0x38		//like esk
 } PACKED;
 static_assert(sizeof(SkeletonHeader) == 0x40, "Incorrect structure size.");
@@ -180,7 +180,7 @@ private:
 	size_t unk_extraInfo_1;
 	size_t unk_extraInfo_2;
 	size_t unk_extraInfo_3;
-	bool has_absoluteMatrix;
+	bool haveAbsoluteMatrix;
 
 	float relativeMatrix[16];								//relative to parent.
 	float absoluteMatrix[16];
@@ -203,11 +203,11 @@ public:
 	inline std::string GetName() const { return name; }
 	inline uint32_t GetOriginalOffset() const { return meta_original_offset; }
 	inline void GetRelativeMatrix(float *m) const { memcpy(m, relativeMatrix, sizeof(relativeMatrix));}
-	inline bool GetAbsoluteMatrix(float *m) const {if (!has_absoluteMatrix){return false;} memcpy(m, absoluteMatrix, sizeof(absoluteMatrix)); return true; }
+	inline bool GetAbsoluteMatrix(float *m) const {if (!haveAbsoluteMatrix){return false;} memcpy(m, absoluteMatrix, sizeof(absoluteMatrix)); return true; }
 	void SetRelativeMatrix(float *m) { memcpy(relativeMatrix, m, sizeof(relativeMatrix)); }
-	bool SetAbsoluteMatrix(float *m) { if (!has_absoluteMatrix) { return false; } memcpy(absoluteMatrix, m, sizeof(absoluteMatrix)); return true; }
-	inline bool HasAbsoluteMatrix() const { return has_absoluteMatrix; }
-	inline void SetHasAbsoluteMatrix(bool has_absoluteMatrix) { this->has_absoluteMatrix = has_absoluteMatrix; }
+	bool SetAbsoluteMatrix(float *m) { if (!haveAbsoluteMatrix) { return false; } memcpy(absoluteMatrix, m, sizeof(absoluteMatrix)); return true; }
+	inline bool HasAbsoluteMatrix() const { return haveAbsoluteMatrix; }
+	inline void SetHasAbsoluteMatrix(bool haveAbsoluteMatrix) { this->haveAbsoluteMatrix = haveAbsoluteMatrix; }
 
 	inline EMO_Bone *GetParent() { return parent; }
 	inline EMO_Bone *GetChild() { return child; }
@@ -273,13 +273,14 @@ public:
 
 private:
 	bool mHaveExtraBytesOnEachBone;						//case of unknow_offset_1 != 0, only camera animation don't have this.
+	uint64_t skeletonUniqueId;
 
+	uint32_t unknow_0;
+	uint32_t unknow_1;
 	uint32_t unknow_2;
 	uint32_t unknow_3;
 	uint32_t unknow_4;
-	uint32_t unknow_5;
-	uint32_t unknow_6;
-	uint64_t skeletonUniqueId;
+	
 	
 protected:
 	std::vector<EMO_Bone> bones;

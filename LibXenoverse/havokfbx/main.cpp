@@ -65,6 +65,7 @@ void replaceAll_component_mad(std::string& str, const std::string& searchCompone
 		if (!isNumber(number_str))
 		{
 			printf("'%s' is not a number. skipped\n", number_str);
+			LibXenoverse::notifyError();
 
 			str.replace(start_pos, searchComponent.length(), "");
 			continue;
@@ -161,7 +162,7 @@ int main(int argc, char** argv)
 		LibXenoverse::Havok* havok = new LibXenoverse::Havok();
 		if (!havok->load(filename))
 		{
-			printf("Error on loading havok file %s", filename.c_str());
+			printf("Error on loading havok file %s\n", filename.c_str());
 			LibXenoverse::notifyError();
 			LibXenoverse::waitOnEnd();
 			return 0;
@@ -226,7 +227,7 @@ int main(int argc, char** argv)
 		LibXenoverse::Havok *havok = new LibXenoverse::Havok();
 		if (!havok->load(filename))
 		{
-			printf("Error on loading havok file %s", filename.c_str());
+			printf("Error on loading havok file %s\n", filename.c_str());
 			LibXenoverse::notifyError();
 			LibXenoverse::waitOnEnd();
 			return 0;
@@ -415,7 +416,7 @@ int main(int argc, char** argv)
 		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath +"/resources/box_template.hkx.xml", &size, true);
 		if (!buf)
 		{
-			printf("Error loading file : resources/box_template.hkx.xml");
+			printf("Error loading file : resources/box_template.hkx.xml\n");
 			LibXenoverse::notifyError();
 			return -1;
 		}
@@ -427,7 +428,7 @@ int main(int argc, char** argv)
 		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath + "/resources/cylinderY_template.hkx.xml", &size, true);
 		if (!buf)
 		{
-			printf("Error loading file : resources/cylinderY_template.hkx.xml");
+			printf("Error loading file : resources/cylinderY_template.hkx.xml\n");
 			LibXenoverse::notifyError();
 			return -1;
 		}
@@ -438,7 +439,7 @@ int main(int argc, char** argv)
 		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath + "/resources/cylinderX_template.hkx.xml", &size, true);
 		if (!buf)
 		{
-			printf("Error loading file : resources/cylinderX_template.hkx.xml");
+			printf("Error loading file : resources/cylinderX_template.hkx.xml\n");
 			LibXenoverse::notifyError();
 			return -1;
 		}
@@ -449,7 +450,7 @@ int main(int argc, char** argv)
 		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath + "/resources/cylinderZ_template.hkx.xml", &size, true);
 		if (!buf)
 		{
-			printf("Error loading file : resources/cylinderZ_template.hkx.xml");
+			printf("Error loading file : resources/cylinderZ_template.hkx.xml\n");
 			LibXenoverse::notifyError();
 			return -1;
 		}
@@ -460,7 +461,7 @@ int main(int argc, char** argv)
 		buf = (char*)LibXenoverse::EMO_BaseFile::ReadFile(exePath + "/resources/sphere_template.hkx.xml", &size, true);
 		if (!buf)
 		{
-			printf("Error loading file : resources/sphere_template.hkx.xml");
+			printf("Error loading file : resources/sphere_template.hkx.xml\n");
 			LibXenoverse::notifyError();
 			return -1;
 		}
@@ -707,7 +708,7 @@ int main(int argc, char** argv)
 				LibXenoverse::Havok *havok = new LibXenoverse::Havok();
 				if (!havok->Compile(&doc))
 				{
-					printf("Error on parsing havok");
+					printf("Error on parsing havok\n");
 					LibXenoverse::notifyError();
 					LibXenoverse::waitOnEnd();
 				}
@@ -941,7 +942,7 @@ int main(int argc, char** argv)
 				LibXenoverse::Havok *havok = new LibXenoverse::Havok();
 				if (!havok->Compile(&doc))
 				{
-					printf("Error on parsing havok");
+					printf("Error on parsing havok\n");
 					LibXenoverse::notifyError();
 					LibXenoverse::waitOnEnd();
 				}

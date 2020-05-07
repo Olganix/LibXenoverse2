@@ -32,7 +32,7 @@ void recursiveChangeEmpTagName(TiXmlElement* parent, TiXmlElement* rootNode)
 			if (!rootNode)
 			{
 				printf("%s don't have 'EMP' and 'ParticleEffects' tags. skip.'\n", filename);
-				getchar();
+				notifyError();
 				return false;
 			}
 

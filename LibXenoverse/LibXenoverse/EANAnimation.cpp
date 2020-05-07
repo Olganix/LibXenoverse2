@@ -49,7 +49,6 @@ EANAnimation::EANAnimation(EANAnimation *source, vector<string> &listBoneFilterN
 void EANAnimation::readName(File *file)
 {
 	file->readString(&name);
-	//LOG_DEBUG("Animation Name: %s\n", name.c_str());
 }
 /*-------------------------------------------------------------------------------\
 |                             writeName				                             |
@@ -57,7 +56,6 @@ void EANAnimation::readName(File *file)
 void EANAnimation::writeName(File *file)
 {
 	file->writeString(&name);
-	//LOG_DEBUG("Animation Name: %s\n", name.c_str());
 }
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
@@ -80,8 +78,6 @@ void EANAnimation::read(File *file)
 	file->readInt32E(&nodes_count);
 	file->readInt32E(&nodes_offset);
 
-	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, duration : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, duration, nodes_count, nodes_offset);
-
 	nodes.resize(nodes_count);
 	unsigned int address = 0;
 	for (size_t i = 0; i < nodes_count; i++)
@@ -90,7 +86,6 @@ void EANAnimation::read(File *file)
 		file->readInt32E(&address);
 		file->goToAddress(base_animation_address + address);
 
-		LOG_DEBUG("---- Node %i : [%i] = %i => [%i]\n", i, base_animation_address + nodes_offset + i * 4, address, base_animation_address + address);
 		nodes[i].read(file, frame_index_size, frame_float_size);
 	}
 }
@@ -112,8 +107,6 @@ size_t EANAnimation::write(File *file)
 	file->writeInt32E(&nodes_count);
 	file->writeInt32E(&nodes_offset);
 
-	LOG_DEBUG("[%i] frame_index_size : %i, frame_float_size : %i, duration : %i, nodes_count : %i, nodes_offset : [%i]\n", base_animation_address, frame_index_size, frame_float_size, duration, nodes_count, nodes_offset);
-
 	/*
 	//todo reuse, but apparently for ean , it's not necessary , may be only for ema (I have done this when texting ema from 3dsmax, via fbx and ean conversions in betweeen)
 	for (size_t i = 0; i < nodes_count; i++)						//that will clean keyframes up to the limit, and also add keyframe for the last time (else there will have strange effect on animation or infinite loop  (case stage.ema))
@@ -128,7 +121,6 @@ size_t EANAnimation::write(File *file)
 		file->writeInt32E(&address);
 		file->goToAddress(base_animation_address + address);
 
-		LOG_DEBUG("---- Node %i : [%i] = %i => [%i]\n", i, base_animation_address + nodes_offset + i * 4, address, base_animation_address + address);
 		nodes_size += nodes[i].write(file, frame_index_size, frame_float_size);
 	}
 	return (nodes_offset + nodes_count * 4 + nodes_size);
@@ -192,6 +184,7 @@ void EANAnimation::copy(EANAnimation &source, bool keepName)
 	if ((!skeleton_dest) || (!skeleton_src))
 	{												//default erase, don't care about skeleton matching
 		printf("no skeleton informations, by default case erase all nodes. could have weird effect.\n");
+		notifyError();
 		this->nodes = source.nodes;
 		return;
 	}
@@ -228,7 +221,10 @@ void EANAnimation::copy(EANAnimation &source, bool keepName)
 		}
 
 		if (!isfound)
-			printf("bone %s wasn't in source animation. skiped\n", name_src.c_str());
+		{
+			printf("bone %s wasn't in source animation. skipped\n", name_src.c_str());
+			notifyWarning();
+		}
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -248,6 +244,7 @@ void EANAnimation::append(EANAnimation &source, bool keepName)
 	if ((!skeleton_dest) || (!skeleton_src))
 	{												//default erase, don't care about skeleton matching
 		printf("no skeleton informations, by default case erase all nodes. could have weird effect.\n");
+		notifyError();
 		this->nodes = source.nodes;
 		return;
 	}
@@ -299,7 +296,10 @@ void EANAnimation::append(EANAnimation &source, bool keepName)
 		}
 
 		if (!isfound)
-			printf("bone %s wasn't in source animation. skiped\n", name_src.c_str());
+		{
+			printf("bone %s wasn't in source animation. skipped\n", name_src.c_str());
+			notifyWarning();
+		}
 	}
 }
 /*-------------------------------------------------------------------------------\
@@ -319,6 +319,7 @@ void EANAnimation::copy(EANAnimation &source, vector<string> &listBoneFilterName
 	if ((!skeleton_dest) || (!skeleton_src))
 	{												//default erase, don't care about skeleton matching
 		printf("no skeleton informations, by default case erase all nodes. could have weird effect.\n");
+		notifyError();
 		this->nodes = source.nodes;
 		return;
 	}
@@ -392,7 +393,10 @@ void EANAnimation::copy(EANAnimation &source, vector<string> &listBoneFilterName
 			}
 		}
 		if (!isfound)
+		{
 			printf("bone %s wasn't in source animation. skiped\n", name_dest.c_str());
+			notifyWarning();
+		}
 	}	
 }
 /*-------------------------------------------------------------------------------\
@@ -556,7 +560,7 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 	if ((this->name.length() > 7) && (this->name.substr(this->name.length() - 7) == "_Layer0"))
 		this->name = this->name.substr(0, this->name.length() - 7);
 
-	LOG_DEBUG("Reading Animation %s\n", this->name.c_str());
+	printf("Reading Animation %s\n", this->name.c_str());
 
 
 	//Search all node
@@ -588,9 +592,9 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 		
 		if (lSkeleton)
 		{
-			LOG_DEBUG(" is Skeleton\n");
+			printf(" is Skeleton\n");
 		}else {
-			LOG_DEBUG(" is Camera\n");
+			printf(" is Camera\n");
 		}
 
 		//find the right index, by reading previous information from ean original file.
@@ -685,8 +689,8 @@ void EANAnimation::importFBXAnimation(FbxScene *scene, FbxAnimStack *lAnimStack,
 
 	}
 
-	LOG_DEBUG("Animation Frames: %d\n", duration);
-	LOG_DEBUG("Animation Nodes (%d):\n", nodes.size());
+	printf("Animation Frames: %d\n", duration);
+	printf("Animation Nodes (%d):\n", nodes.size());
 }
 
 #endif

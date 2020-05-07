@@ -14,6 +14,9 @@ EAN::~EAN(void)
 		delete skeleton;
 	skeleton = NULL;
 }
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             load								                 |
 \-------------------------------------------------------------------------------*/
@@ -52,6 +55,9 @@ void EAN::save(string filename, bool big_endian)
 		file.close();
 	}
 }
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
@@ -87,17 +93,13 @@ void EAN::read(File *file)
 	file->readInt32E(&offset_animations);
 	file->readInt32E(&animation_names_offset);
 
-	LOG_DEBUG("--------------- read EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], offset_animations : [%i], animation_names_offset : [%i]\n", unknow_0, animation_count, skeleton_offset, offset_animations, animation_names_offset);
-
 	// Read Skeleton
-	LOG_DEBUG("----------- Skeleton\n");
 	file->goToAddress(skeleton_offset);
 	skeleton = new ESK();
 	skeleton->read(file);
 	skeleton->version = version;
 
 	// Read Animations
-	LOG_DEBUG("----------- Animations KeyFrames\n");
 	animations.resize(animation_count);
 	unsigned int address = 0;
 	for (size_t i = 0; i < animation_count; i++)
@@ -107,15 +109,10 @@ void EAN::read(File *file)
 		file->readInt32E(&address);
 		file->goToAddress(address);
 
-		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, offset_animations + i * 4, address);
-
 		animations[i].setParent(this);
 		animations[i].read(file);
 	}
 	
-
-
-	LOG_DEBUG("----------- Animations Names\n");
 	for (size_t i = 0; i < animation_count; i++)
 	{
 		// Read Name
@@ -123,11 +120,7 @@ void EAN::read(File *file)
 		file->readInt32E(&address);
 		file->goToAddress(address);
 		animations[i].readName(file);
-		LOG_DEBUG("------ animation %i : [%i] => [%i] => %s\n", i, animation_names_offset + i * 4, address, animations[i].getName().c_str());
 	}
-
-
-	LOG_DEBUG("--------------- End reading EAN \n");
 }
 /*-------------------------------------------------------------------------------\
 |                             write					                             |
@@ -172,17 +165,14 @@ void EAN::write(File *file)
 	file->writeInt32E(&offset_animations);
 	file->writeInt32E(&animation_names_offset);
 		
-	LOG_DEBUG("--------------- write EAN \n[8] unkTotal : %i, animation_count : %i, SkeletonOffset : [%i], offset_animations : [%i], animation_names_offset : [%i]\n", unknow_0, animation_count, skeleton_offset, offset_animations, animation_names_offset);
-
+	
 	// Write Skeleton
-	LOG_DEBUG("----------- Skeleton\n");
 	file->goToAddress(skeleton_offset);
 	skeleton->write(file, false);
 
 		
 	// Write Animations
 	offset_animations = file->getCurrentAddress();
-	LOG_DEBUG("----------- Animations KeyFrames - offset_animations : [%i] \n", offset_animations);
 	size_t keyframe_size = 0;
 	size_t current_keyframe_size = 0;
 	size_t sizeToFill = 0;
@@ -197,7 +187,6 @@ void EAN::write(File *file)
 		file->writeInt32E(&address);
 		file->goToAddress(address);
 
-		LOG_DEBUG("------ animation %i : [%i] => [%i]\n", i, offset_animations + i * 4, address);
 			
 		animations[i].setParent(this);
 		current_keyframe_size = animations[i].write(file);
@@ -228,8 +217,7 @@ void EAN::write(File *file)
 
 
 	animation_names_offset = file->getCurrentAddress();
-	LOG_DEBUG("----------- Animations Names - animation_names_offset : [%i] \n", animation_names_offset);
-
+	
 	size_t names_size = 0;
 	for (size_t i = 0; i < animation_count; i++)
 	{
@@ -240,8 +228,6 @@ void EAN::write(File *file)
 		file->goToAddress(address);
 		animations[i].writeName(file);
 		names_size += animations[i].getName().length() + 1;		//+1 for \0
-
-		LOG_DEBUG("------ animation %i : [%i] => [%i] => %s\n", i, animation_names_offset + i * 4, address, animations[i].getName().c_str());
 	}
 
 
@@ -252,8 +238,6 @@ void EAN::write(File *file)
 
 
 	file->goToEnd();
-
-	LOG_DEBUG("--------------- End writting EAN \n");
 }
 /*-------------------------------------------------------------------------------\
 |                             merge					                             |

@@ -1238,7 +1238,7 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 		}else if(i+1!= nbLines){				//at the end of the file , it could have random chars. So only search wrong instructions from NotTheLastLine.
 			
 			printf("Could not Read instruction *%s* with argument %s on %s\n", instruction.c_str(), argumentsLine.c_str(), mName.c_str());
-			//getchar();
+			notifyError();
 		}
 
 
@@ -1372,7 +1372,7 @@ void Shader_vs_5_0::parseAsm(std::string asm_str)
 			}else{
 
 				printf("Unknown shader params type %s for %s in %s\n", var.mType.c_str(), var.mName.c_str(), mName.c_str());
-				getchar();
+				notifyError();
 			}
 
 		}

@@ -183,8 +183,6 @@ void EMDVertex::read(File *file, uint16_t flags, uint16_t &paddingForCompressedV
 
 		//completion to assure addition of weight always do 1.0;
 		blend_weight[3] = 1.0f - (blend_weight[0] + blend_weight[1] + blend_weight[2]);
-
-		LOG_DEBUG("%d %d %d %d - %f %f %f %f\n", blend[0], blend[1], blend[2], blend[3], blend_weight[0], blend_weight[1], blend_weight[2], blend_weight[3]);
 	}
 }
 /*-------------------------------------------------------------------------------\

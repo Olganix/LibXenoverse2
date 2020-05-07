@@ -327,7 +327,8 @@ int main(int argc, char** argv)
 
 	//TODO use it again (for now I desactive Material and shader export for testing fbx import on blender)
 	if (needs_install_shaders) {
-		printf("Shaders not found. Please use Xenoviewer to prepare shaders in bin folder.");
+		printf("Shaders not found. Please use Xenoviewer to prepare shaders in bin folder.\n");
+		notifyError();
 		return -1;
 	}
 
@@ -338,13 +339,15 @@ int main(int argc, char** argv)
 
 		if (!shader_pack_vs->load(shader_names[i])) {
 			delete shader_pack_vs;
-			printf("Couldn't load Shader Pack %s. File is either missing, open by another application, or corrupt.", shader_names[i].c_str());
+			printf("Couldn't load Shader Pack %s. File is either missing, open by another application, or corrupt.\n", shader_names[i].c_str());
+			notifyError();
 			continue;
 		}
 		if (!shader_pack_ps->load(shader_names[i+1])) {
 			delete shader_pack_vs;
 			delete shader_pack_ps;
-			printf("Couldn't load Shader Pack %s. File is either missing, open by another application, or corrupt.", shader_names[i].c_str());
+			printf("Couldn't load Shader Pack %s. File is either missing, open by another application, or corrupt.\n", shader_names[i].c_str());
+			notifyError();
 			continue;
 		}
 
@@ -506,13 +509,13 @@ int main(int argc, char** argv)
 		emmMaterial = NULL;
 		if (!LibXenoverse::fileCheck(baseFileName + ".emm"))
 		{
-			printf("No EMM Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!", (baseFileName + ".emm").c_str());
+			printf("No EMM Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application !\n", (baseFileName + ".emm").c_str());
 			LibXenoverse::notifyWarning();
 		}else {
 			emmMaterial = new LibXenoverse::EMM();
 			if (!emmMaterial->load(baseFileName + ".emm"))
 			{
-				printf("Invalid EMM Material Pack. Is  %s valid ? ", (baseFileName + ".emm").c_str());
+				printf("Invalid EMM Material Pack. Is  %s valid ? \n", (baseFileName + ".emm").c_str());
 				LibXenoverse::notifyWarning();
 				delete emmMaterial;
 				emmMaterial = NULL;
@@ -525,13 +528,13 @@ int main(int argc, char** argv)
 		{
 			if (!LibXenoverse::fileCheck(baseFileName + ".emb"))
 			{
-				printf("No EMB Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application!", (baseFileName + ".emb").c_str());
+				printf("No EMB Pack with the name %s found. Make sure it's on the same folder as the EMD file you're adding and it's not open by any other application !\n", (baseFileName + ".emb").c_str());
 				LibXenoverse::notifyWarning();
 			}else {
 				emb = new LibXenoverse::EMB();
 				if (!emb->load(baseFileName + ".emb"))
 				{
-					printf("Invalid EMB Texture Pack. Is  %s valid ? ", (baseFileName + ".emb").c_str());
+					printf("Invalid EMB Texture Pack. Is  %s valid ? \n", (baseFileName + ".emb").c_str());
 					LibXenoverse::notifyWarning();
 					delete emb;
 					emb = NULL;
@@ -547,7 +550,7 @@ int main(int argc, char** argv)
 
 			if (!LibXenoverse::fileCheck(baseFileName + ".dyt.emb"))
 			{
-				printf("Warning : No EMB DYT Pack with the name %s found. we will try to use %s instead ", (baseFileName + ".dyt.emb").c_str(), (baseFileName + ".emb").c_str());
+				printf("Warning : No EMB DYT Pack with the name %s found. we will try to use %s instead \n", (baseFileName + ".dyt.emb").c_str(), (baseFileName + ".emb").c_str());
 				LibXenoverse::notifyWarning();
 				if (emb)
 					mListEmb.push_back(emb->clone());
@@ -555,7 +558,7 @@ int main(int argc, char** argv)
 				emb = new LibXenoverse::EMB();
 				if (!emb->load(baseFileName + ".dyt.emb"))
 				{
-					printf("Invalid EMB DYT Texture Pack. Is  %s valid ? ", (baseFileName + ".dyt.emb").c_str());
+					printf("Invalid EMB DYT Texture Pack. Is  %s valid ? \n", (baseFileName + ".dyt.emb").c_str());
 					LibXenoverse::notifyWarning();
 					delete emb;
 					emb = NULL;

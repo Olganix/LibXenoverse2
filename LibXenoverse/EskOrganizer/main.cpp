@@ -68,12 +68,12 @@ int main(int argc, char** argv)
 		'Remove <indexEsk> <indexBone> <recursive>' Delete the specified bone. delete also its children if recursive is true (by defaut)\n\
 		'Copy <indexEsk> <indexBone> <recursive>' Copy a bone. and its children if recursive is at true (by default)\n\
 		'Paste <indexEsk> <indexBone> <alsoCopyAnimation> <matchDuration>' Paste bones Copyed on Child of bone specified by indexBone. in case of source and destination are Ean file, alsoCopyAnimation at 'true' will be also copy animation, and in this case matchDuration at 'true' will resampling source animation to match with destination animation (from other bones of destination file), helpfull for cycling animations.\n\
-		'CalculTransformMatrixFromSkinningMatrix <indexEsk> <indexBone> ' (Experimentale)Read the Skinning Matrix (with Relative information about Transfrom) to make the transformMatrix (absolute informations), beacause Ean have esk part without transformMatrix. So you will could make a esk from ean, by using this methode and rename root bone. if indexEsk==-1 it will be on all bones\n\
-		'ClearTransformMatrix <indexEsk> <indexBone> ' remove TranformMatrix. is to clean for a Ean  file. if indexEsk==-1 it will be on all bones\n\
-		'CalculSkinningMatrixFromTransformMatrix <indexEsk> <indexBone> ' (Experimentale)Inverse opeartion.\n\
-		'ClearSkinningMatrix <indexEsk> <indexBone>' remove SkinningMatrix.\n\
+		'CalculAbsoluteMatrixFromRelativeTransform <indexEsk> <indexBone> ' (Experimentale)Read the RelativeTransform (Position Orientation Scale) to make the AbsoluteMatrix, because Ean have esk part without AbsoluteMatrix. So you will could make a esk from ean, by using this methode and rename root bone. if indexEsk==-1 it will be on all bones\n\
+		'ClearAbsoluteMatrix_offset <indexEsk> <indexBone> ' remove TranformMatrix. is to clean for a Ean  file. if indexEsk==-1 it will be on all bones\n\
+		'CalculRelativeTransformFromAbsoluteMatrix <indexEsk> <indexBone> ' (Experimentale)Inverse opeartion.\n\
+		'ClearRelativeTransform <indexEsk> <indexBone>' remove RelativeTransform.\n\
 		'getJson <indexEsk>' for tests comparaisons.\n\
-		'GetBonePosition <indexEsk> <indexBone> <absolute>' get the bone position, absolute (from transformMatrix) if true (else relative, so from SkinningMatrix).\n\
+		'GetBonePosition <indexEsk> <indexBone> <absolute>' get the bone position, absolute (from AbsoluteMatrix if true (else relative, so from RelativeTransform).\n\
 		'GetBoneOrientation <indexEsk> <indexBone> <absolute>' get the bone quaternion information of the orientation, absolute if true (else relative).\n\
 		'GetBoneScale <indexEsk> <indexBone> <absolute>' get the bone position, absolute if true (else relative).\n\
 		'SetBonePosition <indexEsk> <indexBone> <posX> <posY> <posZ> <absolute>'.\n\
@@ -236,7 +236,7 @@ int main(int argc, char** argv)
 						eanOrEskFile->mEsk = eanOrEskFile->mEan->getSkeleton();
 						printf("Ean Loaded\n");
 					}else {
-						printf("Error: Fail on loading %s", filename.c_str());
+						printf("Error: Fail on loading %s\n", filename.c_str());
 						delete eanOrEskFile;
 					}
 
@@ -249,12 +249,12 @@ int main(int argc, char** argv)
 						listEskFile.push_back(eanOrEskFile);
 						printf("Esk Loaded\n");
 					}else {
-						printf("Error: Fail on loading %s", filename.c_str());
+						printf("Error: Fail on loading %s\n", filename.c_str());
 						delete eanOrEskFile;
 					}
 
 				}else {
-					printf("%s it's not a Ean or Esk", filename.c_str());
+					printf("%s it's not a Ean or Esk\n", filename.c_str());
 				}
 			}
 				
@@ -530,14 +530,14 @@ int main(int argc, char** argv)
 
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////	
-		}else if ((command == "ClearTransformMatrix") || (command == "ClearSkinningMatrix")){
+		}else if ((command == "ClearAbsoluteMatrix_offset") || (command == "ClearRelativeTransform")){
 
 			if (nbArg < 2)
 			{
 				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			bool isSkinningMatrix = (command == "ClearSkinningMatrix");
+			bool isRelativeTransform = (command == "ClearRelativeTransform");
 			size_t indexFile = std::stoi(arguments.at(0));
 			string boneRef = arguments.at(1);
 
@@ -558,14 +558,14 @@ int main(int argc, char** argv)
 
 					bone = bones.at(i);
 
-					if (!isSkinningMatrix)
+					if (!isRelativeTransform)
 					{
 						//matrix4x4 iddentity
 						bone->absoluteMatrix[0] = 1; bone->absoluteMatrix[1] = 0; bone->absoluteMatrix[2] = 0; bone->absoluteMatrix[3] = 0;
 						bone->absoluteMatrix[4] = 0; bone->absoluteMatrix[5] = 1; bone->absoluteMatrix[6] = 0; bone->absoluteMatrix[7] = 0;
 						bone->absoluteMatrix[8] = 0; bone->absoluteMatrix[9] = 0; bone->absoluteMatrix[10] = 1; bone->absoluteMatrix[11] = 0;
 						bone->absoluteMatrix[12] = 0; bone->absoluteMatrix[13] = 0; bone->absoluteMatrix[14] = 0; bone->absoluteMatrix[15] = 1;
-						bone->haveTransformMatrix = false;
+						bone->haveAbsoluteMatrix = false;
 					}else{
 						//matrix3x4 iddentity
 						bone->relativeTransform[0] = 0; bone->relativeTransform[1] = 0; bone->relativeTransform[2] = 0; bone->relativeTransform[3] = 1;
@@ -586,7 +586,7 @@ int main(int argc, char** argv)
 
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////
-		}else if ((command == "CalculTransformMatrixFromSkinningMatrix") || (command == "CalculSkinningMatrixFromTransformMatrix")){
+		}else if ((command == "CalculAbsoluteMatrixFromRelativeTransform") || (command == "CalculRelativeTransformFromAbsoluteMatrix")){
 
 			
 			if (nbArg < 2)
@@ -594,7 +594,7 @@ int main(int argc, char** argv)
 				printf("You miss arguments. try 'Help' command\n");
 				continue;
 			}
-			bool isSkinningMatrix = (command == "CalculSkinningMatrixFromTransformMatrix");
+			bool isRelativeTransform = (command == "CalculRelativeTransformFromAbsoluteMatrix");
 			size_t indexFile = std::stoi(arguments.at(0));
 			string boneRef = arguments.at(1);
 
@@ -615,10 +615,10 @@ int main(int argc, char** argv)
 
 					bone = bones.at(i);
 
-					if (!isSkinningMatrix)
-						bone->calculTransformMatrixFromSkinningMatrix(bones, true);
+					if (!isRelativeTransform)
+						bone->calculAbsoluteMatrixFromRelativeTransform(bones, true);
 					else
-						bone->calculSkinningMatrixFromTransformMatrix(bones, true);
+						bone->calculRelativeTransformFromAbsoluteMatrix(bones, true);
 
 					if (boneIndex != (size_t)-1)
 						break;
@@ -706,7 +706,7 @@ int main(int argc, char** argv)
 							LibXenoverse::ESKBone::inverse4x4(&resultTransformMatrix[0], &tmpTransformMatrix[0]);
 
 							LibXenoverse::ESKBone::transpose4x4(&tmpTransformMatrix[0]);		//come back to Ogre matrice way
-							double relativeTransform_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
+							double relativeTransform_b[12];						//special tranformation from observation between isRelativeTransform and AbsoluteMatrix
 							LibXenoverse::ESKBone::decomposition4x4(&tmpTransformMatrix[0], &relativeTransform_b[0]);
 
 							for (size_t i = 0; i < 12; i++)
@@ -750,10 +750,10 @@ int main(int argc, char** argv)
 								for (size_t i = 0; i < 12; i++)
 									bone->relativeTransform[i] = relativeTransform[i];
 
-								printf("Done. Please Considere to use 'CalculTransformMatrixFromSkinningMatrix %i -1' to update TransformMatrix.\n", indexFile);
+								printf("Done. Please Considere to use 'CalculAbsoluteMatrixFromRelativeTransform %i -1' to update TransformMatrix.\n", indexFile);
 							}else{
 
-								double relativeTransform_b[12];						//special tranformation from observation between skinningMatrix and transformMatrix
+								double relativeTransform_b[12];						//special tranformation from observation between RelativeTransform and AbsoluteMatrix
 								for (size_t i = 0; i < 12; i++)
 									relativeTransform_b[i] = relativeTransform[i];
 
@@ -769,7 +769,7 @@ int main(int argc, char** argv)
 								for (size_t i = 0; i < 16; i++)
 									bone->absoluteMatrix[i] = (float)tmpTransformMatrix[i];
 
-								printf("Done. Please Considere to use 'CalculSkinningMatrixFromTransformMatrix %i -1' to update SkinningMatrix.\n", indexFile);
+								printf("Done. Please Considere to use 'CalculRelativeTransformFromAbsoluteMatrix %i -1' to update isRelativeTransform.\n", indexFile);
 							}
 						}
 						break;
@@ -823,7 +823,7 @@ int main(int argc, char** argv)
 				for (size_t i = 0; i < nbBones; i++)
 				{
 					bone = bones.at(i);
-					bone->test_calculTransformMatrixFromSkinningMatrix(bones, false);
+					bone->test_calculAbsoluteMatrixFromRelativeTransform(bones, false);
 				}
 
 				printf("Done.\n");

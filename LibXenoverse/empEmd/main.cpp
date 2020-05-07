@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 		
 		if (!emd->load(filename))
 		{
-			printf("can't load %s", filename.c_str());
+			printf("can't load %s\n", filename.c_str());
 			LibXenoverse::notifyError();
 			LibXenoverse::waitOnEnd();
 			return 0;

@@ -2274,6 +2274,7 @@ void EMP::replaceEmgFromEmd(string filename, EMD* emd)
 	if (!haveToReplace)
 	{
 		printf("There is nothing to replace. If your are sure, check EmdModel's name match with EmpEntry's name, and there is a type 04 02 (witch could accept a Emg part). Skipped.\n");
+		notifyError();
 		delete[] buf;
 		return;
 	}

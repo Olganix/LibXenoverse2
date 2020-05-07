@@ -324,7 +324,8 @@ public:
 
 				if (!isfound)
 				{
-					LOG_DEBUG("Problem with %s.\n", (onLeft + "[" + inside + "]" + onRight).c_str());
+					printf("Problem with %s.\n", (onLeft + "[" + inside + "]" + onRight).c_str());
+					notifyError();
 				}
 
 			}else if (mListShaderCBuffer_Var.size() == 1) {
@@ -355,8 +356,8 @@ public:
 
 			}else {
 
-				LOG_DEBUG("Problem with %s.\n", (onLeft + "[" + inside + "]" + onRight).c_str() );
-				//getchar();
+				printf("Problem with %s.\n", (onLeft + "[" + inside + "]" + onRight).c_str() );
+				notifyError();
 			}
 
 			return onLeft + "[" + inside + "]" + onRight;

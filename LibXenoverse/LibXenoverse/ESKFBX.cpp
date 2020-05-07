@@ -195,7 +195,7 @@ void ESK::importFBXSkeleton(FbxScene *scene, bool allowCamera)
 	//last things todo is to calcul the absolute matrix  (we do this here to be sure to have parent allready defined). could be optimize.
 	size_t nbBones = bones.size();
 	for (size_t i = 0; i < nbBones; ++i)
-		bones.at(i)->calculTransformMatrixFromSkinningMatrix(bones, true);	
+		bones.at(i)->calculAbsoluteMatrixFromRelativeTransform(bones, true);	
 }
 
 

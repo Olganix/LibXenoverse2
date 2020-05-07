@@ -10,12 +10,12 @@ namespace LibXenoverse
 EMDModel::EMDModel(EMDModel* emdModel)
 {
 	name = "";
-	unknow_total = 0;
+	unknow_0 = 0;
 
 	if (emdModel)
 	{
 		name = emdModel->name;
-		unknow_total = emdModel->unknow_total;
+		unknow_0 = emdModel->unknow_0;
 
 		for (size_t i = 0, nb = emdModel->meshes.size(); i < nb; i++)
 			meshes.push_back(new EMDMesh(emdModel->meshes.at(i)));
@@ -31,6 +31,9 @@ EMDModel::~EMDModel(void)
 		delete meshes.at(i);
 	meshes.clear();
 }
+
+
+
 /*-------------------------------------------------------------------------------\
 |                             read					                             |
 \-------------------------------------------------------------------------------*/
@@ -41,11 +44,9 @@ void EMDModel::read(File *file, uint16_t &paddingForCompressedVertex)
 
 	unsigned short mesh_total = 0;
 	unsigned int mesh_table_address = 0;
-	file->readInt16E(&unknow_total);
+	file->readInt16E(&unknow_0);
 	file->readInt16E(&mesh_total);
 	file->readInt32E(&mesh_table_address);
-
-	LOG_DEBUG("\n\nModel - Mesh Count: %d\n", mesh_total);
 
 	for (size_t j = 0; j < mesh_total; j++)
 	{
@@ -68,7 +69,7 @@ void EMDModel::write(File *file, uint16_t paddingForCompressedVertex)
 	unsigned int base_model_address = file->getCurrentAddress();
 	unsigned short mesh_total = meshes.size();
 	unsigned int mesh_table_address = 8;
-	file->writeInt16E(&unknow_total);
+	file->writeInt16E(&unknow_0);
 	file->writeInt16E(&mesh_total);
 	file->writeInt32E(&mesh_table_address);
 

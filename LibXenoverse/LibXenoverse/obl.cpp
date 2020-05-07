@@ -116,7 +116,7 @@ uint8_t* Obl::CreateFile(unsigned int *psize)
 	uint8_t *buf = new uint8_t[filesize];
 	if (!buf)
 	{
-		LOG_DEBUG("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
+		printf("%s: Memory allocation error (0x%x)\n", FUNCNAME, filesize);
 		LibXenoverse::notifyError();
 		return nullptr;
 	}
@@ -254,7 +254,8 @@ bool Obl::Compile(TiXmlDocument *doc, bool big_endian)
 
 	if (!rootNode)
 	{
-		LOG_DEBUG("Cannot find\"Obl\" in xml.\n");
+		printf("Cannot find\"Obl\" in xml.\n");
+		notifyError();
 		return false;
 	}
 

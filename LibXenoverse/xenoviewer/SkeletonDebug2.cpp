@@ -26,10 +26,7 @@ SkeletonDebug2::SkeletonDebug2(Ogre::Skeleton* skeleton, Ogre::SceneManager *man
 	{
 		Ogre::Bone* pBone = mSkeleton->getBone(iBone);
 		if (!pBone)
-		{
-			assert(false);
 			continue;
-		}
 
 		mListBoneDebug.push_back(new BoneDebug(iBone, pBone->getName(), man, pBone));
 	}
