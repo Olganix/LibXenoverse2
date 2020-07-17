@@ -552,7 +552,7 @@ void ESK::write(File *file, bool withAbsoluteMatrix)
 				if (nbrelations > 1)
 					nbrelations--;
 
-				file->writeNull(ik.unknow_0);
+				file->writeUChar(&ik.unknow_0);
 				file->writeUChar((unsigned char*)&nbrelations);
 
 				for (size_t k = 0; k <= nbrelations; k++)

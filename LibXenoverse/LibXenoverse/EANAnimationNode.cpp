@@ -185,9 +185,12 @@ void EANAnimationNode::cleanAnimationForDuration(size_t duration)
 
 	for (size_t i = 0; i < nbAnim; i++)
 	{
+		if (keyframed_animations.at(i).getKeyframes().size() == 0)				//possible to not have keyframe.
+			continue;
+
 		keyframed_animations.at(i).addKeyFrameAtTime(0);	//add necessary keyframe
-		if(duration != 0)
-			keyframed_animations.at(i).addKeyFrameAtTime(duration - 1);	//add necessary keyframe
+
+		//last keyframe is needed only on ema. on ean that break perfect rebuild. so don't add it.
 	}
 }
 

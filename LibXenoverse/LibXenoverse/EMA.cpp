@@ -46,7 +46,7 @@ bool EMA::Load(const uint8_t *buf, unsigned int size)
 		EmaAnimation &animation = animations[i];
 		EMAAnimationHeader *ahdr = (EMAAnimationHeader *)GetOffsetPtr(buf, anim_offsets, i);
 
-		animation.duration = val16(ahdr->duration);
+		animation.duration = val16(ahdr->lastframeTime) + 1;
 		
 		animation.type = ahdr->type;
 		animation.light_unknow = ahdr->light_unknow;
@@ -156,6 +156,8 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 	uint32_t offset;
 
 
+	cleanAnimations();
+
 	file_size = CalculateFileSize();
 	uint8_t *buf = new uint8_t[file_size];
 
@@ -227,14 +229,14 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			nbAnimationNodes = (int16_t)65535;
 		}
 
-		ahdr->duration = val16(animation.duration);
+		ahdr->lastframeTime = val16( (animation.duration > 0) ? (animation.duration - 1) : 0 );
 		ahdr->cmd_count = val16(nbAnimationNodes);
 		ahdr->value_count = val32(animation.values.size());
 		ahdr->type = animation.type;
 		ahdr->light_unknow = animation.light_unknow;
 		ahdr->frame_float_size = val16(animation.frame_float_size);
 
-		size_t timesByteSize = (animation.duration > 0xFF) ? 0x20 : 0x0;
+		size_t timesByteSize = (animation.duration > 0x100) ? 0x20 : 0x0;							// (animation.duration > 0x100) == (lastKeyFrame > 0xFF) => have to change nbBytes for code frame index.
 		size_t indexesByteSize = (animation.values.size() > 0x3FFF) ? 0x40 : 0x0;
 
 
@@ -250,6 +252,7 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			EMAAnimationAnimNodeHeader *chdr = (EMAAnimationAnimNodeHeader *)GetOffsetPtr(buf, offset, true);
 			ahdr->animNode_offsets[j] = val32(EMO_BaseFile::DifPointer(buf + offset, ahdr));
 
+			
 			int16_t nbKfs = node.keyframes.size();
 			if (nbKfs > 65535)
 			{
@@ -264,7 +267,7 @@ uint8_t *EMA::CreateFile(unsigned int *psize)
 			else
 				chdr->bone_idx = val16(node.bone_idx);
 
-			timesByteSize = (animation.duration > 0xFF) ? 0x20 : node.timesByteSize;
+			timesByteSize = (animation.duration > 0x100) ? 0x20 : node.timesByteSize;			// (animation.duration > 0x100) == (lastKeyFrame > 0xFF) => have to change nbBytes for code frame index.
 			
 			chdr->transform = node.transform;
 			chdr->transformComponent = (node.transformComponent & 0x3) | ((node.noInterpolation) ? 0x4 : 0) | node.unknow_0 | node.unknow_1 | timesByteSize | indexesByteSize;
@@ -449,7 +452,7 @@ unsigned int EMA::CalculateFileSize() const
 		file_size += sizeof(EMAAnimationHeader) - sizeof(uint32_t);
 		file_size += nbAnimationNodes * sizeof(uint32_t);
 
-		size_t timesByteSize = (a.duration > 0xFF) ? 0x20 : 0x0;
+		size_t timesByteSize = (a.duration > 0x100) ? 0x20 : 0x0;							// (animation.duration > 0x100) == (lastKeyFrame > 0xFF) => have to change nbBytes for code frame index.
 		size_t indexesByteSize = (a.values.size() > 0x3FFF) ? 0x40 : 0x0;
 
 		for (uint16_t j = 0; j < nbAnimationNodes; j++)
@@ -466,7 +469,7 @@ unsigned int EMA::CalculateFileSize() const
 
 			file_size += sizeof(EMAAnimationAnimNodeHeader);
 
-			timesByteSize = (a.duration > 0xFF) ? 0x20 : c.timesByteSize;
+			timesByteSize = (a.duration > 0x100) ? 0x20 : c.timesByteSize;						// (animation.duration > 0x100) == (lastKeyFrame > 0xFF) => have to change nbBytes for code frame index.
 			if (!timesByteSize)
 				file_size += nbKfs;					//uint8
 			else
@@ -518,7 +521,88 @@ unsigned int EMA::CalculateFileSize() const
 
 
 
+float EMAAnimationNode::getDefaultValue(size_t anim_type)
+{
+	switch (anim_type)
+	{
+	case EMA_ANIM_TARGET_Object:
+	{
+		if((transform == 0) || (transform == 1))		// "Position" || "Rotation"
+		{
+			switch (transformComponent)
+			{
+			case 0: return 0.0f; // "x"
+			case 1: return 0.0f; // "y"
+			case 2: return 0.0f; // "z"
+			case 3: return 1.0f; // "w"
+			}
+		} else {										// "Scale"
+			return 1.0f;
+		}
+	}
+	break;
 
+	case EMA_ANIM_TARGET_Camera:
+	{
+		if (transform != 2)								// "Position"  "TargetPosition"
+		{
+			switch (transformComponent)
+			{
+			case 0: return 0.0f; // "x";
+			case 1: return 0.0f; // "y";
+			case 2: return 0.0f; // "z";
+			case 3: return 1.0f; // "w";
+			}
+		}else {
+			switch (transformComponent)					// "Camera"
+			{
+			case 0: return 0.0f; // "roll";
+			case 1: return 40.0f; // "focale";
+			}
+		}
+	}
+	break;
+
+
+	case EMA_ANIM_TARGET_Light:
+	{
+		if (transform == 0)						//"Position"
+		{
+			switch (transformComponent)
+			{
+			case 0: return 0.0f; // "x"
+			case 1: return 0.0f; // "y"
+			case 2: return 0.0f; // "z"
+			case 3: return 1.0f; // "w"
+			}
+
+		}else if (transform == 2) {				// "Color"
+			return 1.0f;
+			
+		}else if (transform == 3) {				// "DegradeDistance"
+			switch (transformComponent)
+			{
+			case 0: return 0.0f; // "start";
+			case 1: return 1.0f; // "end";
+			}
+		}
+	}
+	break;
+
+
+	case EMA_ANIM_TARGET_Material:
+	{
+		if (transform < 4) {								// "MatColX"
+			return 1.0f;
+
+		} else {											// "TexScrlX"
+			return 0.0f;
+		}
+	}
+	break;
+	}
+	return 0.0f;
+}
 
 
 
@@ -620,8 +704,8 @@ TiXmlDocument *EMA::Decompile() const
 			}
 		}
 		root->SetAttribute("hyp_haveFirstKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
-		root->SetAttribute("hyp_haveLastKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
-		root->SetAttribute("hyp_haveKeyframeOrdered", hyp_haveFirstKeyframe ? "true" : "false");
+		root->SetAttribute("hyp_haveLastKeyframeAsDuration", hyp_haveLastKeyframe ? "true" : "false");
+		root->SetAttribute("hyp_haveKeyframeOrdered", hyp_haveKeyframeOrdered ? "true" : "false");
 	}
 
 
@@ -920,6 +1004,8 @@ bool EmaAnimation::Compile(const TiXmlElement *root, EMO_Skeleton &skl)
 
 	root->QueryStringAttribute("name", &name);
 	root->QueryUnsignedAttribute("duration", &tmp); duration = (uint16_t)tmp;
+	if (duration <= 1)
+		duration = 1;
 	
 	root->QueryStringAttribute("target", &str);
 	type = ((str == "Object") ? EMA_ANIM_TARGET_Object : ((str == "Camera") ? EMA_ANIM_TARGET_Camera : ((str == "Light") ? EMA_ANIM_TARGET_Light : ((str == "Material") ? EMA_ANIM_TARGET_Material : EMO_BaseFile::GetUnsigned(str) ))));
@@ -2226,6 +2312,7 @@ EANKeyframe EMAAnimation_ByNode_ByTransform::getInterpolatedKeyframe(float time,
 
 	return kf;
 }
+
 float EMAAnimationNode::getInterpolatedKeyframeComponent(float time, std::vector<float> &values, float default_value)
 {
 	float value = default_value;
@@ -2324,6 +2411,213 @@ float EMAAnimationNode::getInterpolatedKeyframeComponent(float time, std::vector
 
 	return value;
 }
+
+
+/*-------------------------------------------------------------------------------\
+|                             sort						                         |
+\-------------------------------------------------------------------------------*/
+void EMAAnimationNode::sort()
+{
+	std::sort(keyframes.begin(), keyframes.end(), &EMAAnimationNode::timeOrder);
+
+
+	/*
+	size_t nbKeyFrames = keyframes.size();
+	size_t lastTime = (size_t)-1;
+	for (size_t i = 0; i < nbKeyFrames; i++)					//remove duplicate frames times. => apparently in ema you have duplicate frame. strange.
+	{
+		if ((i != 0) && (keyframes.at(i).time == lastTime))
+		{
+			keyframes.erase(keyframes.begin() + i);
+			nbKeyFrames--;
+			i--;
+			continue;
+		}
+		lastTime = keyframes.at(i).time;
+	}
+	*/
+}
+/*-------------------------------------------------------------------------------\
+|                             addKeyFrameAtTime			                         |
+\-------------------------------------------------------------------------------*/
+void EMAAnimationNode::addKeyFrameAtTime(size_t frame)
+{
+	size_t nbKf = keyframes.size();
+	if (nbKf == 0)										//can't add, there is not values to duplicate.
+		return;
+
+
+	if (frame < keyframes.at(0).time)
+	{
+		keyframes.insert(keyframes.begin(), keyframes.at(0));
+		keyframes.at(0).time = frame;
+		return;
+	}
+	if (frame > keyframes.back().time)
+	{
+		keyframes.push_back(keyframes.back());
+		keyframes.back().time = frame;
+		return;
+	}
+
+
+	size_t isFoundForInsert = (size_t)-1;
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if (keyframes.at(i).time == frame)
+		{
+			return;
+		}
+		else if (keyframes.at(i).time > frame) {
+			isFoundForInsert = i - 1;
+			break;
+		}
+	}
+
+	if (isFoundForInsert != (size_t)-1)
+	{
+		keyframes.insert(keyframes.begin() + isFoundForInsert, keyframes.at(isFoundForInsert + 1));
+		keyframes.at(isFoundForInsert).time = frame;
+	}	//normaly else is not possible.
+}
+
+/*-------------------------------------------------------------------------------\
+|                             cut						                         |
+\-------------------------------------------------------------------------------*/
+void EMAAnimationNode::cut(size_t indexKfStart, size_t indexKfEnd, std::vector<float> &values, float default_value, bool pushTo0)
+{
+	if ((keyframes.size() == 0) || (indexKfEnd < keyframes.at(0).time) || (indexKfStart > keyframes.back().time))		//exclusion
+	{
+		keyframes.clear();
+		return;
+	}
+
+	if (indexKfStart < keyframes.at(0).time)				//to avoid add strange values
+		indexKfStart = keyframes.at(0).time;
+	if (indexKfEnd > keyframes.back().time)
+		indexKfEnd = keyframes.back().time;
+
+
+	//we add keyframe for indexKfStart and indexKfEnd if necessary, if it's the case, it will be interpolated from others
+	bool haveAllreadyKf_Start = false;
+	bool haveAllreadyKf_End = false;
+	size_t nbKf = keyframes.size();
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if (keyframes.at(i).time == indexKfStart)
+		{
+			haveAllreadyKf_Start = true;
+			if (haveAllreadyKf_Start && haveAllreadyKf_End)
+				break;
+		}
+
+		if (keyframes.at(i).time == indexKfEnd)
+		{
+			haveAllreadyKf_End = true;
+			if (haveAllreadyKf_Start && haveAllreadyKf_End)
+				break;
+		}
+	}
+
+	if (!haveAllreadyKf_Start)
+	{
+		float value = getInterpolatedKeyframeComponent((float)indexKfStart, values, default_value);
+		size_t index = values.size();
+		values.push_back(value);
+
+		for (size_t i = 0; i < nbKf; i++)
+		{
+			if (keyframes.at(i).time > indexKfStart)
+			{
+				keyframes.insert(keyframes.begin() + (i - 1), EMAKeyframe(indexKfStart, index));
+				break;
+			}
+		}
+
+
+		nbKf = keyframes.size();
+	}
+	if (!haveAllreadyKf_End)
+	{
+		float value = getInterpolatedKeyframeComponent((float)indexKfStart, values, default_value);
+		size_t index = values.size();
+		values.push_back(value);
+
+
+		for (size_t i = 0; i < nbKf; i++)
+		{
+			if (keyframes.at(i).time > indexKfEnd)
+			{
+				keyframes.insert(keyframes.begin() + i, EMAKeyframe(indexKfStart, index));
+				break;
+			}
+		}
+
+		nbKf = keyframes.size();
+	}
+
+
+
+	//So now we can keep only keyframes in range.
+	vector<EMAKeyframe> keyframes_old = keyframes;
+
+	keyframes.clear();
+
+
+	for (size_t i = 0; i < nbKf; i++)
+	{
+		if ((keyframes_old.at(i).time >= indexKfStart) && (keyframes_old.at(i).time <= indexKfEnd))
+		{
+			keyframes.push_back(keyframes_old.at(i));
+			if (pushTo0)
+				keyframes.back().time -= indexKfStart;
+		}
+	}
+}
+/*-------------------------------------------------------------------------------\
+|                             cleanAnimations			                         |
+\-------------------------------------------------------------------------------*/
+void EMA::cleanAnimations()
+{
+	uint16_t nbAnimations = animations.size();
+	if (nbAnimations > 65535)
+		nbAnimations = 65535;
+
+	for (uint16_t i = 0; i < nbAnimations; i++)
+	{
+		const EmaAnimation &animation = animations[i];
+		int16_t nbAnimationNodes = animation.nodes.size();
+		if (nbAnimationNodes > 65535)
+			nbAnimationNodes = (int16_t)65535;
+
+		for (uint16_t j = 0; j < nbAnimationNodes; j++)
+		{
+			animations.at(i).nodes.at(j).cleanAnimationForDuration(animation.duration, animations.at(i).values, animations.at(i).nodes.at(j).getDefaultValue(type));							//that will clean keyframes up to the limit, and also add keyframe for the first time if missed (else there will have strange effect on animation or infinite loop  (case stages .ema))
+		}
+	}
+}
+
+/*-------------------------------------------------------------------------------\
+|                             cleanAnimationForDuration	                         |
+\-------------------------------------------------------------------------------*/
+void EMAAnimationNode::cleanAnimationForDuration(size_t duration, std::vector<float> &values, float default_value)
+{
+	if (keyframes.size() == 0)
+		return;
+
+	sort();			//order keyframes by time
+
+	cut(0, (duration != 0 ? (duration - 1) : 0), values, default_value, false);			//clean keyframes Up to the duration, and also add keyframes is interpolation
+
+	
+	addKeyFrameAtTime(0);	//add necessary keyframe
+
+	if(duration != 0)														//last keyframe is needed only on ema. on ean that break perfect rebuild.
+		addKeyFrameAtTime(duration - 1);	//add necessary keyframe
+}
+
+
+
 
 /*-------------------------------------------------------------------------------\
 |                             transformNameForXXXXXAnim						     |

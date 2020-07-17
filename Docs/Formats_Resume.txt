@@ -165,7 +165,10 @@ about the perfect rebuild,
 
 ******************************************************************************** ean
 
-Notice: the tools will try to have minimum* the first frame0, the last frame (duration - 1), keep frames ordered in time and remove keyframe up to duration. (*if there is minimum one keyframe)
+-if there is minimum one keyframe, the tools will try to have minimum:
+    -the first frame0, 
+    -keep frames ordered in time and remove keyframe up to duration.
+    -notice: contrary as Ema, you not need the last frame (duration - 1) ) . It's case on half of Sdbh files. Dbxv1 and 2 have the last frame.
 
 
 -[todo talk about float imprecision when conversion into degree, because it's more easy for modders, but we try to keep radians to test perfect rebuild]
@@ -199,7 +202,13 @@ Notice: the tools will try to have minimum* the first frame0, the last frame (du
 
 There is some material file, like SSSS ARG_00.mat.ema, use a boneIndex 0x2A = 42, but there is only 16 bones and also materials in ARG_00.emm. so we don't know what ref this case. but we have to keep refIndex in xml to get this case. 
 
-Notice: the tools will try to have minimum* the first frame0, the last frame (duration - 1), keep frames ordered in time and remove keyframe up to duration. (*if there is minimum one keyframe) 
+
+-if there is minimum one keyframe, the tools will try to have minimum:
+    -the first frame0,
+    -the last frame (duration - 1) ) 
+    -keep frames ordered in time and remove keyframe up to duration.
+
+
 
 -timesByteSize in xml is keeped because of some SSSS and SFIv files witch didn't respect the rule depending of duration (duration = nbFrames, so if it's up to 0xFF = 255, need 16 bits).
     BUT, I test the rule to pass into 16 bits (same if timesByteSize is 8bits) to avoid crash or strange effects.

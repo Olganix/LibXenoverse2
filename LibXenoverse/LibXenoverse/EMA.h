@@ -46,7 +46,7 @@ static_assert(sizeof(EMAHeader) == 0x20, "Incorrect structure size.");
 
 struct EMAAnimationHeader
 {
-	uint16_t duration;			// 0
+	uint16_t lastframeTime;		// 0				//it's like duration - 1
 	uint16_t cmd_count;			// 2
 	uint32_t value_count;		// 4
 	uint8_t type;				// 8
@@ -106,6 +106,7 @@ struct EMAKeyframe
 	uint8_t interpolation;			//0x4: isQuadraticBezier (a middle diff point for spline), 0x8: isCubicBezier (tangent start and end spline's segment), 0x: linear
 	
 	EMAKeyframe() { interpolation = 0; time = 0; index = 0; }
+	EMAKeyframe(uint16_t time, uint32_t index) { this->time = time; this->index = index; interpolation = 0; }
 
 	inline bool operator==(const EMAKeyframe &rhs) const { return (this->time == rhs.time && this->index == rhs.index && (this->interpolation == rhs.interpolation)); }
 	inline bool operator!=(const EMAKeyframe &rhs) const { return !(*this == rhs); }
@@ -144,7 +145,9 @@ public:
 	EMAAnimationNode() { bone_idx = 0;  bone = 0; transform = 0; transformComponent = 0; noInterpolation = false; unknow_0 = unknow_1 = 0; timesByteSize = 0; }
 	inline EMO_Bone *GetBone() { return bone; }
 	uint16_t getBoneIndex() { return bone_idx; }
+	uint8_t getTransform() { return transform; }
 	uint8_t getTransformComponent() { return transformComponent; }
+	float getDefaultValue(size_t anim_type);
 	inline uint16_t GetNumKeyframes() const { return keyframes.size(); }
 	inline bool RemoveKeyframe(uint16_t id) { if (id >= keyframes.size()) { return false; } keyframes.erase(keyframes.begin() + id); return true; }
 	inline bool operator==(const EMAAnimationNode &rhs) const { if (!this->bone) { if (rhs.bone) { return false; } } else if (!rhs.bone) { return false; } if ((this->bone) && (this->bone->GetName() != rhs.bone->GetName())) { return false; } return (this->transform == rhs.transform && this->transformComponent == rhs.transformComponent && this->keyframes == rhs.keyframes); }
@@ -162,6 +165,12 @@ public:
 	string transformNameForMaterialAnim();
 
 	float getInterpolatedKeyframeComponent(float time, std::vector<float> &values, float default_value);
+	void sort();
+	void addKeyFrameAtTime(size_t frame);
+	void cut(size_t indexKfStart, size_t indexKfEnd, std::vector<float> &values, float default_value, bool pushTo0 = true);
+	void cleanAnimationForDuration(size_t duration, std::vector<float> &values, float default_value);
+
+	static bool timeOrder(EMAKeyframe &a, EMAKeyframe &b) { return (a.time < b.time); }
 
 	void Decompile(TiXmlNode *root, const std::vector<float> &values, size_t anim_type, size_t duration) const;
 	bool Compile(const TiXmlElement *root, EMO_Skeleton &skl);
@@ -326,6 +335,8 @@ public:
 
 	void buildOrganizedNodes();
 	void clearOrganizedNodes();
+
+	void cleanAnimations();
 
 	virtual bool DecompileToFile(const std::string &path, bool show_error = true, bool build_path = false) override;
 	virtual bool CompileFromFile(const std::string &path, bool show_error = true, bool big_endian = false) override;

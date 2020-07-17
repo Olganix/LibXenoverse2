@@ -971,7 +971,7 @@ void EMA::write_Coloration(BinColorTag &binCt, TiXmlElement *parent, const uint8
 		binCt.write_Coloration_Tag("animNode_offsets_" + std::to_string(i), ToString(ahdr->cmd_count) + " * uint32_t", "", offset, ahdr->cmd_count * sizeof(uint32_t), "EMAAnimationHeader", parent, idTag++, incSection, incParam++, listBytesAllreadyTagged); offset += ahdr->cmd_count * sizeof(uint32_t);
 
 
-		animation.duration = val16(ahdr->duration);
+		animation.duration = val16(ahdr->lastframeTime) + 1;
 		animation.type = ahdr->type;
 		animation.light_unknow = ahdr->light_unknow;
 		animation.frame_float_size = val16(ahdr->frame_float_size);

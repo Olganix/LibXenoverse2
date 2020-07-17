@@ -107,11 +107,8 @@ size_t EANAnimation::write(File *file)
 	file->writeInt32E(&nodes_count);
 	file->writeInt32E(&nodes_offset);
 
-	/*
-	//todo reuse, but apparently for ean , it's not necessary , may be only for ema (I have done this when texting ema from 3dsmax, via fbx and ean conversions in betweeen)
-	for (size_t i = 0; i < nodes_count; i++)						//that will clean keyframes up to the limit, and also add keyframe for the last time (else there will have strange effect on animation or infinite loop  (case stage.ema))
+	for (size_t i = 0; i < nodes_count; i++)						//that will clean keyframes up to the limit, and also add keyframe for the first time if missed (else there will have strange effect on animation or infinite loop  (case stages .ema))
 		nodes.at(i).cleanAnimationForDuration(duration);
-	*/
 
 	size_t nodes_size = 0;
 	for (size_t i = 0; i < nodes_count; i++)

@@ -313,8 +313,8 @@ TiXmlElement* EAN::exportXml(void)
 			}
 		}
 		xmlCurrentNode->SetAttribute("hyp_haveFirstKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
-		xmlCurrentNode->SetAttribute("hyp_haveLastKeyframe", hyp_haveFirstKeyframe ? "true" : "false");
-		xmlCurrentNode->SetAttribute("hyp_haveKeyframeOrdered", hyp_haveFirstKeyframe ? "true" : "false");
+		xmlCurrentNode->SetAttribute("hyp_haveLastKeyframe", hyp_haveLastKeyframe ? "true" : "false");
+		xmlCurrentNode->SetAttribute("hyp_haveKeyframeOrdered", hyp_haveKeyframeOrdered ? "true" : "false");
 	}
 
 
